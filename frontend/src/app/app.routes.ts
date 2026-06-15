@@ -6,6 +6,7 @@ import { Dashboard } from './pages/dashboard/dashboard';
 import { Templates } from './pages/templates/templates';
 import { GenerateReport } from './pages/generate-report/generate-report';
 import { Archives } from './pages/archives/archives';
+import { PdfDesigner } from './pdf-designer/pdf-designer';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -18,6 +19,7 @@ export const routes: Routes = [
       { path: 'templates', component: Templates },
       { path: 'generate-report', component: GenerateReport },
       { path: 'archives', component: Archives },
+      { path: 'editor', component: PdfDesigner },
     ]
   },
   { path: '**', component: NotFound }
