@@ -56,7 +56,9 @@ public class SecurityConfig {
                 
                 // Any other endpoint (like /api/users/me) still requires a valid login
                 .anyRequest().authenticated()
-            );
+            )
+            // Register the custom JWT filter to run before the standard authentication filter
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
