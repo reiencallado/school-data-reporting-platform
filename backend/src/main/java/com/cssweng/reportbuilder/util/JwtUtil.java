@@ -10,6 +10,11 @@ import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Jwts;
 
+    // getter so authentication filter can access the secure key for verification
+    public SecretKey getSecretKey() {
+        return this.secretKey;
+    }
+
 @Component
 public class JwtUtil {
 
