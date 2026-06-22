@@ -16,4 +16,4 @@ The project is organized as a unified monorepo to cleanly separate concerns whil
   - `tsconfig.json` - TypeScript compiler configurations
 - **`.gitignore`** - Global workspace ignore boundaries
 - **`.prettierrc`** - Shared code-formatting configurations
-- **`README.md`** - This file
+- **`README.md`** - This file# test
