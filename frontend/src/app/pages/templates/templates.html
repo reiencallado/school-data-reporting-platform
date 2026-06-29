@@ -1,29 +1,118 @@
-<div class="templates-page">
-  <div class="page-header">
-    <h2 class="page-title">Report Templates</h2>
+<div class="templates-container">
+
+  <!-- Search Filters -->
+  <div class="section-card">
+    <h4 class="section-label">Search Filters</h4>
+    <div class="filter-row">
+      <input class="search-input" type="text" placeholder="Search templates..."
+             [(ngModel)]="search" />
+      <div class="dropdown-btn">
+        Category
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+    </div>
   </div>
 
-  <div class="templates-grid">
-    <div
-      class="template-card"
-      *ngFor="let t of templates"
-      (click)="openTemplate(t.id, t.name)"
-      [title]="t.name"
-    >
-      <div class="template-thumbnail">
-        <img [src]="t.image" [alt]="t.name" class="template-preview-img" />
+  <!-- Template Grid -->
+  <div class="template-grid">
+
+    <!-- CREATE card -->
+    <div class="template-card create-card" (click)="createTemplate()">
+      <div class="create-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
       </div>
-      <div class="template-label">{{ t.name }}</div>
     </div>
 
-    <div class="template-card add-card" (click)="addTemplate()">
-      <div class="template-thumbnail add-thumbnail">
-        <div class="add-icon">
-          <span class="h-bar"></span>
-          <span class="v-bar"></span>
+    <!-- Template cards -->
+    <div class="template-card"
+         *ngFor="let t of filteredTemplates"
+         (click)="previewTemplate(t)">
+
+      <!-- Kebab menu -->
+      <div class="kebab-wrapper" (click)="$event.stopPropagation()">
+        <button class="kebab-btn"
+                (click)="toggleMenu(t.id)"
+                [class.open]="openMenuId === t.id"
+                title="Options">
+          <span></span><span></span><span></span>
+        </button>
+
+        <div class="kebab-dropdown" *ngIf="openMenuId === t.id">
+          <button class="kebab-item" (click)="editTemplate(t); closeMenu()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit
+          </button>
+          <button class="kebab-item" (click)="previewTemplate(t); closeMenu()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            Preview
+          </button>
+          <div class="kebab-divider"></div>
+          <button class="kebab-item danger" (click)="deleteTemplate(t); closeMenu()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"/>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+              <path d="M10 11v6"/><path d="M14 11v6"/>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+            Delete
+          </button>
         </div>
       </div>
-      <div class="template-label">Add Template</div>
+
+      <!-- Document thumbnail -->
+      <div class="template-preview">
+        <div class="doc-header-bar">
+          <div class="doc-logo-placeholder"></div>
+          <div class="doc-header-lines">
+            <div class="doc-line bold w-70"></div>
+            <div class="doc-line w-80"></div>
+            <div class="doc-line w-60"></div>
+            <div class="doc-line w-70"></div>
+            <div class="doc-line w-50"></div>
+          </div>
+        </div>
+        <div class="doc-divider"></div>
+        <div class="doc-body">
+          <div class="doc-title-line"></div>
+          <div class="doc-salutation"></div>
+          <div class="doc-paragraph"></div>
+          <div class="doc-paragraph w-90"></div>
+          <div class="doc-paragraph w-70"></div>
+          <div class="doc-paragraph w-80 mt-4"></div>
+          <div class="doc-paragraph w-60"></div>
+          <div class="doc-paragraph w-75 mt-4"></div>
+          <div class="doc-paragraph w-50"></div>
+        </div>
+      </div>
+
+      <!-- Card footer -->
+      <div class="template-footer">
+        <div>
+          <span class="template-name">{{ t.name }}</span>
+          <span class="template-meta">Last used: {{ t.lastUsed }}</span>
+        </div>
+      </div>
+
     </div>
   </div>
+
 </div>
+
+<!-- Click-outside overlay to close any open menu -->
+<div class="menu-backdrop" *ngIf="openMenuId" (click)="closeMenu()"></div>

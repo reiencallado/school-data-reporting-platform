@@ -1,91 +1,401 @@
 <div class="generate-report-container">
-  
-  <div class="page-header">
-    <div class="title-area">
-      <h2 class="page-title">Generate Report</h2>
-      <span class="active-template-badge">Template: {{ templateName }}</span>
-    </div>
-    
-    <div class="filters-row">
-      <div class="filter-group">
-        <select [(ngModel)]="schoolYear" class="dashboard-select">
-          <option value="2025-2026">SY 2025-2026</option>
-          <option value="etc">etc</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <select [(ngModel)]="term" class="dashboard-select">
-          <option value="1st Semester">1st Semester</option>
-          <option value="etc">etc</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <select [(ngModel)]="gradeLevel" class="dashboard-select">
-          <option value="Grade 11">Grade 11</option>
-          <option value="etc">etc</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <select [(ngModel)]="section" class="dashboard-select">
-          <option value="AXX">Section AXX</option>
-          <option value="BXX">Section BXX</option>
-        </select>
-      </div>
+
+  <!-- ==== STEPPER ==== -->
+  <div class="stepper-card">
+    <div class="stepper">
+      <ng-container *ngFor="let step of steps; let i = index; let last = last">
+
+        <div class="step" [class.active]="currentStep === i + 1" [class.done]="currentStep > i + 1">
+          <div class="step-bubble">
+            <ng-container *ngIf="currentStep > i + 1">
+              <!-- Checkmark when done -->
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </ng-container>
+            <ng-container *ngIf="currentStep <= i + 1">{{ i + 1 }}</ng-container>
+          </div>
+          <span class="step-label">{{ step }}</span>
+        </div>
+
+        <div *ngIf="!last" class="step-line" [class.done]="currentStep > i + 1"></div>
+
+      </ng-container>
     </div>
   </div>
 
-  <div class="report-workspace-section">
-    
-    <div class="selection-control-header">
-      <h3 class="section-heading">Recipient Selection</h3>
-      <label class="select-all-label">
-        <input type="checkbox" [checked]="allSelected" (change)="toggleAll($event)" class="dashboard-checkbox" />
-        <span class="label-text">Select All ({{ students.length }} students)</span>
-      </label>
+
+  <!-- ==== STEP 1 — Select Template ==== -->
+  <ng-container *ngIf="currentStep === 1">
+
+    <!-- Search Filters -->
+    <div class="section-card">
+      <h4 class="section-label">Search Filters</h4>
+      <div class="filter-row">
+        <input class="search-input" type="text" placeholder="Search templates..."
+               [(ngModel)]="templateSearch" />
+        <div class="dropdown-btn">
+          Category
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+      </div>
     </div>
 
-    <div class="table-responsive">
-      <table class="dashboard-table">
-        <thead>
-          <tr>
-            <th width="40"></th>
-            <th>Student ID</th>
-            <th>Name</th>
-            <th>Section</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let s of students" [class.row-selected]="s.selected">
-            <td>
-              <input type="checkbox" [(ngModel)]="s.selected" class="dashboard-checkbox" />
-            </td>
-            <td>{{ s.id }}</td>
-            <td>{{ s.name }}</td>
-            <td>{{ s.section }}</td>
-            <td>
-              <span class="status-badge" [class.active]="s.status === 'Active'">
-                {{ s.status }}
+    <!-- Template Grid -->
+    <div class="template-grid">
+      <div class="template-card"
+           *ngFor="let t of filteredTemplates"
+           [class.selected]="selectedTemplate?.id === t.id"
+           (click)="selectTemplate(t)">
+
+        <!-- Checkmark badge -->
+        <div class="template-check" *ngIf="selectedTemplate?.id === t.id">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+
+        <!-- Document preview thumbnail -->
+        <div class="template-preview">
+          <div class="doc-header-bar">
+            <div class="doc-logo-placeholder"></div>
+            <div class="doc-header-lines">
+              <div class="doc-line w-60"></div>
+              <div class="doc-line w-80"></div>
+              <div class="doc-line w-70"></div>
+              <div class="doc-line w-50"></div>
+            </div>
+          </div>
+          <div class="doc-divider"></div>
+          <div class="doc-body-lines">
+            <div class="doc-title-line"></div>
+            <div class="doc-line w-40 mt-8"></div>
+            <div class="doc-paragraph"></div>
+            <div class="doc-paragraph short"></div>
+            <div class="doc-line w-80 mt-8"></div>
+            <div class="doc-line w-60"></div>
+          </div>
+        </div>
+
+        <!-- Card footer -->
+        <div class="template-footer">
+          <span class="template-name">{{ t.name }}</span>
+          <span class="template-meta">Last used: {{ t.lastUsed }}</span>
+        </div>
+
+      </div>
+    </div>
+
+  </ng-container>
+
+
+  <!-- ==== STEP 2 — Select Students ==== -->
+  <ng-container *ngIf="currentStep === 2">
+
+    <!-- Selected template banner -->
+    <div class="context-banner">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+      </svg>
+      <strong>{{ selectedTemplate?.name }}</strong>
+      <span class="banner-sub">— selected template</span>
+      <button class="banner-link" (click)="goToStep(1)">Change</button>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="section-card">
+      <h4 class="section-label">Search Filters</h4>
+      <div class="filter-row">
+        <input class="search-input" type="text" placeholder="Search students..."
+               [(ngModel)]="studentSearch" />
+        <div class="dropdown-btn">Grade Level
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        <div class="dropdown-btn">Strand
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        <div class="dropdown-btn">Section
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student Table -->
+    <div class="section-card no-pad">
+
+      <!-- Select all row -->
+      <div class="table-control-row">
+        <label class="checkbox-label">
+          <input type="checkbox" [checked]="allSelected" (change)="toggleSelectAll($event)" />
+          <span>Select all</span>
+        </label>
+        <span class="selection-count">{{ selectedStudents.size }} of {{ students.length }} selected</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="dashboard-table">
+          <thead>
+            <tr>
+              <th class="col-check">Generate</th>
+              <th>Student ID</th>
+              <th>Name</th>
+              <th>Grade Level</th>
+              <th>Strand</th>
+              <th>Section</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let s of students" [class.row-selected]="selectedStudents.has(s.id)">
+              <td class="col-check">
+                <input type="checkbox"
+                       [checked]="selectedStudents.has(s.id)"
+                       (change)="toggleStudent(s.id, $event)" />
+              </td>
+              <td class="mono muted">{{ s.id }}</td>
+              <td>{{ s.name }}</td>
+              <td>{{ s.gradeLevel }}</td>
+              <td>{{ s.strand }}</td>
+              <td>{{ s.section }}</td>
+              <td>
+                <span class="status-badge" [class.badge-active]="s.status === 'Active'"
+                      [class.badge-inactive]="s.status !== 'Active'">{{ s.status }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination-row">
+        <button class="page-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">&#8249;</button>
+        <ng-container *ngFor="let p of pageNumbers">
+          <button class="page-btn" [class.active]="p === currentPage" (click)="changePage(p)">{{ p }}</button>
+        </ng-container>
+        <span class="page-ellipsis">...</span>
+        <button class="page-btn" (click)="changePage(totalPages)">{{ totalPages }}</button>
+        <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">&#8250;</button>
+      </div>
+
+    </div>
+
+  </ng-container>
+
+
+  <!-- ==== STEP 3 — Fill Report Details ==== -->
+  <ng-container *ngIf="currentStep === 3">
+
+    <!-- Context banner -->
+    <div class="context-banner">
+      <strong>{{ selectedTemplate?.name }}</strong>
+      <span class="banner-dot">•</span>
+      <span class="banner-sub">{{ selectedStudents.size }} student(s) selected</span>
+    </div>
+
+    <!-- Document Fields -->
+    <div class="section-card">
+      <h4 class="section-label">Document Fields</h4>
+
+      <div class="form-grid">
+
+        <div class="form-field">
+          <label class="field-label">Academic year</label>
+          <input class="field-input" type="text" placeholder="e.g. 2025 - 2026"
+                 [(ngModel)]="reportDetails.academicYear" />
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Term</label>
+          <input class="field-input" type="text" placeholder="e.g. Term 1"
+                 [(ngModel)]="reportDetails.term" />
+        </div>
+
+        <!-- Date of issuance — split DD / MM / YYYY -->
+        <div class="form-field">
+          <label class="field-label">Date of issuance</label>
+          <div class="date-input-row">
+            <input class="field-input date-part" type="text" placeholder="DD" maxlength="2"
+                   [(ngModel)]="reportDetails.issuanceDay" />
+            <input class="field-input date-part" type="text" placeholder="MM" maxlength="2"
+                   [(ngModel)]="reportDetails.issuanceMonth" />
+            <input class="field-input date-part wide" type="text" placeholder="YYYY" maxlength="4"
+                   [(ngModel)]="reportDetails.issuanceYear" />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Issued by (signatory name)</label>
+          <input class="field-input" type="text" placeholder="e.g. Dr. John Dela Cruz"
+                 [(ngModel)]="reportDetails.signatoryName" />
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Signatory Title</label>
+          <input class="field-input" type="text" placeholder="e.g. Registrar"
+                 [(ngModel)]="reportDetails.signatoryTitle" />
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">Purpose</label>
+          <input class="field-input" type="text" placeholder="e.g. Employment"
+                 [(ngModel)]="reportDetails.purpose" />
+        </div>
+
+        <!-- Full-width remarks -->
+        <div class="form-field full-width">
+          <label class="field-label">Special notes / remarks <span class="optional">(optional)</span></label>
+          <textarea class="field-input field-textarea" rows="3"
+                    placeholder="e.g. This diploma is only valid for 30 days from date of issue."
+                    [(ngModel)]="reportDetails.remarks"></textarea>
+        </div>
+
+      </div>
+    </div>
+
+  </ng-container>
+
+
+  <!-- ==== STEP 4 — Confirm & Submit ==== -->
+  <ng-container *ngIf="currentStep === 4">
+    <div class="confirm-grid">
+
+      <!-- LEFT: Report Summary + Info notice -->
+      <div class="confirm-left">
+
+        <div class="section-card">
+          <h4 class="section-label">Report Summary</h4>
+          <div class="summary-list">
+            <div class="summary-row">
+              <span class="summary-key">Template</span>
+              <span class="summary-val">{{ selectedTemplate?.name }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">Academic year</span>
+              <span class="summary-val">{{ reportDetails.academicYear || '—' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">Term</span>
+              <span class="summary-val">{{ reportDetails.term || '—' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">Date of issuance</span>
+              <span class="summary-val">
+                {{ reportDetails.issuanceDay }}/{{ reportDetails.issuanceMonth }}/{{ reportDetails.issuanceYear }}
               </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">Issued by</span>
+              <span class="summary-val">{{ reportDetails.signatoryName || '—' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">Signatory Title</span>
+              <span class="summary-val">{{ reportDetails.signatoryTitle || '—' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">Purpose</span>
+              <span class="summary-val">{{ reportDetails.purpose || '—' }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-key">Students</span>
+              <span class="summary-val accent">{{ selectedStudents.size }} student(s)</span>
+            </div>
+          </div>
+        </div>
 
-  <div class="action-panel-card">
-    <div class="action-info">
-      <span class="summary-text" *ngIf="selectedCount > 0">
-        Ready to build report payloads for <strong>{{ selectedCount }}</strong> recipient(s).
+        <!-- Info notice -->
+        <div class="info-notice">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <p>Your report will be queued and processed. You'll get an
+             <strong>email notification</strong> and an <strong>in-app toast</strong>
+             when the batch is ready to download from Report Archives.</p>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: Document Preview -->
+      <div class="preview-card">
+        <div class="preview-header">
+          <span class="preview-title">Document preview</span>
+          <span class="preview-sub">Sample — first selected student</span>
+        </div>
+        <div class="preview-body">
+          <div class="doc-preview-sheet">
+            <!-- Simulated certificate preview -->
+            <div class="cert-header">
+              <div class="cert-seal"></div>
+              <div class="cert-header-lines">
+                <div class="cert-line bold w-70"></div>
+                <div class="cert-line w-80"></div>
+                <div class="cert-line w-60"></div>
+                <div class="cert-line w-70"></div>
+                <div class="cert-line w-50"></div>
+              </div>
+            </div>
+            <div class="cert-divider"></div>
+            <div class="cert-body">
+              <div class="cert-title">CERTIFICATE OF ENROLLMENT</div>
+              <div class="cert-salutation">TO WHOM IT MAY CONCERN:</div>
+              <div class="cert-paragraph"></div>
+              <div class="cert-paragraph short"></div>
+              <div class="cert-paragraph shorter"></div>
+              <div class="cert-signatory">
+                <div class="cert-line w-50 bold"></div>
+                <div class="cert-line w-30 mt-4"></div>
+              </div>
+              <div class="cert-footer-note">Not valid without school seal</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </ng-container>
+
+
+  <!-- ==== STICKY FOOTER NAV ==== -->
+  <div class="step-footer">
+    <div class="footer-left">
+      <span *ngIf="currentStep === 1 && selectedTemplate" class="footer-status">
+        1 template selected
       </span>
-      <span class="summary-text warning" *ngIf="selectedCount === 0">
-        Please select at least one student from the roster above to compile the document structure.
+      <span *ngIf="currentStep === 2" class="footer-status">
+        {{ selectedStudents.size }} student(s) selected
       </span>
     </div>
-    <button class="generate-action-btn" (click)="generateReport()" [disabled]="selectedCount === 0">
-      Generate Report ({{ selectedCount }})
-    </button>
+    <div class="footer-actions">
+      <button class="btn-secondary" (click)="onBack()">
+        {{ currentStep === 1 ? 'Cancel' : 'Back' }}
+      </button>
+      <button class="btn-primary" (click)="onNext()" [disabled]="!canProceed()">
+        <ng-container [ngSwitch]="currentStep">
+          <ng-container *ngSwitchCase="1">Next: Select students →</ng-container>
+          <ng-container *ngSwitchCase="2">Next: Set parameters →</ng-container>
+          <ng-container *ngSwitchCase="3">Next: Confirm &amp; submit →</ng-container>
+          <ng-container *ngSwitchCase="4">Generate</ng-container>
+        </ng-container>
+      </button>
+    </div>
   </div>
 
 </div>

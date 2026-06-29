@@ -21,7 +21,7 @@
     "@pdfme/generator": "^6.1.5",
     "@pdfme/schemas": "^6.1.5",
     "@pdfme/ui": "^6.1.5",
-    "rxjs": "~7.8.0",
+    "rxjs": "^7.8.0",
     "tslib": "^2.3.0"
   },
   "devDependencies": {

@@ -1,1 +1,92 @@
-/* You can add global styles to this file, and also import other style files */
+@import url('https://fonts.googleapis.com/css2?family=Maven+Pro:wght@400;500;600;700;800;900&display=swap');
+
+/* ── Global tokens ── */
+:root {
+  /* Font */
+  --font-base: 'Maven Pro', sans-serif;
+
+  /* --- BLUES --- */
+  --blue-1: #013157;
+  --blue-2: #00b0d4;
+  --blue-3: #55c0e7;
+  --blue-4: #e5f5fb;
+
+  /* --- GRAYS --- */
+  --black: #000000;
+  --gray-1: #555555;
+  --gray-2: #888888;
+  --gray-3: #bbbbbb;
+  --gray-4: #d9d9d9;
+
+  /* --- WHITES --- */
+  --white-1: #ffffff;
+  --white-2: #f9f9f9;
+  --white-3: #fbfbfb;
+
+  /* --- ORANGES --- */
+  --orange-1: #ff9a00;
+  --orange-2: #ff5c01;
+
+  /* --- GREENS --- */
+  --green-1: #27AE60;
+  --green-2: #dcf4d8;
+
+    /* Background */
+  --bg-gradient: linear-gradient(180deg, #E5F5FB 0%, #F9F9F9 50%, #E5F5FB 100%);
+
+
+  /* Semantic */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger:  #ef4444;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* ── Base reset ── */
+*, *::before, *::after { box-sizing: border-box; }
+
+@font-face {
+  font-family: 'Maven Pro';
+  src: url('./assets/fonts/MavenPro-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Maven Pro';
+  src: url('./assets/fonts/MavenPro-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Maven Pro';
+  src: url('./assets/fonts/MavenPro-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-base);
+  font-size: 14px;
+  color: var(--color-text-primary);
+  background: var(--bg-gradient);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+input, select, button, textarea {
+  font-family: var(--font-base);
+}
+
+a { text-decoration: none; }
