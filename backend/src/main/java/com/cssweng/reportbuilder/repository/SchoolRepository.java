@@ -10,5 +10,6 @@ import java.util.UUID;
 @Repository
 public interface SchoolRepository extends JpaRepository<School, UUID> {
     // Basic CRUD operations are automatically build by Spring Boot
-    // no need for any implementation code here
+    // ADDED: Instantly fetch a school entity using its unique code (DLSU, PUP, etc.)
+    Optional<School> findByCode(String code);
 }
