@@ -1,6 +1,9 @@
+version: '3.8'
+
 services:
   localstack:
     image: localstack/localstack:3.8.1
+    container_name: edusuite_localstack
     ports:
       - "4566:4566"
     environment:
@@ -9,9 +12,16 @@ services:
       - DEFAULT_REGION=us-east-1
     volumes:
       - localstack_data:/var/lib/localstack
+    # 1. ADDED HEALTHCHECK: Tells Docker how to verify LocalStack is completely booted up
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:4566/_localstack/health | grep -q '\\\"s3\\\": \\\"running\\\"'"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   postgres:
     image: postgres:16
+    container_name: edusuite_postgres
     ports:
       - "5432:5432"
     environment:
@@ -20,6 +30,34 @@ services:
       - POSTGRES_PASSWORD=hello123
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d edusuite_reports"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. ADDED AUTOMATIC INITIALIZER: This boots up, injects S3/SQS infrastructure, and turns off automatically
+  localstack-initializer:
+    image: amazon/aws-cli:2.15.15
+    container_name: edusuite_infrastructure_init
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+    entrypoint: /bin/sh -c
+    command: >
+      "
+      echo 'Waiting for LocalStack services to initialize...';
+      aws --endpoint-url=http://localstack:4566 s3api create-bucket --bucket document-maker-bucket --region us-east-1;
+      echo 'S3 Bucket \"document-maker-bucket\" provisioned successfully.';
+      
+      aws --endpoint-url=http://localstack:4566 sqs create-queue --queue-name my-queue.fifo --attributes FifoQueue=true,ContentBasedDeduplication=true --region us-east-1;
+      echo 'SQS FIFO Queue \"my-queue.fifo\" provisioned successfully.';
+      echo 'All cloud environments are ready for Spring Boot connection';
+      "
+    depends_on:
+      localstack:
+        condition: service_healthy
 
 volumes:
   localstack_data:
