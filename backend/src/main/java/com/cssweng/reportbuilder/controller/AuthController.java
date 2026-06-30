@@ -21,12 +21,12 @@ import com.cssweng.reportbuilder.util.JwtUtil;
 @CrossOrigin(origins = "*")
 public class AuthController {
 
-    private final UserDetailsService userDetailsService;
+    private final AppUserRepository userRepository; 
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    public AuthController(UserDetailsService userDetailsService, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
-        this.userDetailsService = userDetailsService;
+    public AuthController(AppUserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+        this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
     }
