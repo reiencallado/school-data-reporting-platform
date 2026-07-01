@@ -29,14 +29,22 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        String email = credentials.get("username"); 
+        // 1. Grab 'username' OR 'email' from the incoming Postman JSON
+        String identifier = credentials.get("username") != null ? credentials.get("username") : credentials.get("email");
         String password = credentials.get("password");
 
-        Optional<AppUser> userOptional = userRepository.findByEmail(email);
+        if (identifier == null || identifier.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Username or email is required."));
+        }
 
+        // 2. Query the database checking BOTH fields for that identifier
+        Optional<AppUser> userOptional = userRepository.findByNameOrEmail(identifier, identifier);
+
+        // 3. Verify the password if the user was found
         if (userOptional.isPresent() && passwordEncoder.matches(password, userOptional.get().getPassword())) {
             
             AppUser user = userOptional.get();
+            // Use their email as the subject string for the token passport
             String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
 
             return ResponseEntity.ok(Map.of(
@@ -46,6 +54,7 @@ public class AuthController {
             ));
         }
 
+        // 4. Return 401 if unauthorized
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
             "status", 401,
             "error", "Unauthorized",
