@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 import com.cssweng.reportbuilder.model.School;
 
 import java.util.UUID;
+import java.util.Optional;
 
 @Repository
 public interface SchoolRepository extends JpaRepository<School, UUID> {
