@@ -1,125 +1,312 @@
+/* ============================================================
+   REPORT ARCHIVES
+   ============================================================ */
+
 .archives-container {
-  padding: 24px;
-  background: #ffffff;
-  min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  font-family: system-ui, -apple-system, sans-serif;
-  box-sizing: border-box;
+  gap: 20px;
 }
 
-/* ── Page Header ── */
-.page-header {
-  margin-bottom: 4px;
+/* ── Shared section card ── */
+.section-card {
+  background: var(--white-1);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-xl);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
 }
 
-.page-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #2c2c2c;
-  margin: 0;
-  letter-spacing: 0.01em;
+.section-card.no-pad {
+  padding: 0;
+  overflow: hidden;
 }
 
-/* ── Archives Main Workspace Wrapper ── */
-.archives-section {
-  background: #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue-1);
+  margin: 0 0 16px;
+}
+
+/* ── Filter row ── */
+.filter-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-input {
   flex: 1;
+  height: 40px;
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-md);
+  padding: 0 14px;
+  font-family: var(--font-base);
+  font-size: 13px;
+  color: var(--blue-1);
+  background: var(--white-1);
+  outline: none;
+  transition: border-color 0.15s ease;
 }
 
-.section-header-row {
-  margin-bottom: 16px;
-}
+.search-input::placeholder { color: var(--gray-3); }
+.search-input:focus { border-color: var(--blue-3); }
 
-.section-heading {
-  font-size: 12px;
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  background: var(--blue-3);
+  color: var(--white-1);
+  border-radius: var(--radius-md);
+  font-size: 13px;
   font-weight: 600;
-  color: #222222;
-  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.15s ease;
 }
 
-/* ── Table Styling ── */
+.dropdown-btn:hover { background: var(--blue-2); }
+
+/* TABLE CONTROL ROW  (select-all + download-selected) */
+.table-control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gray-4);
+  gap: 12px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue-1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue-3);
+  cursor: pointer;
+}
+
+.control-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.selection-count {
+  font-size: 12px;
+  color: var(--gray-2);
+  white-space: nowrap;
+}
+
+.btn-download-all {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 16px;
+  background: var(--blue-1);
+  color: var(--white-1);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-base);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-download-all:hover:not(:disabled) {
+  background: var(--blue-2);
+}
+
+.btn-download-all:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
 .table-responsive {
   overflow-x: auto;
 }
 
-.dashboard-table {
+.archives-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 13px;
+}
+
+.archives-table th {
   text-align: left;
-}
-
-.dashboard-table th {
-  font-size: 11px;
-  font-weight: 600;
-  color: #222222;
-  padding: 10px 8px;
-  border-bottom: 1.5px solid #aaaaaa;
-}
-
-.dashboard-table td {
-  font-size: 11px;
-  font-weight: 500;
-  color: #333333;
-  padding: 12px 8px;
-  border-bottom: 1px solid #cccccc;
-}
-
-.font-semibold {
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-/* Alignments */
-.text-right {
-  text-align: right;
-}
-
-/* ── Status Badges ── */
-.status-badge {
-  display: inline-block;
-  font-size: 9px;
+  padding: 10px 14px;
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background: #999999;
-  color: #ffffff;
-  letter-spacing: 0.02em;
+  color: var(--blue-1);
+  border-bottom: 1px solid var(--gray-4);
+  white-space: nowrap;
 }
 
-.status-badge.completed {
-  background: #39ff73; 
-  color: #004d1a;
+.archives-table td {
+  padding: 11px 14px;
+  color: var(--blue-1);
+  border-bottom: 1px solid var(--white-2);
+  vertical-align: middle;
 }
 
-/*TODO: add other status-badge*/
+.archives-table tbody tr:last-child td {
+  border-bottom: none;
+}
 
-/* ── Table Download Button ── */
-.table-action-btn {
+.archives-table tbody tr:hover td {
+  background: var(--blue-4);
+}
+
+.archives-table tbody tr.row-selected td {
+  background: var(--blue-4);
+}
+
+.col-check {
+  width: 48px;
+  text-align: center !important;
+}
+
+.col-check input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--blue-3);
+  cursor: pointer;
+}
+
+.muted { color: var(--gray-2); }
+
+/* ── Type pill ── */
+.type-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  background: var(--blue-4);
+  color: var(--blue-2);
+}
+
+/* ── Status badge ── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.badge-done {
+  background: var(--green-2);
+  color: var(--green-1);
+}
+
+.badge-processing {
+  background: var(--blue-4);
+  color: var(--blue-2);
+}
+
+.badge-failed {
+  background: #fee2e2;
+  color: var(--color-danger);
+}
+
+/* ── Per-row download button ── */
+.btn-download {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #2b2b2b;
-  color: #ffffff;
+  height: 30px;
+  padding: 0 14px;
+  background: var(--blue-1);
+  color: var(--white-1);
   border: none;
-  border-radius: 4px;
-  padding: 6px 12px;
-  font-size: 10.5px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-base);
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s;
+  white-space: nowrap;
+  transition: background 0.15s ease, opacity 0.15s ease;
 }
 
-.table-action-btn:hover {
-  background: #1a1a1a;
+.btn-download:hover:not(:disabled) {
+  background: var(--blue-2);
 }
 
-.btn-icon {
-  width: 11px;
-  height: 11px;
-  stroke: currentColor;
+.btn-download:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ==== PAGINATION ==== */
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px;
+  border-top: 1px solid var(--gray-4);
+}
+
+.page-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: var(--blue-4);
+  color: var(--blue-1);
+}
+
+.page-btn.active {
+  background: var(--blue-3);
+  color: var(--white-1);
+  font-weight: 700;
+}
+
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.page-ellipsis {
+  color: var(--gray-3);
+  font-size: 13px;
+  padding: 0 4px;
 }

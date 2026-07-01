@@ -7,6 +7,7 @@ import { Templates } from './pages/templates/templates';
 import { GenerateReport } from './pages/generate-report/generate-report';
 import { Archives } from './pages/archives/archives';
 import { PdfDesigner } from './pdf-designer/pdf-designer';
+import { Students } from './pages/students/students';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -15,11 +16,12 @@ export const routes: Routes = [
     path: '',
     component: Layout,
     children: [
-      { path: 'dashboard', component: Dashboard },
-      { path: 'templates', component: Templates },
-      { path: 'generate-report', component: GenerateReport },
-      { path: 'archives', component: Archives },
-      { path: 'editor', component: PdfDesigner },
+      { path: 'dashboard', component: Dashboard}, 
+      { path: 'templates', component: Templates},
+      { path: 'generate-report', component: GenerateReport},
+      { path: 'archives', component: Archives},
+      { path: 'editor', component: PdfDesigner},
+      { path: 'students', component: Students},
     ]
   },
   { path: '**', component: NotFound }

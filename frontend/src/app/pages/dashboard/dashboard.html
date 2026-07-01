@@ -1,35 +1,190 @@
 <div class="dashboard-container">
-  
+
+  <!-- ==== METRIC CARDS ==== -->
   <div class="metrics-row">
     <div class="metric-card">
-      <div class="metric-label">Total Students</div>
+      <div class="metric-icon icon-bg-blue">
+        <!-- students icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
       </div>
-    <div class="metric-card">
-      <div class="metric-label">Active Students</div>
+      <div class="metric-body">
+        <span class="metric-label">Total Students</span>
+        <span class="metric-value">{{ metrics.totalStudents | number }}</span>
+        <span class="metric-delta positive">+{{ metrics.newStudentsThisMonth }} this month</span>
+      </div>
     </div>
+
     <div class="metric-card">
-      <div class="metric-label">Reports Generated</div>
+      <div class="metric-icon icon-bg-green">
+        <!-- active icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+      </div>
+      <div class="metric-body">
+        <span class="metric-label">Active Students</span>
+        <span class="metric-value">{{ metrics.activeStudents | number }}</span>
+        <span class="metric-delta positive">+{{ metrics.newActiveThisMonth }} this month</span>
+      </div>
     </div>
+
     <div class="metric-card">
-      <div class="metric-label">Templates</div>
+      <div class="metric-icon icon-bg-orange">
+        <!-- reports icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+      </div>
+      <div class="metric-body">
+        <span class="metric-label">Reports Generated</span>
+        <span class="metric-value">{{ metrics.reportsGenerated | number }}</span>
+        <span class="metric-delta positive">+{{ metrics.newReportsThisMonth }} this month</span>
+      </div>
     </div>
+
+    <div class="metric-card">
+      <div class="metric-icon icon-bg-blue-soft">
+        <!-- templates icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+      </div>
+      <div class="metric-body">
+        <span class="metric-label">Templates</span>
+        <span class="metric-value">{{ metrics.templates }}</span>
+        <span class="metric-delta positive">+{{ metrics.newTemplatesThisMonth }} this month</span>
+      </div>
+    </div>
+
+    <!-- Admin-only metric -->
+    <div class="metric-card" *ngIf="isAdmin">
+      <div class="metric-icon icon-bg-purple">
+        <!-- users icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M20 21a8 8 0 1 0-16 0"/>
+        </svg>
+      </div>
+      <div class="metric-body">
+        <span class="metric-label">System Users</span>
+        <span class="metric-value">{{ metrics.systemUsers }}</span>
+        <span class="metric-delta positive">+{{ metrics.newUsersThisMonth }} this month</span>
+      </div>
+    </div>
+
   </div>
 
+
+  <!-- ==== QUICK ACTIONS ==== -->
   <div class="dashboard-section">
-    <h3 class="section-heading">Quick Actions</h3>
+    <div class="section-header">
+      <h3 class="section-heading">Quick Actions</h3>
+    </div>
     <div class="quick-actions-grid">
-      <div class="action-card"></div>
-      <div class="action-card"></div>
-      <div class="action-card"></div>
-      <div class="action-card"></div>
-      <div class="action-card"></div>
+
+      <button class="action-card" routerLink="/students/new">
+        <div class="action-icon icon-bg-blue">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/>
+            <line x1="23" y1="11" x2="17" y2="11"/>
+          </svg>
+        </div>
+        <div class="action-body">
+          <span class="action-label">Add New Student</span>
+          <span class="action-desc">Register a new student</span>
+        </div>
+      </button>
+
+      <button class="action-card" routerLink="/reports/generate">
+        <div class="action-icon icon-bg-orange">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+          </svg>
+        </div>
+        <div class="action-body">
+          <span class="action-label">Generate Report</span>
+          <span class="action-desc">Create custom reports</span>
+        </div>
+      </button>
+
+      <button class="action-card" routerLink="/reports/generate" [queryParams]="{type: 'diploma'}">
+        <div class="action-icon icon-bg-green">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="8" r="6"/>
+            <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/>
+          </svg>
+        </div>
+        <div class="action-body">
+          <span class="action-label">Generate Diploma</span>
+          <span class="action-desc">Create diplomas</span>
+        </div>
+      </button>
+
+      <button class="action-card" routerLink="/editor">
+        <div class="action-icon icon-bg-blue-soft">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 16 12 12 8 16"/>
+            <line x1="12" y1="12" x2="12" y2="21"/>
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+          </svg>
+        </div>
+        <div class="action-body">
+          <span class="action-label">Create Template</span>
+          <span class="action-desc">Add a new template</span>
+        </div>
+      </button>
+
+      <button class="action-card" routerLink="/reports/archives">
+        <div class="action-icon icon-bg-blue-soft">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="21 8 21 21 3 21 3 8"/>
+            <rect x="1" y="3" width="22" height="5"/>
+            <line x1="10" y1="12" x2="14" y2="12"/>
+          </svg>
+        </div>
+        <div class="action-body">
+          <span class="action-label">View Archives</span>
+          <span class="action-desc">Access archived reports</span>
+        </div>
+      </button>
+
     </div>
   </div>
 
+
+  <!-- ==== TABLES ROW ==== -->
   <div class="tables-grid">
-    
+
+    <!-- Recent Students -->
     <div class="dashboard-section table-wrapper">
-      <h3 class="section-heading">Students / Applicants</h3>
+      <div class="section-header">
+        <h3 class="section-heading">Recent Students</h3>
+        <a routerLink="/students" class="view-all-link">View All</a>
+      </div>
       <div class="table-responsive">
         <table class="dashboard-table">
           <thead>
@@ -43,12 +198,14 @@
           </thead>
           <tbody>
             <tr *ngFor="let s of students">
-              <td>{{ s.id }}</td>
+              <td class="mono muted">{{ s.id }}</td>
               <td>{{ s.name }}</td>
               <td>{{ s.section }}</td>
               <td>{{ s.cgpa }}</td>
               <td>
-                <span class="status-badge" [class.active]="s.status === 'Active'">
+                <span class="status-badge"
+                      [class.badge-active]="s.status === 'Active'"
+                      [class.badge-inactive]="s.status !== 'Active'">
                   {{ s.status }}
                 </span>
               </td>
@@ -58,8 +215,12 @@
       </div>
     </div>
 
+    <!-- Recent Reports -->
     <div class="dashboard-section table-wrapper">
-      <h3 class="section-heading">Reports Generated</h3>
+      <div class="section-header">
+        <h3 class="section-heading">Recent Reports</h3>
+        <a routerLink="/reports/archives" class="view-all-link">View All</a>
+      </div>
       <div class="table-responsive">
         <table class="dashboard-table">
           <thead>
@@ -67,15 +228,15 @@
               <th>Report Name</th>
               <th>Type</th>
               <th>Generated By</th>
-              <th>Date Generated</th>
+              <th>Date</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let r of reports">
               <td>{{ r.name }}</td>
-              <td>{{ r.type }}</td>
-              <td>{{ r.by }}</td>
-              <td>{{ r.date }}</td>
+              <td><span class="type-pill">{{ r.type }}</span></td>
+              <td class="muted">{{ r.by }}</td>
+              <td class="muted">{{ r.date }}</td>
             </tr>
           </tbody>
         </table>
@@ -83,4 +244,62 @@
     </div>
 
   </div>
+
+
+  <!-- ==== SYSTEM OVERVIEW — Admin only ==== -->
+  <div class="dashboard-section" *ngIf="isAdmin">
+    <div class="section-header">
+      <h3 class="section-heading">System Overview</h3>
+      <a routerLink="/admin/logs" class="view-all-link">View Logs</a>
+    </div>
+    <div class="overview-grid">
+
+      <div class="overview-card">
+        <span class="overview-label">Active Sessions</span>
+        <span class="overview-value">{{ systemOverview.activeSessions }}</span>
+        <div class="overview-bar">
+          <div class="overview-bar-fill" [style.width.%]="systemOverview.sessionLoad"></div>
+        </div>
+        <span class="overview-sub">{{ systemOverview.sessionLoad }}% of capacity</span>
+      </div>
+
+      <div class="overview-card">
+        <span class="overview-label">Storage Used</span>
+        <span class="overview-value">{{ systemOverview.storageUsedGb }} GB</span>
+        <div class="overview-bar">
+          <div class="overview-bar-fill" [style.width.%]="systemOverview.storagePercent"></div>
+        </div>
+        <span class="overview-sub">{{ systemOverview.storagePercent }}% of {{ systemOverview.storageTotalGb }} GB</span>
+      </div>
+
+      <div class="overview-card">
+        <span class="overview-label">Reports This Month</span>
+        <span class="overview-value">{{ systemOverview.reportsThisMonth }}</span>
+        <div class="overview-bar">
+          <div class="overview-bar-fill bar-green" [style.width.%]="systemOverview.reportsPercent"></div>
+        </div>
+        <span class="overview-sub">vs {{ systemOverview.reportsLastMonth }} last month</span>
+      </div>
+
+      <div class="overview-card">
+        <span class="overview-label">Failed Logins (24h)</span>
+        <span class="overview-value">{{ systemOverview.failedLogins }}</span>
+        <div class="overview-bar">
+          <div class="overview-bar-fill bar-orange" [style.width.%]="systemOverview.failedLoginPercent"></div>
+        </div>
+        <span class="overview-sub">{{ systemOverview.failedLoginPercent }}% anomaly rate</span>
+      </div>
+
+      <div class="overview-card">
+        <span class="overview-label">Pending Approvals</span>
+        <span class="overview-value">{{ systemOverview.pendingApprovals }}</span>
+        <div class="overview-bar">
+          <div class="overview-bar-fill bar-orange" [style.width.%]="systemOverview.pendingPercent"></div>
+        </div>
+        <span class="overview-sub">Awaiting admin review</span>
+      </div>
+
+    </div>
+  </div>
+
 </div>

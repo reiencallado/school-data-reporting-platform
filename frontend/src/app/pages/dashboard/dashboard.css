@@ -1,71 +1,232 @@
+/* DASHBOARD — School Admin Portal */
+
+/* ── Page wrapper ── */
 .dashboard-container {
-  padding: 24px;
-  background: #ffffff;
-  min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  font-family: system-ui, -apple-system, sans-serif;
+  gap: 20px;
 }
 
-/* ── Metrics Cards ── */
-.metrics-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.metric-card {
-  background: #e0e0e0;
-  border-radius: 8px;
-  padding: 20px;
-  height: 90px;
-  box-sizing: border-box;
-}
-
-.metric-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #333333;
-}
-
-/* ── Section Headings ── */
+/* ====   SHARED: Section card ==== */
 .dashboard-section {
-  background: #e0e0e0;
-  border-radius: 8px;
-  padding: 16px;
+  background: var(--white-1);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-xl);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
 .section-heading {
-  font-size: 12px;
-  font-weight: 600;
-  color: #222222;
-  margin: 0 0 14px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--blue-1);
+  margin: 0;
+  letter-spacing: 0.1px;
 }
 
-/* ── Quick Actions ── */
+.view-all-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue-2);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.view-all-link:hover {
+  color: var(--blue-3);
+  text-decoration: underline;
+}
+
+/* ==== METRIC CARDS ROW ==== */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1200px) {
+  .metrics-row { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .metrics-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.metric-card {
+  background: var(--white-1);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-xl);
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.metric-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.metric-icon {
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.metric-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.metric-label {
+  font-size: 11.5px;
+  color: var(--gray-2);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.metric-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--blue-1);
+  line-height: 1.1;
+}
+
+.metric-delta {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.metric-delta.positive {
+  color: var(--green-1);
+}
+
+/* ICON BACKGROUND COLOR VARIANTS */
+.icon-bg-blue {
+  background-color: var(--blue-4);
+  color: var(--blue-2);
+}
+
+.icon-bg-blue-soft {
+  background-color: var(--blue-4);
+  color: var(--blue-3);
+}
+
+.icon-bg-green {
+  background-color: var(--green-2);
+  color: var(--green-1);
+}
+
+.icon-bg-orange {
+  background-color: #fff3e0;       /* light orange ; outside edusuite tokens */
+  color: var(--orange-1);
+}
+
+.icon-bg-purple {
+  background-color: #f0edff;
+  color: #7c6fe0;
+}
+
+/* ==== QUICK ACTIONS ==== */
 .quick-actions-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
+  gap: 12px;
+}
+
+@media (max-width: 1200px) {
+  .quick-actions-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 .action-card {
-  background: #ffffff;
-  border-radius: 6px;
-  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--white-2);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: var(--font-base);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* ── Dual Side-by-Side Tables Layout ── */
+.action-card:hover {
+  background: var(--blue-4);
+  border-color: var(--blue-3);
+  box-shadow: 0 2px 8px rgba(0, 176, 212, 0.12);
+}
+
+.action-icon {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.action-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.action-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.action-desc {
+  font-size: 11px;
+  color: var(--gray-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==== TABLES GRID ==== */
 .tables-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  align-items: start;
+}
+
+@media (max-width: 960px) {
+  .tables-grid { grid-template-columns: 1fr; }
 }
 
 .table-wrapper {
-  min-height: 380px;
+  min-width: 0;
 }
 
 .table-responsive {
@@ -75,38 +236,142 @@
 .dashboard-table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
+  font-size: 13px;
 }
 
 .dashboard-table th {
-  font-size: 11px;
-  font-weight: 600;
-  color: #222222;
-  padding: 8px 6px;
-  border-bottom: 1.5px solid #aaaaaa;
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--gray-2);
+  border-bottom: 1px solid var(--gray-4);
+  white-space: nowrap;
 }
 
 .dashboard-table td {
-  font-size: 11px;
-  font-weight: 500;
-  color: #333333;
-  padding: 10px 6px;
-  border-bottom: 1px solid #cccccc;
+  padding: 10px 10px;
+  color: var(--blue-1);
+  border-bottom: 1px solid var(--white-2);
+  vertical-align: middle;
 }
 
-/* ── Green Status Pill Badge ── */
+.dashboard-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dashboard-table tbody tr:hover td {
+  background-color: var(--white-2);
+}
+
+/* ── Utility cell modifiers ── */
+.mono {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.muted {
+  color: var(--gray-2);
+}
+
+/* ── Status badge ── */
 .status-badge {
-  display: inline-block;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background: #999999;
-  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.status-badge.active {
-  background: #39ff73; 
-  color: #004d1a;
+.badge-active {
+  background-color: var(--green-2);
+  color: var(--green-1);
+}
+
+.badge-inactive {
+  background-color: var(--white-2);
+  color: var(--gray-2);
+}
+
+/* ── Report type pill ── */
+.type-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  background-color: var(--blue-4);
+  color: var(--blue-2);
+  white-space: nowrap;
+}
+
+/* ==== SYSTEM OVERVIEW (admin only) ==== */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 1200px) {
+  .overview-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .overview-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.overview-card {
+  background: var(--white-2);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.overview-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gray-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.overview-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--blue-1);
+  line-height: 1;
+}
+
+.overview-bar {
+  height: 5px;
+  background: var(--gray-4);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+.overview-bar-fill {
+  height: 100%;
+  background: var(--blue-3);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.overview-bar-fill.bar-green {
+  background: var(--green-1);
+}
+
+.overview-bar-fill.bar-orange {
+  background: var(--orange-1);
+}
+
+.overview-sub {
+  font-size: 11px;
+  color: var(--gray-3);
 }

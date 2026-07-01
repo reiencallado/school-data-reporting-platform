@@ -1,0 +1,244 @@
+/* --- PAGE WRAPPER GRID CANVAS --- */
+.students-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: 100%;
+}
+
+.panel-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--blue-1);
+  margin: 0 0 20px 0;
+}
+
+/* ── Shared section card ── */
+.section-card {
+  background: var(--white-1);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-xl);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue-1);
+  margin: 0 0 16px;
+}
+
+/* ── Filter row alignment ── */
+.filter-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  height: 40px;
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-md);
+  padding: 0 14px;
+  font-family: var(--font-base);
+  font-size: 13px;
+  color: var(--blue-1);
+  background: var(--white-1);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.search-input::placeholder { color: var(--gray-3); }
+.search-input:focus { border-color: var(--blue-3); }
+
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  background: var(--blue-3);
+  color: var(--white-1);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.15s ease;
+  min-width: 140px; /* Optional: standardizes drop sizing */
+}
+
+.dropdown-btn:hover { background: var(--blue-2); }
+
+/* ── Floating dropdown adjustment ── */
+.checkbox-dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-checkbox-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0; /* Aligning right to maintain filter edge limits */
+  min-width: 180px;
+  background-color: var(--surface-pure-white);
+  border: 1px solid var(--gray-4);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 1010;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.checkbox-option-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--blue-1);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.checkbox-option-label:hover {
+  background-color: var(--blue-4);
+}
+
+.checkbox-option-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--blue-3);
+  cursor: pointer;
+}
+
+/* --- DATAGRID ROSTER DESIGNS --- */
+.table-responsive-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.students-data-grid {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.students-data-grid th {
+  color: var(--blue-1);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 16px 12px;
+  border-bottom: 2px solid var(--blue-4);
+}
+
+.students-data-grid td {
+  padding: 18px 12px;
+  font-size: 14px;
+  color: #333333;
+  border-bottom: 1px solid #F0F2F5;
+}
+
+.id-cell-text {
+  color: var(--blue-2);
+  font-weight: 600;
+}
+
+.student-name-text {
+  font-weight: 500;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* --- STATUS CAPSULE BADGES --- */
+.status-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--green-1);
+  color: var(--white-1);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 20px;
+  min-width: 76px;
+  text-transform: capitalize;
+}
+
+.status-pill-badge.status-inactive {
+  background-color: var(--gray-4);
+  color: var(--gray-2);
+}
+
+/* --- PAGINATION CONTROLS --- */
+.pagination-footer-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 32px;
+}
+
+.pagination-step-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background-color: transparent;
+  color: var(--blue-3);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-step-btn:hover:not(:disabled) {
+  background-color: var(--blue-4);
+}
+
+.pagination-step-btn:disabled {
+  color: var(--gray-4);
+  cursor: not-allowed;
+}
+
+.pagination-pages-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-number-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background-color: transparent;
+  color: #718096;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-number-btn:hover {
+  background-color: #F7FAFC;
+  color: var(--blue-3);
+}
+
+.page-number-btn.is-active-page {
+  background-color: var(--blue-3);
+  color: var(--surface-pure-white) !important;
+}
