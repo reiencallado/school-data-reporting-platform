@@ -1,19 +1,15 @@
 package com.cssweng.reportbuilder.controller;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import com.cssweng.reportbuilder.model.AppUser;
+import com.cssweng.reportbuilder.repository.AppUserRepository;
 import com.cssweng.reportbuilder.util.JwtUtil;
 
 @RestController
@@ -33,33 +29,23 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        String username = credentials.get("username");
+        String email = credentials.get("username"); 
         String password = credentials.get("password");
 
-        try {
-            // 1. Fetch the user details from hardcoded store
-            UserDetails user = userDetailsService.loadUserByUsername(username);
+        Optional<AppUser> userOptional = userRepository.findByEmail(email);
 
-            // 2. Verify if the raw password matches hashed password
-            if (passwordEncoder.matches(password, user.getPassword())) {
-                
-                // 3. Extract the primary role string (e.g., ROLE_ADMIN)
-                String role = user.getAuthorities().iterator().next().getAuthority();
-                
-                // 4. Generate signed JWT token
-                String token = jwtUtil.generateToken(username, role);
+        if (userOptional.isPresent() && passwordEncoder.matches(password, userOptional.get().getPassword())) {
+            
+            AppUser user = userOptional.get();
+            String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
 
-                return ResponseEntity.ok(Map.of(
-                    "status", 200,
-                    "message", "Login successful!",
-                    "token", token
-                ));
-            }
-        } catch (UsernameNotFoundException e) {
-            // Fall through to unauthorized block
+            return ResponseEntity.ok(Map.of(
+                "status", 200,
+                "message", "Login successful!",
+                "token", token
+            ));
         }
 
-        // 401 UNAUTHORIZED: Match the acceptance criteria requirements exactly
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
             "status", 401,
             "error", "Unauthorized",
