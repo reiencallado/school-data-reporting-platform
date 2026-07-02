@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet, ActivatedRoute, NavigationEnd } from '@angular/router';
-// import { AuthService } from '../../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-layout',
@@ -25,7 +25,7 @@ export class Layout implements OnInit {
   userInitial = 'U';
   isAdmin     = true;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private authService: AuthService) {}
 
   // ── Lifecycle ────────────────────────────────────────────
   ngOnInit(): void {
@@ -42,6 +42,7 @@ export class Layout implements OnInit {
   // ── Auth 
   logout(): void {
     // this.authService.logout();
+    this.authService.logout();
     this.router.navigate(['/login']);
   }
 
