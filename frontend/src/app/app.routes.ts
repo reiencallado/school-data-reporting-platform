@@ -8,6 +8,7 @@ import { GenerateReport } from './pages/generate-report/generate-report';
 import { Archives } from './pages/archives/archives';
 import { PdfDesigner } from './pdf-designer/pdf-designer';
 import { Students } from './pages/students/students';
+import { authGuard } from './services/auth-guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -15,6 +16,7 @@ export const routes: Routes = [
   {
     path: '',
     component: Layout,
+    canActivate: [authGuard],
     children: [
       { path: 'dashboard', component: Dashboard}, 
       { path: 'templates', component: Templates},
