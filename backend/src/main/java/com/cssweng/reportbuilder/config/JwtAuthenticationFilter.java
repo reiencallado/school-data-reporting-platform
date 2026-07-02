@@ -60,8 +60,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             } catch (Exception e) {
-                // If the token is expired, forged, or invalid, do nothing. 
-                // Spring Security will automatically block them with a 401 Unauthorized later.
+                System.out.println("JWT validation failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
             }
         }
 

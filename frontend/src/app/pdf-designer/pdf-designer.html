@@ -1,5 +1,24 @@
 <div class="page-header">
-    <h2 class="page-title">PDF Editor</h2>
+    <input
+        class="template-title-input"
+        type="text"
+        [(ngModel)]="currentName"
+        (blur)="saveTemplate()"
+        placeholder="Untitled Template"
+    />
+
+    <select
+        *ngIf="!templateId"
+        class="school-select"
+        [(ngModel)]="currentSchoolId"
+    >
+        <option value="" disabled selected>Select a school...</option>
+        <option *ngFor="let school of schools" [value]="school.id">{{ school.name }}</option>
+    </select>
+
+    <button class="save-btn" (click)="saveTemplate()">Save</button>
 </div>
+
+<p class="save-error" *ngIf="saveError">{{ saveError }}</p>
 
 <div id="designer"></div>

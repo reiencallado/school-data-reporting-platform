@@ -1,6 +1,13 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { Designer } from '@pdfme/ui';
 import { text, barcodes, image, multiVariableText, rectangle, ellipse, line, table } from '@pdfme/schemas';
+import { ReportTemplateService } from '../services/report-template.service';
+import { ReportTemplate } from '../services/report-template.model';
+import { HttpErrorResponse } from '@angular/common/http';
 
 const PLUGINS = {
   Text: text,
@@ -14,21 +21,148 @@ const PLUGINS = {
   Ellipse: ellipse,
 };
 
+const BLANK_TEMPLATE = {
+  basePdf: { width: 210, height: 297, padding: [10, 10, 10, 10] },
+  schemas: [[]],
+};
+
+// Known seed schools (from the reseed.sql script). Placeholder until a real
+// GET /api/schools endpoint + dropdown fetch exists.
+export const SEED_SCHOOLS = [
+  { id: '11111111-1111-1111-1111-111111111111', name: 'Ateneo de Manila University' },
+  { id: '22222222-2222-2222-2222-222222222222', name: 'De La Salle University' },
+  { id: '33333333-3333-3333-3333-333333333333', name: 'University of the Philippines Diliman' },
+  { id: '44444444-4444-4444-4444-444444444444', name: 'University of Santo Tomas' },
+  { id: '55555555-5555-5555-5555-555555555555', name: 'Mapúa University' },
+  { id: '66666666-6666-6666-6666-666666666666', name: 'Polytechnic University of the Philippines' },
+  { id: '77777777-7777-7777-7777-777777777777', name: 'Far Eastern University' },
+  { id: '88888888-8888-8888-8888-888888888888', name: 'University of the East' },
+  { id: '99999999-9999-9999-9999-999999999999', name: 'Adamson University' },
+  { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', name: 'San Beda University' },
+];
+
 @Component({
   selector: 'app-pdf-designer',
-  imports: [],
+  imports: [CommonModule, FormsModule],
   templateUrl: './pdf-designer.html',
   styleUrl: './pdf-designer.css',
 })
-export class PdfDesigner implements OnInit {
+export class PdfDesigner implements OnInit, OnDestroy {
+
+  private designer!: Designer;
+  templateId: string | null = null;
+  private paramSub?: Subscription;
+
+  // Bound to the editable title input in the header.
+  currentName = 'Untitled Template';
+
+  // Bound to the school dropdown, shown only when creating a new template.
+  currentSchoolId = '';
+  schools = SEED_SCHOOLS;
+
+  saveError: string | null = null;
+
+  constructor(
+    private route: ActivatedRoute,
+    private reportTemplateService: ReportTemplateService,
+  ) {}
+
   ngOnInit() {
-    const designer: Designer = new Designer({
-      domContainer: document.getElementById('designer')!,
-      template: {
-        basePdf: { width: 210, height: 297, padding: [10, 10, 10, 10] },
-        schemas: [[]]
-      },
+    // Reactive subscription instead of a one-time snapshot read, so this
+    // correctly re-fetches every time the :id param actually changes —
+    // including cases where Angular reuses this component instance
+    // between navigations instead of destroying/recreating it.
+    this.paramSub = this.route.paramMap.subscribe((params) => {
+      const id = params.get('id');
+      this.templateId = id;
+      this.loadTemplate(id);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.paramSub?.unsubscribe();
+  }
+
+  private loadTemplate(id: string | null): void {
+    // Reset to defaults before loading, so stale data from a previously
+    // viewed template never lingers on screen while the new one fetches.
+    this.currentName = 'Untitled Template';
+    this.currentSchoolId = '';
+
+    if (id) {
+      this.reportTemplateService.getTemplateById(id).subscribe({
+        next: (template: ReportTemplate) => {
+          this.currentName = template.name;
+          this.currentSchoolId = (template.school as any)?.id ?? '';
+
+          let parsedTemplate = BLANK_TEMPLATE;
+          try {
+            parsedTemplate = JSON.parse(template.configuration);
+          } catch (e) {
+            console.error('Failed to parse template configuration JSON, falling back to blank template:', e);
+          }
+          this.initDesigner(parsedTemplate);
+        },
+        error: (err: HttpErrorResponse) => {
+          console.error('Failed to fetch report template:', err);
+          this.initDesigner(BLANK_TEMPLATE);
+        },
+      });
+    } else {
+      // No id in the route (e.g. /editor for a brand new template): start blank
+      this.initDesigner(BLANK_TEMPLATE);
+    }
+  }
+
+  private initDesigner(template: any) {
+    const container = document.getElementById('designer')!;
+    container.innerHTML = ''; // clear any previously rendered designer instance
+    this.designer = new Designer({
+      domContainer: container,
+      template,
       plugins: PLUGINS,
     });
+  }
+
+  saveTemplate(): void {
+    if (!this.designer) return;
+
+    if (!this.currentSchoolId) {
+      this.saveError = 'Please select a school before saving.';
+      return;
+    }
+
+    // Pull the current canvas state directly from pdfme — this is the
+    // correct { basePdf, schemas } shape, generated by pdfme itself.
+    const currentTemplate = this.designer.getTemplate();
+    const configuration = JSON.stringify(currentTemplate);
+
+    const payload: ReportTemplate = {
+      name: this.currentName,
+      configuration,
+      school: { id: this.currentSchoolId } as any,
+    };
+
+    this.saveError = null;
+
+    if (this.templateId) {
+      // Silent update — no popup, no button state change (auto-save friendly)
+      this.reportTemplateService.updateTemplate(this.templateId, payload).subscribe({
+        error: (err: HttpErrorResponse) => {
+          console.error('Failed to update template:', err);
+          this.saveError = 'Failed to save template.';
+        },
+      });
+    } else {
+      this.reportTemplateService.createTemplate(payload).subscribe({
+        next: (created) => {
+          this.templateId = created.id ?? null;
+        },
+        error: (err: HttpErrorResponse) => {
+          console.error('Failed to create template:', err);
+          this.saveError = 'Failed to create template.';
+        },
+      });
+    }
   }
 }
