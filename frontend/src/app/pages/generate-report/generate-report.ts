@@ -2,15 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-// import { TemplateService } from '../../services/template.service';
-// import { StudentService }  from '../../services/student.service';
-// import { ReportService }   from '../../services/report.service';
+import { ReportTemplateService } from '../../services/report-template.service';
+import { ReportTemplate as ApiReportTemplate } from '../../services/report-template.model';
 
-// ── Interfaces ───────────────────────────────────────────────
 export interface ReportTemplate {
-  id:       string;
-  name:     string;
-  lastUsed: string;
+  id:            string;
+  name:          string;
+  lastUsed:      string;
+  thumbnailUrl?: string;
 }
 
 export interface StudentRow {
@@ -43,31 +42,48 @@ export interface ReportDetails {
 })
 export class GenerateReport implements OnInit {
 
-  // ── Stepper ──────────────────────────────────────────────
   steps = ['Select template', 'Select students', 'Fill report details', 'Confirm & Submit'];
   currentStep = 1;
 
   // ── Step 1: Template ─────────────────────────────────────
   templateSearch = '';
   selectedTemplate: ReportTemplate | null = null;
-
-  // TODO: replace with TemplateService.getAll()
-  templates: ReportTemplate[] = [
-    { id: '1', name: 'Certificate of Enrollment',  lastUsed: 'Jun 13, 2026' },
-    { id: '2', name: 'Certificate of Enrollment',  lastUsed: 'Jun 13, 2026' },
-    { id: '3', name: 'Certificate of Enrollment',  lastUsed: 'Jun 13, 2026' },
-    { id: '4', name: 'Certificate of Enrollment',  lastUsed: 'Jun 13, 2026' },
-    { id: '5', name: 'Certificate of Enrollment',  lastUsed: 'Jun 13, 2026' },
-    { id: '6', name: 'Certificate of Enrollment',  lastUsed: 'Jun 13, 2026' },
-    { id: '7', name: 'Certificate of Enrollment',  lastUsed: 'Jun 13, 2026' },
-    { id: '8', name: 'Certificate of Enrollment',  lastUsed: 'Jun 13, 2026' },
-  ];
+  templates: ReportTemplate[] = [];
+  templatesLoading = false;
+  templatesError: string | null = null;
 
   get filteredTemplates(): ReportTemplate[] {
     const q = this.templateSearch.toLowerCase();
     return q
       ? this.templates.filter(t => t.name.toLowerCase().includes(q))
       : this.templates;
+  }
+
+  fetchTemplates(): void {
+    this.templatesLoading = true;
+    this.templatesError = null;
+
+    this.reportTemplateService.getAllTemplates().subscribe({
+      next: (data: ApiReportTemplate[]) => {
+        this.templates = data.map(t => ({
+          id: t.id ?? '',
+          name: t.name,
+          lastUsed: t.lastOpenedAt
+            ? new Date(t.lastOpenedAt).toLocaleString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric',
+                hour: 'numeric', minute: '2-digit',
+              })
+            : 'Never opened',
+          thumbnailUrl: t.thumbnailUrl,
+        }));
+        this.templatesLoading = false;
+      },
+      error: (err) => {
+        console.error('Failed to fetch report templates:', err);
+        this.templatesError = 'Could not load templates. Please try again.';
+        this.templatesLoading = false;
+      },
+    });
   }
 
   selectTemplate(t: ReportTemplate): void {
@@ -102,18 +118,15 @@ export class GenerateReport implements OnInit {
 
   toggleSelectAll(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
-    if (checked) {
-      this.allStudents.forEach(s => this.selectedStudents.add(s.id));
-    } else {
-      this.allStudents.forEach(s => this.selectedStudents.delete(s.id));
-    }
+    if (checked) this.allStudents.forEach(s => this.selectedStudents.add(s.id));
+    else this.allStudents.forEach(s => this.selectedStudents.delete(s.id));
     this.selectedStudents = new Set(this.selectedStudents);
   }
 
   toggleStudent(id: string, event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     if (checked) this.selectedStudents.add(id);
-    else         this.selectedStudents.delete(id);
+    else this.selectedStudents.delete(id);
     this.selectedStudents = new Set(this.selectedStudents);
   }
 
@@ -135,15 +148,17 @@ export class GenerateReport implements OnInit {
     remarks:        '',
   };
 
-  // ── Navigation ───────────────────────────────────────────
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private reportTemplateService: ReportTemplateService,
+  ) {}
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.fetchTemplates();
+  }
 
   goToStep(n: number): void {
-    if (n >= 1 && n <= this.steps.length) {
-      this.currentStep = n;
-    }
+    if (n >= 1 && n <= this.steps.length) this.currentStep = n;
   }
 
   canProceed(): boolean {
@@ -158,29 +173,20 @@ export class GenerateReport implements OnInit {
 
   onNext(): void {
     if (!this.canProceed()) return;
-    if (this.currentStep < 4) {
-      this.currentStep++;
-    } else {
-      this.generate();
-    }
+    if (this.currentStep < 4) this.currentStep++;
+    else this.generate();
   }
 
   onBack(): void {
-    if (this.currentStep === 1) {
-      this.router.navigate(['/dashboard']);
-    } else {
-      this.currentStep--;
-    }
+    if (this.currentStep === 1) this.router.navigate(['/dashboard']);
+    else this.currentStep--;
   }
 
   generate(): void {
-    // TODO: call ReportService.generate({ template, students, details })
     console.log('Generating report…', {
       template: this.selectedTemplate,
       students: Array.from(this.selectedStudents),
       details:  this.reportDetails,
     });
-    // On success -> navigate to archives or show toast
-    // this.router.navigate(['/reports/archives']);
   }
 }

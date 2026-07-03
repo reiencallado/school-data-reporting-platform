@@ -1,93 +1,4 @@
-/* PDF DESIGNER */
-
-:host {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-/* ── Header ── */
-.designer-header {
-  display: flex;
-  align-items: center;
-  padding: 10px 20px 10px 5px;
-  background: var(--white-1);
-  border-bottom: 1px solid var(--gray-4);
-  flex-shrink: 0;
-  min-height: 52px;
-}
-
-/* ── Filename wrapper ── */
-.filename-wrapper {
-  display: flex;
-  align-items: center;
-}
-
-/* Display mode — click to edit */
-.filename-display {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 5px 10px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: background 0.15s ease, border-color 0.15s ease;
-}
-
-.filename-display:hover {
-  background: var(--blue-4);
-  border-color: var(--gray-4);
-}
-
-
-.filename-text {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--blue-1);
-  line-height: 1.2;
-  max-width: 400px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.filename-edit-icon {
-  color: var(--gray-3);
-  flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.15s ease, color 0.15s ease;
-}
-
-
-.filename-display:hover .filename-edit-icon {
-  opacity: 1;
-  color: var(--blue-2);
-}
-
-/* Edit mode — inline input */
-.filename-input {
-  font-family: var(--font-base);
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--blue-1);
-  background: var(--white-1);
-  border: 1.5px solid var(--blue-3);
-  border-radius: var(--radius-md);
-  padding: 4px 10px;
-  outline: none;
-  min-width: 220px;
-  max-width: 400px;
-  box-shadow: 0 0 0 3px var(--blue-4);
-  transition: box-shadow 0.15s ease;
-}
-
-/* pdfme canvas */
-#designer {
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
-}
+#designer { height: 100vh; }
 
 .page-header {
   display: flex;
@@ -139,4 +50,28 @@
   border-radius: 6px;
   font-size: 13px;
   background: #fff;
+}
+
+.paper-size-btn {
+  height: 38px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e3a5f;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.paper-size-btn:hover { background: #f1f5f9; }
+
+.autosave-status {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
 }

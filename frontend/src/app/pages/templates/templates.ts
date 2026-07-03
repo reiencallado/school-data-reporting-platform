@@ -72,7 +72,10 @@ export class Templates implements OnInit, OnDestroy {
           id: t.id ?? '',
           name: t.name,
           lastUsed: t.lastOpenedAt
-            ? new Date(t.lastOpenedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            ? new Date(t.lastOpenedAt).toLocaleString('en-US', {
+                year: 'numeric', month: 'short', day: 'numeric',
+                hour: 'numeric', minute: '2-digit',
+              })
             : 'Never opened',
           thumbnailUrl: t.thumbnailUrl,
         }));
