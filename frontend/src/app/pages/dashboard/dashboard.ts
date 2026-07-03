@@ -1,12 +1,13 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { ResolutionModalComponent } from '../../shared/components/resolution-modal/resolution-modal';
 // import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, DecimalPipe, RouterLink],
+  imports: [CommonModule, DecimalPipe, RouterLink, ResolutionModalComponent],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -78,6 +79,9 @@ export class Dashboard {
     pendingApprovals:  5,
     pendingPercent:    25,
   };
+
+
+  showConfigModal = false;
 }
 
 // ── Interfaces ───────────────────────────────────────────────

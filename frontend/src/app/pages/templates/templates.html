@@ -20,7 +20,7 @@
   <div class="template-grid">
 
     <!-- CREATE card -->
-    <div class="template-card create-card" (click)="createTemplate()">
+    <div class="template-card create-card" (click)="showConfigModal = true;">
       <div class="create-icon">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -75,34 +75,30 @@
         </div>
       </div>
 
-      <!-- Document thumbnail: real screenshot if available, otherwise the skeleton placeholder -->
+      <!-- Document thumbnail -->
       <div class="template-preview">
-        <img *ngIf="t.thumbnailUrl" class="thumbnail-image" [src]="t.thumbnailUrl" [alt]="t.name" />
-
-        <ng-container *ngIf="!t.thumbnailUrl">
-          <div class="doc-header-bar">
-            <div class="doc-logo-placeholder"></div>
-            <div class="doc-header-lines">
-              <div class="doc-line bold w-70"></div>
-              <div class="doc-line w-80"></div>
-              <div class="doc-line w-60"></div>
-              <div class="doc-line w-70"></div>
-              <div class="doc-line w-50"></div>
-            </div>
+        <div class="doc-header-bar">
+          <div class="doc-logo-placeholder"></div>
+          <div class="doc-header-lines">
+            <div class="doc-line bold w-70"></div>
+            <div class="doc-line w-80"></div>
+            <div class="doc-line w-60"></div>
+            <div class="doc-line w-70"></div>
+            <div class="doc-line w-50"></div>
           </div>
-          <div class="doc-divider"></div>
-          <div class="doc-body">
-            <div class="doc-title-line"></div>
-            <div class="doc-salutation"></div>
-            <div class="doc-paragraph"></div>
-            <div class="doc-paragraph w-90"></div>
-            <div class="doc-paragraph w-70"></div>
-            <div class="doc-paragraph w-80 mt-4"></div>
-            <div class="doc-paragraph w-60"></div>
-            <div class="doc-paragraph w-75 mt-4"></div>
-            <div class="doc-paragraph w-50"></div>
-          </div>
-        </ng-container>
+        </div>
+        <div class="doc-divider"></div>
+        <div class="doc-body">
+          <div class="doc-title-line"></div>
+          <div class="doc-salutation"></div>
+          <div class="doc-paragraph"></div>
+          <div class="doc-paragraph w-90"></div>
+          <div class="doc-paragraph w-70"></div>
+          <div class="doc-paragraph w-80 mt-4"></div>
+          <div class="doc-paragraph w-60"></div>
+          <div class="doc-paragraph w-75 mt-4"></div>
+          <div class="doc-paragraph w-50"></div>
+        </div>
       </div>
 
       <!-- Card footer -->
@@ -115,6 +111,10 @@
 
     </div>
   </div>
+  <app-resolution-modal 
+    [isOpen]="showConfigModal" 
+    (close)="showConfigModal = false">
+  </app-resolution-modal>
 
 </div>
 

@@ -78,32 +78,35 @@ export class GenerateReport implements OnInit {
   studentSearch   = '';
   selectedStudents = new Set<string>();
   currentPage  = 1;
-  totalPages   = 10;
+  studentsPerPage = 10;
+  allStudents: StudentRow[] = Array.from({ length: 100 }, (_, i) => ({
+    id:         `STU${1000 + i}`,
+    name:       `Student ${i + 1}`,
+    gradeLevel: 11 + (i % 2),
+    strand:     i % 2 === 0 ? 'STEM' : 'HUMSS',
+    section:    i % 3 === 0 ? 'St. Jude' : 'St. Teresa',
+    status:     i % 4 === 0 ? 'Inactive' : 'Active',
+  }));
+  totalPages   = Math.ceil(this.allStudents.length / this.studentsPerPage);
   pageNumbers  = [1, 2, 3, 4, 5];
 
-  // TODO: replace with StudentService.getAll() + pagination
-  students: StudentRow[] = Array.from({ length: 10 }, (_, i) => ({
-    id:         '12XXXXX',
-    name:       'John Doe',
-    gradeLevel: 12,
-    strand:     'STEM',
-    section:    'St. Jude',
-    status:     'Active',
-  }));
+  get pagedStudents(): StudentRow[] {
+    const start = (this.currentPage - 1) * this.studentsPerPage;
+    return this.allStudents.slice(start, start + this.studentsPerPage);
+  }
 
   get allSelected(): boolean {
-    return this.students.length > 0 &&
-           this.students.every(s => this.selectedStudents.has(s.id));
+    return this.allStudents.length > 0 &&
+           this.allStudents.every(s => this.selectedStudents.has(s.id));
   }
 
   toggleSelectAll(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
     if (checked) {
-      this.students.forEach(s => this.selectedStudents.add(s.id));
+      this.allStudents.forEach(s => this.selectedStudents.add(s.id));
     } else {
-      this.students.forEach(s => this.selectedStudents.delete(s.id));
+      this.allStudents.forEach(s => this.selectedStudents.delete(s.id));
     }
-    // trigger change detection
     this.selectedStudents = new Set(this.selectedStudents);
   }
 
@@ -117,7 +120,6 @@ export class GenerateReport implements OnInit {
   changePage(page: number): void {
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
-    // TODO: fetch page from StudentService
   }
 
   // ── Step 3: Report Details ───────────────────────────────

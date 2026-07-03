@@ -142,7 +142,7 @@
         </div>
       </button>
 
-      <button class="action-card" routerLink="/editor">
+      <button class="action-card" (click)="showConfigModal = true;">
         <div class="action-icon icon-bg-blue-soft">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -175,6 +175,10 @@
     </div>
   </div>
 
+ <app-resolution-modal 
+    [isOpen]="showConfigModal" 
+    (close)="showConfigModal = false">
+  </app-resolution-modal>
 
   <!-- ==== TABLES ROW ==== -->
   <div class="tables-grid">

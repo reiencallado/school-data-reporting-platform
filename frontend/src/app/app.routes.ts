@@ -8,6 +8,8 @@ import { GenerateReport } from './pages/generate-report/generate-report';
 import { Archives } from './pages/archives/archives';
 import { PdfDesigner } from './pdf-designer/pdf-designer';
 import { Students } from './pages/students/students';
+import { Users } from './pages/users/users';
+
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },

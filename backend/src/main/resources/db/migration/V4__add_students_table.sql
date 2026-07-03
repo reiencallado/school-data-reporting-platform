@@ -10,7 +10,7 @@ CREATE TABLE k12_students (
     section VARCHAR(50),
     status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-)
+);
 
 CREATE TABLE college_students (
     id UUID PRIMARY KEY,
@@ -22,7 +22,7 @@ CREATE TABLE college_students (
     year_level VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-)
+);
 
 CREATE TABLE admission_students (
     id UUID PRIMARY KEY,
@@ -35,4 +35,4 @@ CREATE TABLE admission_students (
     course_applied VARCHAR(255),
     status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-)
+);

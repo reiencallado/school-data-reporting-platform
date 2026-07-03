@@ -1,7 +1,9 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ActivatedRoute } from '@angular/router';
+import { Template } from '@pdfme/common';
 import { Subscription } from 'rxjs';
 import { Designer } from '@pdfme/ui';
 import { text, barcodes, image, multiVariableText, rectangle, ellipse, line, table } from '@pdfme/schemas';
@@ -11,15 +13,15 @@ import { HttpErrorResponse } from '@angular/common/http';
 import html2canvas from 'html2canvas';
 
 const PLUGINS = {
-  Text: text,
+  Text:             text,
   'Multi-var Text': multiVariableText,
-  'QR Code': barcodes.qrcode,
-  'Barcode': barcodes.code128,
-  Image: image,
-  Table: table,
-  Line: line,
-  Rectangle: rectangle,
-  Ellipse: ellipse,
+  'QR Code':        barcodes.qrcode,
+  'Barcode':        barcodes.code128,
+  Image:            image,
+  Table:            table,
+  Line:             line,
+  Rectangle:        rectangle,
+  Ellipse:          ellipse,
 };
 
 const BLANK_TEMPLATE = {
@@ -60,180 +62,59 @@ export const SEED_SCHOOLS = [
 })
 export class PdfDesigner implements OnInit, OnDestroy {
 
-  private designer!: Designer;
-  templateId: string | null = null;
-  private paramSub?: Subscription;
+  private designer?: Designer;
 
-  // Bound to the editable title input in the header.
-  currentName = 'Untitled Template';
+  // ── File name ────────────────────────────────────────────
+  fileName    = 'Untitled Template';
+  editingName = false;
+  private nameSnapshot = '';   // used to restore on Escape
 
-  // Bound to the school dropdown, shown only when creating a new template.
-  currentSchoolId = '';
-  schools = SEED_SCHOOLS;
+  @ViewChild('nameInput') nameInputRef?: ElementRef<HTMLInputElement>;
 
-  // Bound to the resolution dropdown, shown only when creating a new template.
-  currentPaperSizeId = 'a4';
-  paperSizes = PAPER_SIZES;
+  constructor(private router: Router) {}
 
-  saveError: string | null = null;
+  // ── Lifecycle ────────────────────────────────────────────
+  ngOnInit(): void {
+    const nav   = this.router.getCurrentNavigation();
+    const state = (nav?.extras?.state ?? window.history.state) as Record<string, unknown> | null;
 
-  constructor(
-    private route: ActivatedRoute,
-    private reportTemplateService: ReportTemplateService,
-    private cdr: ChangeDetectorRef,
-  ) {}
+    const template: Template = (state?.['template'] as Template) ?? DEFAULT_TEMPLATE;
+    const scale:    number   = (state?.['scale']    as number)   ?? DEFAULT_SCALE;
 
-  ngOnInit() {
-    // Reactive subscription instead of a one-time snapshot read, so this
-    // correctly re-fetches every time the :id param actually changes —
-    // including cases where Angular reuses this component instance
-    // between navigations instead of destroying/recreating it.
-    this.paramSub = this.route.paramMap.subscribe((params) => {
-      const id = params.get('id');
-      this.templateId = id;
-      this.loadTemplate(id);
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.paramSub?.unsubscribe();
-  }
-
-  private loadTemplate(id: string | null): void {
-    // Reset to defaults before loading, so stale data from a previously
-    // viewed template never lingers on screen while the new one fetches.
-    this.currentName = 'Untitled Template';
-    this.currentSchoolId = '';
-
-    if (id) {
-      this.reportTemplateService.getTemplateById(id).subscribe({
-        next: (template: ReportTemplate) => {
-          this.currentName = template.name;
-          this.currentSchoolId = (template.school as any)?.id ?? '';
-
-          // Force an immediate repaint here — without this, the input's
-          // displayed value can lag behind the actual component state
-          // until some unrelated DOM event (e.g. clicking into the field)
-          // triggers Angular's next change detection cycle.
-          this.cdr.detectChanges();
-
-          let parsedTemplate = BLANK_TEMPLATE;
-          try {
-            parsedTemplate = JSON.parse(template.configuration);
-          } catch (e) {
-            console.error('Failed to parse template configuration JSON, falling back to blank template:', e);
-          }
-          this.initDesigner(parsedTemplate);
-        },
-        error: (err: HttpErrorResponse) => {
-          console.error('Failed to fetch report template:', err);
-          this.initDesigner(BLANK_TEMPLATE);
-        },
-      });
-    } else {
-      // No id in the route (e.g. /editor for a brand new template): start
-      // blank, using whatever paper size is currently selected.
-      this.initDesigner(this.buildBlankTemplate());
+    const container = document.getElementById('designer');
+    if (!container) {
+      console.error('PdfDesigner: #designer element not found.');
+      return;
     }
-  }
 
-  private buildBlankTemplate(): any {
-    const size = this.paperSizes.find(s => s.id === this.currentPaperSizeId) ?? this.paperSizes[0];
-    return {
-      basePdf: { width: size.width, height: size.height, padding: [10, 10, 10, 10] },
-      schemas: [[]],
-    };
-  }
-
-  /**
-   * Called when the resolution dropdown changes, while still creating a
-   * brand new template (no id yet). Rebuilds the designer with the new
-   * page size — only safe to do before any real content has been saved,
-   * since changing basePdf dimensions on an existing template's saved
-   * schemas would misalign already-placed elements.
-   */
-  onPaperSizeChange(): void {
-    if (this.templateId) return; // don't resize an existing template
-    this.initDesigner(this.buildBlankTemplate());
-  }
-
-  private initDesigner(template: any) {
-    const container = document.getElementById('designer')!;
-    container.innerHTML = ''; // clear any previously rendered designer instance
     this.designer = new Designer({
       domContainer: container,
       template,
+      options: { zoom: scale },
       plugins: PLUGINS,
     });
   }
 
-  saveTemplate(): void {
-    if (!this.designer) return;
-
-    if (!this.currentSchoolId) {
-      this.saveError = 'Please select a school before saving.';
-      return;
-    }
-
-    // Pull the current canvas state directly from pdfme — this is the
-    // correct { basePdf, schemas } shape, generated by pdfme itself.
-    const currentTemplate = this.designer.getTemplate();
-    const configuration = JSON.stringify(currentTemplate);
-
-    const payload: ReportTemplate = {
-      name: this.currentName,
-      configuration,
-      school: { id: this.currentSchoolId } as any,
-    };
-
-    this.saveError = null;
-
-    if (this.templateId) {
-      // Silent update — no popup, no button state change (auto-save friendly)
-      this.reportTemplateService.updateTemplate(this.templateId, payload).subscribe({
-        next: () => this.captureAndUploadThumbnail(this.templateId!),
-        error: (err: HttpErrorResponse) => {
-          console.error('Failed to update template:', err);
-          this.saveError = 'Failed to save template.';
-        },
-      });
-    } else {
-      this.reportTemplateService.createTemplate(payload).subscribe({
-        next: (created) => {
-          this.templateId = created.id ?? null;
-          if (this.templateId) {
-            this.captureAndUploadThumbnail(this.templateId);
-          }
-        },
-        error: (err: HttpErrorResponse) => {
-          console.error('Failed to create template:', err);
-          this.saveError = 'Failed to create template.';
-        },
-      });
-    }
+  ngOnDestroy(): void {
+    this.designer?.destroy();
   }
 
-  /**
-   * Screenshots the rendered designer canvas and uploads it as the
-   * template's grid thumbnail. Runs after a successful save, so the
-   * thumbnail always reflects the latest saved state — not a live render
-   * done every time the grid loads (too slow for a grid of many cards).
-   */
-  private captureAndUploadThumbnail(id: string): void {
-    const container = document.getElementById('designer');
-    if (!container) return;
+  // ── File name editing ────────────────────────────────────
+  startEdit(): void {
+    this.nameSnapshot = this.fileName;
+    this.editingName  = true;
+    // Focus the input after Angular renders it
+    setTimeout(() => this.nameInputRef?.nativeElement.select(), 0);
+  }
 
-    html2canvas(container, { scale: 0.5 }).then((canvas: HTMLCanvasElement) => {
-      canvas.toBlob((blob: Blob | null) => {
-        if (!blob) return;
-        this.reportTemplateService.uploadThumbnail(id, blob).subscribe({
-          error: (err: HttpErrorResponse) => {
-            console.error('Failed to upload thumbnail:', err);
-          },
-        });
-      }, 'image/png');
-    }).catch((err: unknown) => {
-      console.error('Failed to capture thumbnail:', err);
-    });
+  commitName(): void {
+    const trimmed = this.fileName.trim();
+    this.fileName    = trimmed || this.nameSnapshot;   // don't allow blank
+    this.editingName = false;
+  }
+
+  cancelEdit(): void {
+    this.fileName    = this.nameSnapshot;
+    this.editingName = false;
   }
 }

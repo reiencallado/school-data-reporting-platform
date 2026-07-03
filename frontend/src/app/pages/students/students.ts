@@ -75,6 +75,10 @@ export class Students implements OnInit {
     Object.keys(this.dropdownStates).forEach(key => this.dropdownStates[key] = false);
   }
 
+  onCheckboxClick(event: Event): void {
+    event.stopPropagation();
+  }
+
   @HostListener('document:click')
   onDocumentClick(): void {
     this.closeAllDropdowns();
@@ -99,17 +103,28 @@ export class Students implements OnInit {
     this.applyFiltersAndCalculations();
   }
 
+  clearFilter(filterType: 'grade' | 'strand' | 'section' | 'status'): void {
+    if (filterType === 'grade') this.selectedGrades.clear();
+    else if (filterType === 'strand') this.selectedStrands.clear();
+    else if (filterType === 'section') this.selectedSections.clear();
+    else this.selectedStatuses.clear();
+
+    this.currentPage = 1;
+    this.applyFiltersAndCalculations();
+  }
+
   // ── BUTTON LABEL STRING GENERATOR ────────────────────────
   getDropdownLabel(filterType: 'grade' | 'strand' | 'section' | 'status', fallbackLabel: string): string {
     let targetSet: Set<string>;
     
     if (filterType === 'grade') targetSet = this.selectedGrades;
     else if (filterType === 'strand') targetSet = this.selectedStrands;
+    else if (filterType === 'section') targetSet = this.selectedSections;
     else targetSet = this.selectedStatuses;
 
     if (targetSet.size === 0) return fallbackLabel;
-    if (targetSet.size === 1) return Array.from(targetSet)[0];
-    return `${targetSet.size} Selected`; // Displays "2 Selected" if multi-checked
+    if (targetSet.size === 1) return `${fallbackLabel}: ${Array.from(targetSet)[0]}`;
+    return `${fallbackLabel}: ${targetSet.size} selected`;
   }
 
   // ── TEXT INPUT SEARCH CAPTURES ───────────────────────────────

@@ -145,7 +145,7 @@
           <input type="checkbox" [checked]="allSelected" (change)="toggleSelectAll($event)" />
           <span>Select all</span>
         </label>
-        <span class="selection-count">{{ selectedStudents.size }} of {{ students.length }} selected</span>
+        <span class="selection-count">{{ selectedStudents.size }} of {{ allStudents.length }} selected</span>
       </div>
 
       <div class="table-responsive">
@@ -162,7 +162,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let s of students" [class.row-selected]="selectedStudents.has(s.id)">
+            <tr *ngFor="let s of pagedStudents" [class.row-selected]="selectedStudents.has(s.id)">
               <td class="col-check">
                 <input type="checkbox"
                        [checked]="selectedStudents.has(s.id)"

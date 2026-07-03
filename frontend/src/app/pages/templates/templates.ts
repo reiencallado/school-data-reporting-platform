@@ -5,6 +5,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { ReportTemplateService } from '../../services/report-template.service';
 import { ReportTemplate as ApiReportTemplate } from '../../services/report-template.model';
+import { ResolutionModalComponent } from '../../shared/components/resolution-modal/resolution-modal';
 
 // Local shape used for display in this component's grid/cards
 export interface TemplateCard {
@@ -17,7 +18,7 @@ export interface TemplateCard {
 @Component({
   selector: 'app-report-templates',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ResolutionModalComponent],
   templateUrl: './templates.html',
   styleUrl: './templates.css',
 })
@@ -120,6 +121,9 @@ export class Templates implements OnInit, OnDestroy {
         console.error('Failed to delete template:', err);
         this.error = 'Could not delete template. Please try again.';
       },
-    });
+    }
+    );
   }
+  showConfigModal = false;
+
 }
