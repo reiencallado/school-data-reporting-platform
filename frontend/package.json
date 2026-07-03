@@ -21,6 +21,7 @@
     "@pdfme/generator": "^6.1.5",
     "@pdfme/schemas": "^6.1.5",
     "@pdfme/ui": "^6.1.5",
+    "html2canvas": "^1.4.1",
     "rxjs": "^7.8.0",
     "tslib": "^2.3.0"
   },

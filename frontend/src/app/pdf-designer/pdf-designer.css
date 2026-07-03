@@ -1,1 +1,77 @@
 #designer { height: 100vh; }
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.template-title-input {
+  font-size: 22px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  border-radius: 6px;
+  flex: 1;
+  outline: none;
+  transition: background 0.15s ease;
+}
+
+.school-select {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+}
+
+.save-btn {
+  padding: 8px 20px;
+  background: #1e3a5f;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-error {
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.paper-size-select {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+}
+
+.paper-size-btn {
+  height: 38px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e3a5f;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.paper-size-btn:hover { background: #f1f5f9; }
+
+.autosave-status {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}

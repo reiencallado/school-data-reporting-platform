@@ -1,6 +1,7 @@
 package com.cssweng.reportbuilder.model;
 
 import jakarta.persistence.*;
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -22,6 +23,12 @@ public class ReportTemplate {
     @JoinColumn(name = "school_id", nullable = false)
     private School school;
 
+    @Column(name = "last_opened_at")
+    private Instant lastOpenedAt;
+
+    @Column(name = "thumbnail_url")
+    private String thumbnailUrl;
+
     public ReportTemplate() {}
 
     public ReportTemplate(String name, String configuration, School school) {
@@ -42,4 +49,10 @@ public class ReportTemplate {
 
     public School getSchool() { return school; }
     public void setSchool(School school) { this.school = school; }
+
+    public Instant getLastOpenedAt() { return lastOpenedAt; }
+    public void setLastOpenedAt(Instant lastOpenedAt) { this.lastOpenedAt = lastOpenedAt; }
+
+    public String getThumbnailUrl() { return thumbnailUrl; }
+    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
 }

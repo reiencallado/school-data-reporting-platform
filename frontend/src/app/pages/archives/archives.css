@@ -189,7 +189,10 @@
 .col-check input[type="checkbox"] {
   width: 15px;
   height: 15px;
-  accent-color: var(--blue-3);
+    accent-color: var(--white-1);
+  cursor: pointer;
+  background-color: var(--blue-3);
+  border-color: var(--blue-3);
   cursor: pointer;
 }
 
@@ -273,12 +276,12 @@
 }
 
 .page-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: none;
+  border-radius: 50%;
   border-radius: var(--radius-md);
   background: none;
   font-family: var(--font-base);

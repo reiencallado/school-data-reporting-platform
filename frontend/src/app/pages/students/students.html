@@ -18,7 +18,11 @@
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </div>
-        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['grade']">
+        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['grade']" (click)="onCheckboxClick($event)">
+          <div class="dropdown-panel-header">
+            <span>Grade filters</span>
+            <button class="dropdown-clear-btn" *ngIf="selectedGrades.size > 0" (click)="clearFilter('grade')">Clear all</button>
+          </div>
           <label *ngFor="let option of gradeOptions" class="checkbox-option-label">
             <input 
               type="checkbox" 
@@ -38,7 +42,11 @@
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </div>
-        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['strand']">
+        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['strand']" (click)="onCheckboxClick($event)">
+          <div class="dropdown-panel-header">
+            <span>Strand filters</span>
+            <button class="dropdown-clear-btn" *ngIf="selectedStrands.size > 0" (click)="clearFilter('strand')">Clear all</button>
+          </div>
           <label *ngFor="let option of strandOptions" class="checkbox-option-label">
             <input 
               type="checkbox" 
@@ -55,7 +63,11 @@
         {{ getDropdownLabel('section', 'Section') }}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
-      <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['section']">
+      <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['section']" (click)="onCheckboxClick($event)">
+        <div class="dropdown-panel-header">
+          <span>Section filters</span>
+          <button class="dropdown-clear-btn" *ngIf="selectedSections.size > 0" (click)="clearFilter('section')">Clear all</button>
+        </div>
         <label *ngFor="let option of sectionOptions" class="checkbox-option-label">
           <input type="checkbox" [checked]="selectedSections.has(option)" (change)="onCheckboxToggle('section', option)">
           <span>{{ option }}</span>
@@ -72,7 +84,11 @@
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </div>
-        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['status']">
+        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['status']" (click)="onCheckboxClick($event)">
+          <div class="dropdown-panel-header">
+            <span>Status filters</span>
+            <button class="dropdown-clear-btn" *ngIf="selectedStatuses.size > 0" (click)="clearFilter('status')">Clear all</button>
+          </div>
           <label *ngFor="let option of statusOptions" class="checkbox-option-label">
             <input 
               type="checkbox" 

@@ -18,12 +18,14 @@ export const routes: Routes = [
     component: Layout,
     canActivate: [authGuard],
     children: [
-      { path: 'dashboard', component: Dashboard}, 
-      { path: 'templates', component: Templates},
-      { path: 'generate-report', component: GenerateReport},
-      { path: 'archives', component: Archives},
-      { path: 'editor', component: PdfDesigner},
-      { path: 'students', component: Students},
+      { path: 'dashboard', component: Dashboard },
+      { path: 'templates', component: Templates },
+      { path: 'generate-report', component: GenerateReport },
+      { path: 'archives', component: Archives },
+      { path: 'editor', component: PdfDesigner },
+      { path: 'reports/templates/:id/preview', component: PdfDesigner },
+      { path: 'reports/templates/:id/edit', component: PdfDesigner },
+      { path: 'students', component: Students },
     ]
   },
   { path: '**', component: NotFound }

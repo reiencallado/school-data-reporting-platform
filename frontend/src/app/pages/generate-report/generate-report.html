@@ -46,7 +46,7 @@
     </div>
 
     <!-- Template Grid -->
-    <div class="template-grid">
+    <div class="template-grid" *ngIf="!templatesLoading && filteredTemplates.length > 0">
       <div class="template-card"
            *ngFor="let t of filteredTemplates"
            [class.selected]="selectedTemplate?.id === t.id"
@@ -62,24 +62,29 @@
 
         <!-- Document preview thumbnail -->
         <div class="template-preview">
-          <div class="doc-header-bar">
-            <div class="doc-logo-placeholder"></div>
-            <div class="doc-header-lines">
-              <div class="doc-line w-60"></div>
-              <div class="doc-line w-80"></div>
-              <div class="doc-line w-70"></div>
-              <div class="doc-line w-50"></div>
+          <ng-container *ngIf="t.thumbnailUrl; else fallbackThumb">
+            <img class="thumbnail-image" [src]="t.thumbnailUrl" [alt]="t.name + ' preview'" />
+          </ng-container>
+          <ng-template #fallbackThumb>
+            <div class="doc-header-bar">
+              <div class="doc-logo-placeholder"></div>
+              <div class="doc-header-lines">
+                <div class="doc-line w-60"></div>
+                <div class="doc-line w-80"></div>
+                <div class="doc-line w-70"></div>
+                <div class="doc-line w-50"></div>
+              </div>
             </div>
-          </div>
-          <div class="doc-divider"></div>
-          <div class="doc-body-lines">
-            <div class="doc-title-line"></div>
-            <div class="doc-line w-40 mt-8"></div>
-            <div class="doc-paragraph"></div>
-            <div class="doc-paragraph short"></div>
-            <div class="doc-line w-80 mt-8"></div>
-            <div class="doc-line w-60"></div>
-          </div>
+            <div class="doc-divider"></div>
+            <div class="doc-body-lines">
+              <div class="doc-title-line"></div>
+              <div class="doc-line w-40 mt-8"></div>
+              <div class="doc-paragraph"></div>
+              <div class="doc-paragraph short"></div>
+              <div class="doc-line w-80 mt-8"></div>
+              <div class="doc-line w-60"></div>
+            </div>
+          </ng-template>
         </div>
 
         <!-- Card footer -->
@@ -90,6 +95,13 @@
 
       </div>
     </div>
+
+    <!-- Loading / error / empty states -->
+    <p *ngIf="templatesLoading" class="template-state-msg">Loading templates…</p>
+    <p *ngIf="templatesError" class="template-state-msg error">{{ templatesError }}</p>
+    <p *ngIf="!templatesLoading && !templatesError && filteredTemplates.length === 0" class="template-state-msg">
+      No templates yet — create one from the Templates page first.
+    </p>
 
   </ng-container>
 
@@ -145,7 +157,7 @@
           <input type="checkbox" [checked]="allSelected" (change)="toggleSelectAll($event)" />
           <span>Select all</span>
         </label>
-        <span class="selection-count">{{ selectedStudents.size }} of {{ students.length }} selected</span>
+        <span class="selection-count">{{ selectedStudents.size }} of {{ allStudents.length }} selected</span>
       </div>
 
       <div class="table-responsive">
@@ -162,7 +174,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let s of students" [class.row-selected]="selectedStudents.has(s.id)">
+            <tr *ngFor="let s of pagedStudents" [class.row-selected]="selectedStudents.has(s.id)">
               <td class="col-check">
                 <input type="checkbox"
                        [checked]="selectedStudents.has(s.id)"
@@ -337,35 +349,16 @@
       <div class="preview-card">
         <div class="preview-header">
           <span class="preview-title">Document preview</span>
-          <span class="preview-sub">Sample — first selected student</span>
+          <span class="preview-sub">Last saved layout</span>
         </div>
         <div class="preview-body">
-          <div class="doc-preview-sheet">
-            <!-- Simulated certificate preview -->
-            <div class="cert-header">
-              <div class="cert-seal"></div>
-              <div class="cert-header-lines">
-                <div class="cert-line bold w-70"></div>
-                <div class="cert-line w-80"></div>
-                <div class="cert-line w-60"></div>
-                <div class="cert-line w-70"></div>
-                <div class="cert-line w-50"></div>
-              </div>
-            </div>
-            <div class="cert-divider"></div>
-            <div class="cert-body">
-              <div class="cert-title">CERTIFICATE OF ENROLLMENT</div>
-              <div class="cert-salutation">TO WHOM IT MAY CONCERN:</div>
-              <div class="cert-paragraph"></div>
-              <div class="cert-paragraph short"></div>
-              <div class="cert-paragraph shorter"></div>
-              <div class="cert-signatory">
-                <div class="cert-line w-50 bold"></div>
-                <div class="cert-line w-30 mt-4"></div>
-              </div>
-              <div class="cert-footer-note">Not valid without school seal</div>
-            </div>
-          </div>
+          <img *ngIf="selectedTemplate?.thumbnailUrl"
+               class="doc-preview-image"
+               [src]="selectedTemplate!.thumbnailUrl"
+               [alt]="selectedTemplate!.name + ' preview'" />
+          <p *ngIf="!selectedTemplate?.thumbnailUrl" class="template-state-msg">
+            No preview available — this template hasn't been saved yet.
+          </p>
         </div>
       </div>
 

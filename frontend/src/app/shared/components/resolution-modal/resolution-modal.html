@@ -1,0 +1,141 @@
+<div class="modal-backdrop" *ngIf="isOpen" (click)="emitClose()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <header class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-header-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="modal-title">New Template</h3>
+          <p class="modal-subtitle">Configure your document canvas</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" (click)="emitClose()" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </header>
+
+    <main class="modal-body">
+
+      <!-- ── Document Size ── -->
+      <div class="field-group">
+        <p class="field-label">Document Size</p>
+        <div class="size-grid">
+          <button class="size-card"
+                  *ngFor="let s of sizes"
+                  [class.selected]="selectedSize === s.key"
+                  (click)="selectSize(s.key)">
+            <div class="size-preview" [style.aspect-ratio]="getPreviewRatio(s)">
+              <span class="size-preview-label">{{ s.key }}</span>
+            </div>
+            <div class="size-info">
+              <span class="size-name">{{ s.key }}</span>
+              <span class="size-dims">{{ s.label }}</span>
+            </div>
+            <div class="size-check" *ngIf="selectedSize === s.key">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Orientation ── -->
+      <div class="field-group">
+        <p class="field-label">Orientation</p>
+        <div class="orientation-row">
+
+          <button class="orientation-card"
+                  [class.selected]="orientation === 'portrait'"
+                  (click)="orientation = 'portrait'">
+            <div class="orient-preview portrait-shape">
+              <div class="orient-lines">
+                <div class="orient-line w-60"></div>
+                <div class="orient-line w-80"></div>
+                <div class="orient-line w-50"></div>
+              </div>
+            </div>
+            <span class="orient-label">Portrait</span>
+            <div class="size-check" *ngIf="orientation === 'portrait'">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+          </button>
+
+          <button class="orientation-card"
+                  [class.selected]="orientation === 'landscape'"
+                  (click)="orientation = 'landscape'">
+            <div class="orient-preview landscape-shape">
+              <div class="orient-lines">
+                <div class="orient-line w-60"></div>
+                <div class="orient-line w-80"></div>
+                <div class="orient-line w-50"></div>
+              </div>
+            </div>
+            <span class="orient-label">Landscape</span>
+            <div class="size-check" *ngIf="orientation === 'landscape'">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- ── Custom Size (shown when Custom is selected) ── -->
+      <div class="field-group" *ngIf="selectedSize === 'Custom'">
+        <p class="field-label">Custom Dimensions <span class="field-unit">(mm)</span></p>
+        <div class="custom-dims-row">
+          <div class="dim-field">
+            <label class="dim-label">Width</label>
+            <input class="dim-input" type="number" min="50" max="1000"
+                   placeholder="e.g. 210"
+                   [(ngModel)]="customWidth" />
+          </div>
+          <div class="dim-separator">×</div>
+          <div class="dim-field">
+            <label class="dim-label">Height</label>
+            <input class="dim-input" type="number" min="50" max="1000"
+                   placeholder="e.g. 297"
+                   [(ngModel)]="customHeight" />
+          </div>
+        </div>
+        <p class="dim-hint" *ngIf="customWidth && customHeight">
+          Canvas: {{ effectiveWidth | number:'1.1-1' }} × {{ effectiveHeight | number:'1.1-1' }} mm
+          <span *ngIf="orientation === 'landscape'"> (landscape applied)</span>
+        </p>
+      </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="modal-footer">
+      <button class="btn-cancel" (click)="emitClose()">Cancel</button>
+      <button class="btn-confirm" (click)="confirm()" [disabled]="!canProceed()">
+        {{ confirmLabel }}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
+    </footer>
+
+  </div>
+</div>
