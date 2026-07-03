@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -8,6 +8,7 @@ import { text, barcodes, image, multiVariableText, rectangle, ellipse, line, tab
 import { ReportTemplateService } from '../services/report-template.service';
 import { ReportTemplate } from '../services/report-template.model';
 import { HttpErrorResponse } from '@angular/common/http';
+import html2canvas from 'html2canvas';
 
 const PLUGINS = {
   Text: text,
@@ -25,6 +26,16 @@ const BLANK_TEMPLATE = {
   basePdf: { width: 210, height: 297, padding: [10, 10, 10, 10] },
   schemas: [[]],
 };
+
+// Common paper sizes, in millimeters, matching pdfme's basePdf.width/height units.
+export const PAPER_SIZES = [
+  { id: 'a4', name: 'A4 (210 × 297 mm)', width: 210, height: 297 },
+  { id: 'letter', name: 'Letter (215.9 × 279.4 mm)', width: 215.9, height: 279.4 },
+  { id: 'legal', name: 'Legal (215.9 × 355.6 mm)', width: 215.9, height: 355.6 },
+  { id: 'certificate', name: 'Certificate (279.4 × 215.9 mm, landscape)', width: 279.4, height: 215.9 },
+  { id: 'a3', name: 'A3 (297 × 420 mm)', width: 297, height: 420 },
+  { id: 'a5', name: 'A5 (148 × 210 mm)', width: 148, height: 210 },
+];
 
 // Known seed schools (from the reseed.sql script). Placeholder until a real
 // GET /api/schools endpoint + dropdown fetch exists.
@@ -60,11 +71,16 @@ export class PdfDesigner implements OnInit, OnDestroy {
   currentSchoolId = '';
   schools = SEED_SCHOOLS;
 
+  // Bound to the resolution dropdown, shown only when creating a new template.
+  currentPaperSizeId = 'a4';
+  paperSizes = PAPER_SIZES;
+
   saveError: string | null = null;
 
   constructor(
     private route: ActivatedRoute,
     private reportTemplateService: ReportTemplateService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
@@ -95,6 +111,12 @@ export class PdfDesigner implements OnInit, OnDestroy {
           this.currentName = template.name;
           this.currentSchoolId = (template.school as any)?.id ?? '';
 
+          // Force an immediate repaint here — without this, the input's
+          // displayed value can lag behind the actual component state
+          // until some unrelated DOM event (e.g. clicking into the field)
+          // triggers Angular's next change detection cycle.
+          this.cdr.detectChanges();
+
           let parsedTemplate = BLANK_TEMPLATE;
           try {
             parsedTemplate = JSON.parse(template.configuration);
@@ -109,9 +131,30 @@ export class PdfDesigner implements OnInit, OnDestroy {
         },
       });
     } else {
-      // No id in the route (e.g. /editor for a brand new template): start blank
-      this.initDesigner(BLANK_TEMPLATE);
+      // No id in the route (e.g. /editor for a brand new template): start
+      // blank, using whatever paper size is currently selected.
+      this.initDesigner(this.buildBlankTemplate());
     }
+  }
+
+  private buildBlankTemplate(): any {
+    const size = this.paperSizes.find(s => s.id === this.currentPaperSizeId) ?? this.paperSizes[0];
+    return {
+      basePdf: { width: size.width, height: size.height, padding: [10, 10, 10, 10] },
+      schemas: [[]],
+    };
+  }
+
+  /**
+   * Called when the resolution dropdown changes, while still creating a
+   * brand new template (no id yet). Rebuilds the designer with the new
+   * page size — only safe to do before any real content has been saved,
+   * since changing basePdf dimensions on an existing template's saved
+   * schemas would misalign already-placed elements.
+   */
+  onPaperSizeChange(): void {
+    if (this.templateId) return; // don't resize an existing template
+    this.initDesigner(this.buildBlankTemplate());
   }
 
   private initDesigner(template: any) {
@@ -148,6 +191,7 @@ export class PdfDesigner implements OnInit, OnDestroy {
     if (this.templateId) {
       // Silent update — no popup, no button state change (auto-save friendly)
       this.reportTemplateService.updateTemplate(this.templateId, payload).subscribe({
+        next: () => this.captureAndUploadThumbnail(this.templateId!),
         error: (err: HttpErrorResponse) => {
           console.error('Failed to update template:', err);
           this.saveError = 'Failed to save template.';
@@ -157,6 +201,9 @@ export class PdfDesigner implements OnInit, OnDestroy {
       this.reportTemplateService.createTemplate(payload).subscribe({
         next: (created) => {
           this.templateId = created.id ?? null;
+          if (this.templateId) {
+            this.captureAndUploadThumbnail(this.templateId);
+          }
         },
         error: (err: HttpErrorResponse) => {
           console.error('Failed to create template:', err);
@@ -164,5 +211,29 @@ export class PdfDesigner implements OnInit, OnDestroy {
         },
       });
     }
+  }
+
+  /**
+   * Screenshots the rendered designer canvas and uploads it as the
+   * template's grid thumbnail. Runs after a successful save, so the
+   * thumbnail always reflects the latest saved state — not a live render
+   * done every time the grid loads (too slow for a grid of many cards).
+   */
+  private captureAndUploadThumbnail(id: string): void {
+    const container = document.getElementById('designer');
+    if (!container) return;
+
+    html2canvas(container, { scale: 0.5 }).then((canvas: HTMLCanvasElement) => {
+      canvas.toBlob((blob: Blob | null) => {
+        if (!blob) return;
+        this.reportTemplateService.uploadThumbnail(id, blob).subscribe({
+          error: (err: HttpErrorResponse) => {
+            console.error('Failed to upload thumbnail:', err);
+          },
+        });
+      }, 'image/png');
+    }).catch((err: unknown) => {
+      console.error('Failed to capture thumbnail:', err);
+    });
   }
 }

@@ -10,6 +10,8 @@ export interface ReportTemplate {
   name: string;
   configuration: string;    // JSON string from the WYSIWYG editor (stringify before sending)
   school: School;            // or use schoolId: string if backend expects a flat FK on create
+  lastOpenedAt?: string;     // ISO timestamp, set by the backend whenever the template is opened
+  thumbnailUrl?: string;     // set by the backend after a thumbnail is uploaded
 }
 
 // Convenience type for POST payloads where you may only have the school's id on hand

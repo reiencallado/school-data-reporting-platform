@@ -75,30 +75,34 @@
         </div>
       </div>
 
-      <!-- Document thumbnail -->
+      <!-- Document thumbnail: real screenshot if available, otherwise the skeleton placeholder -->
       <div class="template-preview">
-        <div class="doc-header-bar">
-          <div class="doc-logo-placeholder"></div>
-          <div class="doc-header-lines">
-            <div class="doc-line bold w-70"></div>
-            <div class="doc-line w-80"></div>
-            <div class="doc-line w-60"></div>
-            <div class="doc-line w-70"></div>
-            <div class="doc-line w-50"></div>
+        <img *ngIf="t.thumbnailUrl" class="thumbnail-image" [src]="t.thumbnailUrl" [alt]="t.name" />
+
+        <ng-container *ngIf="!t.thumbnailUrl">
+          <div class="doc-header-bar">
+            <div class="doc-logo-placeholder"></div>
+            <div class="doc-header-lines">
+              <div class="doc-line bold w-70"></div>
+              <div class="doc-line w-80"></div>
+              <div class="doc-line w-60"></div>
+              <div class="doc-line w-70"></div>
+              <div class="doc-line w-50"></div>
+            </div>
           </div>
-        </div>
-        <div class="doc-divider"></div>
-        <div class="doc-body">
-          <div class="doc-title-line"></div>
-          <div class="doc-salutation"></div>
-          <div class="doc-paragraph"></div>
-          <div class="doc-paragraph w-90"></div>
-          <div class="doc-paragraph w-70"></div>
-          <div class="doc-paragraph w-80 mt-4"></div>
-          <div class="doc-paragraph w-60"></div>
-          <div class="doc-paragraph w-75 mt-4"></div>
-          <div class="doc-paragraph w-50"></div>
-        </div>
+          <div class="doc-divider"></div>
+          <div class="doc-body">
+            <div class="doc-title-line"></div>
+            <div class="doc-salutation"></div>
+            <div class="doc-paragraph"></div>
+            <div class="doc-paragraph w-90"></div>
+            <div class="doc-paragraph w-70"></div>
+            <div class="doc-paragraph w-80 mt-4"></div>
+            <div class="doc-paragraph w-60"></div>
+            <div class="doc-paragraph w-75 mt-4"></div>
+            <div class="doc-paragraph w-50"></div>
+          </div>
+        </ng-container>
       </div>
 
       <!-- Card footer -->

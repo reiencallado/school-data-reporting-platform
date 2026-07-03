@@ -9,6 +9,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 import java.io.IOException;
+import java.util.UUID;
 
 @Service
 public class StorageService {
@@ -40,6 +41,33 @@ public class StorageService {
                 RequestBody.fromBytes(file.getBytes())
         );
         return "Uploaded: " + key;
+    }
+
+    /**
+     * Uploads a file under a specific key prefix (e.g. "thumbnails/") and
+     * returns the actual retrievable URL, unlike uploadFile() which only
+     * returns a status string. A random suffix is appended to avoid
+     * collisions with the original-filename-as-key approach above.
+     */
+    public String uploadFileAndGetUrl(MultipartFile file, String keyPrefix) throws IOException {
+        String extension = "";
+        String originalName = file.getOriginalFilename();
+        if (originalName != null && originalName.contains(".")) {
+            extension = originalName.substring(originalName.lastIndexOf('.'));
+        }
+        String key = keyPrefix + UUID.randomUUID() + extension;
+
+        s3Client.putObject(
+                PutObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .contentType(file.getContentType())
+                        .build(),
+                RequestBody.fromBytes(file.getBytes())
+        );
+
+        // LocalStack/S3-style path URL: {endpoint}/{bucket}/{key}
+        return endpoint + "/" + bucketName + "/" + key;
     }
 
     public String sendMessage(String messageBody) {

@@ -11,6 +11,7 @@ export interface TemplateCard {
   id:       string;
   name:     string;
   lastUsed: string;
+  thumbnailUrl?: string;
 }
 
 @Component({
@@ -69,9 +70,10 @@ export class Templates implements OnInit, OnDestroy {
         this.templates = data.map(t => ({
           id: t.id ?? '',
           name: t.name,
-          // Backend doesn't currently track a "last used" timestamp;
-          // placeholder until that field exists on ReportTemplate.java
-          lastUsed: '—',
+          lastUsed: t.lastOpenedAt
+            ? new Date(t.lastOpenedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+            : 'Never opened',
+          thumbnailUrl: t.thumbnailUrl,
         }));
         this.loading = false;
       },
@@ -110,10 +112,14 @@ export class Templates implements OnInit, OnDestroy {
   }
 
   deleteTemplate(t: TemplateCard): void {
-    // TODO: wire to reportTemplateService.delete(t.id) once a DELETE endpoint exists
-    const confirmed = window.confirm(`Delete "${t.name}"? This cannot be undone.`);
-    if (confirmed) {
-      this.templates = this.templates.filter(x => x.id !== t.id);
-    }
+    this.reportTemplateService.deleteTemplate(t.id).subscribe({
+      next: () => {
+        this.templates = this.templates.filter(x => x.id !== t.id);
+      },
+      error: (err) => {
+        console.error('Failed to delete template:', err);
+        this.error = 'Could not delete template. Please try again.';
+      },
+    });
   }
 }

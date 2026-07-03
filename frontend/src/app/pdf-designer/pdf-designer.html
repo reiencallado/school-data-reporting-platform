@@ -16,6 +16,14 @@
         <option *ngFor="let school of schools" [value]="school.id">{{ school.name }}</option>
     </select>
 
+    <select
+        class="paper-size-select"
+        [(ngModel)]="currentPaperSizeId"
+        (change)="onPaperSizeChange()"
+    >
+        <option *ngFor="let size of paperSizes" [value]="size.id">{{ size.name }}</option>
+    </select>
+
     <button class="save-btn" (click)="saveTemplate()">Save</button>
 </div>
 
