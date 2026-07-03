@@ -54,7 +54,6 @@ public class AdmissionStudentsController {
     public ResponseEntity<AdmissionStudents> updateStudent(@PathVariable UUID id, @RequestBody AdmissionStudents admissionStudent) {
         return admissionStudentsRepository.findById(id)
                 .map(existing -> {
-                    existing.setStudentId(admissionStudent.getStudentId());
                     existing.setFirstName(admissionStudent.getFirstName());
                     existing.setLastName(admissionStudent.getLastName());
                     existing.setHighestGradeCompleted(admissionStudent.getHighestGradeCompleted());

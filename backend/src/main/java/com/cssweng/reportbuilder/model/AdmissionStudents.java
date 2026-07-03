@@ -19,9 +19,6 @@ public class AdmissionStudents {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "student_id", nullable = false, length = 50)
-    private String studentId;
-
     @Column(name = "first_name", nullable = false, length = 255)
     private String firstName;
 
@@ -54,9 +51,6 @@ public class AdmissionStudents {
     // Getters and Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
-
-    public String getStudentId() { return studentId; }
-    public void setStudentId(String studentId) { this.studentId = studentId; }
 
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
