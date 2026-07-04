@@ -367,7 +367,7 @@
 
 
   <!-- ==== STICKY FOOTER NAV ==== -->
-  <div class="step-footer">
+<div class="step-footer">
     <div class="footer-left">
       <span *ngIf="currentStep === 1 && selectedTemplate" class="footer-status">
         1 template selected
@@ -375,9 +375,15 @@
       <span *ngIf="currentStep === 2" class="footer-status">
         {{ selectedStudents.size }} student(s) selected
       </span>
+      <span *ngIf="currentStep === 4 && generating" class="footer-status">
+        Generating {{ generateProgress.done }} of {{ generateProgress.total }}…
+      </span>
+      <span *ngIf="currentStep === 4 && generateError" class="footer-status error">
+        {{ generateError }}
+      </span>
     </div>
     <div class="footer-actions">
-      <button class="btn-secondary" (click)="onBack()">
+      <button class="btn-secondary" (click)="onBack()" [disabled]="generating">
         {{ currentStep === 1 ? 'Cancel' : 'Back' }}
       </button>
       <button class="btn-primary" (click)="onNext()" [disabled]="!canProceed()">
@@ -385,7 +391,7 @@
           <ng-container *ngSwitchCase="1">Next: Select students →</ng-container>
           <ng-container *ngSwitchCase="2">Next: Set parameters →</ng-container>
           <ng-container *ngSwitchCase="3">Next: Confirm &amp; submit →</ng-container>
-          <ng-container *ngSwitchCase="4">Generate</ng-container>
+          <ng-container *ngSwitchCase="4">{{ generating ? 'Generating…' : 'Generate' }}</ng-container>
         </ng-container>
       </button>
     </div>
