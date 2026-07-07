@@ -176,18 +176,14 @@
           <tbody>
             <tr *ngFor="let s of pagedStudents" [class.row-selected]="selectedStudents.has(s.id)">
               <td class="col-check">
-                <input type="checkbox"
-                       [checked]="selectedStudents.has(s.id)"
-                       (change)="toggleStudent(s.id, $event)" />
+                <input type="checkbox" [checked]="selectedStudents.has(s.id)" (change)="toggleStudent(s.id, $event)" />
               </td>
-              <td class="mono muted">{{ s.id }}</td>
+              <td class="mono muted">{{ s.studentId }}</td>
               <td>{{ s.name }}</td>
-              <td>{{ s.gradeLevel }}</td>
-              <td>{{ s.strand }}</td>
-              <td>{{ s.section }}</td>
+              <td><span class="type-badge" [attr.data-type]="s.studentType">{{ s.studentType }}</span></td>
+              <td>{{ s.subtitle }}</td>
               <td>
-                <span class="status-badge" [class.badge-active]="s.status === 'Active'"
-                      [class.badge-inactive]="s.status !== 'Active'">{{ s.status }}</span>
+                <span class="status-badge" [class.badge-active]="s.status === 'ACTIVE'" [class.badge-inactive]="s.status !== 'ACTIVE'">{{ s.status }}</span>
               </td>
             </tr>
           </tbody>

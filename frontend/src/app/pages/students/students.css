@@ -287,3 +287,30 @@
   background-color: var(--blue-3);
   color: var(--white-1) !important;
 }
+.template-state-msg {
+  font-size: 13px;
+  color: var(--gray-2);
+  padding: 24px;
+  text-align: center;
+}
+
+.template-state-msg.error {
+  color: var(--color-danger, #dc2626);
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: var(--blue-4);
+  color: var(--blue-2);
+}
+
+.type-badge[data-type="COLLEGE"] {
+  background: #fef3c7;
+  color: #b45309;
+}

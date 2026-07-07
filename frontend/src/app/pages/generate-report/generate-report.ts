@@ -28,6 +28,10 @@ import JSZip from 'jszip';
 
 import { ReportTemplateService } from '../../services/report-template.service';
 import { ReportTemplate as ApiReportTemplate } from '../../services/report-template.model';
+// TODO: Change the service and model for Students? Since data exposure for K12, College, and Admission students are different. 
+// For now, just use the StudentService and StudentSummary model.
+import { StudentService } from '../../services/student.service';
+import { StudentSummary } from '../../services/student.model';
 import { PLUGINS } from '../../pdf-designer/pdf-designer';
 
 export interface ReportTemplate {
@@ -36,15 +40,6 @@ export interface ReportTemplate {
   lastUsed:      string;
   thumbnailUrl?: string;
   configuration: string;   // raw pdfme JSON — needed to actually generate PDFs
-}
-
-export interface StudentRow {
-  id:         string;
-  name:       string;
-  gradeLevel: number;
-  strand:     string;
-  section:    string;
-  status:     string;
 }
 
 export interface ReportDetails {
@@ -105,7 +100,7 @@ export class GenerateReport implements OnInit {
         }));
         this.templatesLoading = false;
       },
-      error: (err) => {
+      error: (err: unknown) => {
         console.error('Failed to fetch report templates:', err);
         this.templatesError = 'Could not load templates. Please try again.';
         this.templatesLoading = false;
@@ -118,24 +113,51 @@ export class GenerateReport implements OnInit {
   }
 
   // ── Step 2: Students ─────────────────────────────────────
-  studentSearch   = '';
+  studentSearch    = '';
   selectedStudents = new Set<string>();
-  currentPage  = 1;
-  studentsPerPage = 10;
-  allStudents: StudentRow[] = Array.from({ length: 100 }, (_, i) => ({
-    id:         `STU${1000 + i}`,
-    name:       `Student ${i + 1}`,
-    gradeLevel: 11 + (i % 2),
-    strand:     i % 2 === 0 ? 'STEM' : 'HUMSS',
-    section:    i % 3 === 0 ? 'St. Jude' : 'St. Teresa',
-    status:     i % 4 === 0 ? 'Inactive' : 'Active',
-  }));
-  totalPages   = Math.ceil(this.allStudents.length / this.studentsPerPage);
-  pageNumbers  = [1, 2, 3, 4, 5];
+  currentPage      = 1;
+  studentsPerPage  = 10;
+  allStudents: StudentSummary[] = [];
+  studentsLoading = false;
+  studentsError: string | null = null;
 
-  get pagedStudents(): StudentRow[] {
+  fetchStudents(): void {
+    this.studentsLoading = true;
+    this.studentsError = null;
+
+    this.studentService.getAllStudents().subscribe({
+      next: (data: StudentSummary[]) => {
+        this.allStudents = data;
+        this.studentsLoading = false;
+      },
+      error: (err: unknown) => {
+        console.error('Failed to fetch students:', err);
+        this.studentsError = 'Could not load students. Please try again.';
+        this.studentsLoading = false;
+      },
+    });
+  }
+
+  private get searchFilteredStudents(): StudentSummary[] {
+    const q = this.studentSearch.toLowerCase();
+    return q
+      ? this.allStudents.filter(s =>
+          s.name.toLowerCase().includes(q) ||
+          s.studentId.toLowerCase().includes(q))
+      : this.allStudents;
+  }
+
+  get pagedStudents(): StudentSummary[] {
     const start = (this.currentPage - 1) * this.studentsPerPage;
-    return this.allStudents.slice(start, start + this.studentsPerPage);
+    return this.searchFilteredStudents.slice(start, start + this.studentsPerPage);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.searchFilteredStudents.length / this.studentsPerPage) || 1;
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
   }
 
   get allSelected(): boolean {
@@ -183,16 +205,19 @@ export class GenerateReport implements OnInit {
   constructor(
     private router: Router,
     private reportTemplateService: ReportTemplateService,
+    private studentService: StudentService,
   ) {}
 
   ngOnInit(): void {
     this.fetchTemplates();
+    this.fetchStudents();
   }
 
   goToStep(n: number): void {
     if (n >= 1 && n <= this.steps.length) this.currentStep = n;
   }
 
+  // TODO: Validation should exist on the front-end?
   canProceed(): boolean {
     switch (this.currentStep) {
       case 1: return !!this.selectedTemplate;
@@ -215,7 +240,7 @@ export class GenerateReport implements OnInit {
     else this.currentStep--;
   }
 
-/**
+  /**
    * Best-effort match of a pdfme schema field to known report/student data.
    *
    * multiVariableText schemas store their substitutable fields in
@@ -231,11 +256,12 @@ export class GenerateReport implements OnInit {
    * unchanged rather than treated as though it had tokens to resolve.
    *
    * For all other schema types (image, text, etc.), an unmatched field
-   * name falls back to the schema's own saved `content` — this is what
-   * keeps static images/logos intact instead of disappearing, since an
-   * Image schema with no matching input renders nothing.
+   * name falls back to the schema's own saved `content` instead of being
+   * left blank — this is what keeps static images/logos intact instead
+   * of disappearing, since an Image schema with no matching input renders
+   * nothing.
    */
-  private buildInputsForStudent(template: Template, student: StudentRow): Record<string, string> {
+  private buildInputsForStudent(template: Template, student: StudentSummary): Record<string, string> {
     const known: Record<string, string> = {
       academicyear:   this.reportDetails.academicYear,
       term:           this.reportDetails.term,
@@ -245,11 +271,13 @@ export class GenerateReport implements OnInit {
       purpose:        this.reportDetails.purpose,
       remarks:        this.reportDetails.remarks,
       studentname:    student.name,
-      name:           student.name,
-      gradelevel:     String(student.gradeLevel),
-      strand:         student.strand,
-      section:        student.section,
-      studentid:      student.id,
+      name:           student.name, //bakit iba yung student meron {studentname} at {name}? Same lang sila lol
+      studentid:      student.studentId,
+      gradelevel:     student.grade ?? '',
+      strand:         student.strand ?? '',
+      section:        student.section ?? '',
+      course:         student.course ?? '',
+      yearlevel:      student.yearLevel ?? '',
     };
 
     const page: Record<string, string> = {};
@@ -262,7 +290,6 @@ export class GenerateReport implements OnInit {
           const variables: string[] = Array.isArray(schema.variables) ? schema.variables : [];
 
           if (variables.length === 0) {
-            // No substitutable tokens — carry the saved content through as-is.
             page[schema.name] = schema.content ?? '{}';
             continue;
           }
@@ -310,8 +337,9 @@ export class GenerateReport implements OnInit {
       try {
         parsedTemplate = JSON.parse(this.selectedTemplate.configuration);
       } catch (e) {
-        throw new Error('This template’s layout data is corrupted and can’t be used to generate reports.');
+        throw new Error('This template\u2019s layout data is corrupted and can\u2019t be used to generate reports.');
       }
+
       // JSZip usage — see the large comment at the top of this file if
       // this dependency is being removed/replaced.
       const zip = new JSZip();
@@ -321,7 +349,7 @@ export class GenerateReport implements OnInit {
         const pdfBytes = await generate({ template: parsedTemplate, inputs, plugins: PLUGINS });
 
         const safeName = student.name.replace(/[^a-z0-9]+/gi, '_');
-        zip.file(`${safeName}_${student.id}.pdf`, pdfBytes);
+        zip.file(`${safeName}_${student.studentId}.pdf`, pdfBytes);
 
         this.generateProgress.done++;
       }
