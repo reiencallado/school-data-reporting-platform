@@ -16,6 +16,24 @@
         <option *ngFor="let school of schools" [value]="school.id">{{ school.name }}</option>
     </select>
 
+    <!-- Toolbar toggle -->
+    <button type="button" (click)="togglePresetDrawer()">
+        {{ showPresetDrawer ? 'Hide' : 'Show' }} Preset Fields
+    </button>
+
+    <!-- Preset drawer -->
+    <aside class="preset-drawer" *ngIf="showPresetDrawer">
+        <h3>Insert Field</h3>
+        <button
+            *ngFor="let preset of presetFields"
+            type="button"
+            class="preset-drawer__item"
+            (click)="insertPresetField(preset)"
+            >
+            {{ preset.label }}
+        </button>
+    </aside>
+
     <button class="paper-size-btn" type="button" (click)="showSizeModal = true">
         {{ paperSizeButtonLabel }}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"

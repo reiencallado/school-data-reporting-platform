@@ -53,6 +53,28 @@ export const SEED_SCHOOLS = [
   { id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', name: 'San Beda University' },
 ];
 
+export interface PresetField {
+  label: string;
+  variable: string;
+}
+
+export const PRESET_FIELDS: PresetField[] = [
+  { label: 'Student Name', variable: 'studentName' },
+  { label: 'Student ID', variable: 'studentId' },
+  { label: 'Grade Level', variable: 'gradeLevel' },
+  { label: 'Section', variable: 'section' },
+  { label: 'Strand', variable: 'strand' },
+  { label: 'Course', variable: 'course' },
+  { label: 'Year Level', variable: 'yearLevel' },
+  { label: 'Academic Year', variable: 'academicYear' },
+  { label: 'Term', variable: 'term' },
+  { label: 'Issuance Date', variable: 'issuanceDate' },
+  { label: 'Signatory Name', variable: 'signatoryName' },
+  { label: 'Signatory Title', variable: 'signatoryTitle' },
+  { label: 'Purpose', variable: 'purpose' },
+  { label: 'Remarks', variable: 'remarks' },
+];
+
 @Component({
   selector: 'app-pdf-designer',
   imports: [CommonModule, FormsModule, ResolutionModalComponent],
@@ -74,6 +96,56 @@ export class PdfDesigner implements OnInit, OnDestroy {
   saveError: string | null = null;
 
   showSizeModal = false;
+
+  
+  // ── Preset field drawer ──────────────────────────────────
+  presetFields = PRESET_FIELDS;
+  showPresetDrawer = false;
+
+  togglePresetDrawer(): void {
+    this.showPresetDrawer = !this.showPresetDrawer;
+  }
+
+  insertPresetField(preset: PresetField): void {
+    if (!this.designer) return;
+
+    const current = this.designer.getTemplate();
+    // Shallow-copy pages/rows so we don't mutate pdfme's internal state directly.
+    const schemas = current.schemas.map((page: any[]) => [...page]) as any[][];
+    if (!schemas[0]) schemas[0] = [];
+    const targetPage = schemas[0];
+
+    const name = this.uniqueSchemaName(preset.variable, targetPage);
+
+    targetPage.push({
+      name,
+      type: 'multiVariableText',
+      content: JSON.stringify({ [preset.variable]: preset.label }),
+      text: `{${preset.variable}}`,
+      variables: [preset.variable],
+      position: { x: 20, y: 20 },
+      width: 60,
+      height: 10,
+    });
+
+    this.designer.updateTemplate({ ...current, schemas });
+
+    // This is a genuine user edit - let autosave pick it up like any
+    // other canvas change (mirrors onChangeTemplate's behavior).
+    this.autosaveStatus = 'Unsaved changes…';
+    this.changeSubject.next();
+  }
+
+  // Guards against two presets silently colliding on the same schema name,
+  // which would make one overwrite the other's value in
+  // buildInputsForStudent()'s output map at generation time.
+  private uniqueSchemaName(base: string, page: any[]): string {
+    const existing = new Set(page.map((s) => s.name));
+    if (!existing.has(base)) return base;
+    let i = 2;
+    while (existing.has(`${base}_${i}`)) i++;
+    return `${base}_${i}`;
+  }
 
   // ── Autosave ─────────────────────────────────────────────
   autosaveStatus: string | null = null;
