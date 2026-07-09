@@ -322,10 +322,12 @@ export class PdfDesigner implements OnInit, OnDestroy {
     if (this.templateId) {
       this.reportTemplateService.updateTemplate(this.templateId, payload).subscribe({
         next: () => {
-          this.captureAndUploadThumbnail(this.templateId!);
+          const thumbPromise = this.captureAndUploadThumbnail(this.templateId!);
           if (isAutosave) {
             this.autosaveStatus = 'Saved';
             setTimeout(() => this.autosaveStatus = null, 1500);
+          } else {
+            thumbPromise.finally(() => this.router.navigate(['/templates']));
           }
         },
         error: (err: HttpErrorResponse) => {
@@ -338,12 +340,14 @@ export class PdfDesigner implements OnInit, OnDestroy {
       this.reportTemplateService.createTemplate(payload).subscribe({
         next: (created) => {
           this.templateId = created.id ?? null;
-          if (this.templateId) {
-            this.captureAndUploadThumbnail(this.templateId);
-          }
+          const thumbPromise = this.templateId
+            ? this.captureAndUploadThumbnail(this.templateId)
+            : Promise.resolve();
           if (isAutosave) {
             this.autosaveStatus = 'Saved';
             setTimeout(() => this.autosaveStatus = null, 1500);
+          } else {
+            thumbPromise.finally(() => this.router.navigate(['/templates']));
           }
         },
         error: (err: HttpErrorResponse) => {
@@ -355,19 +359,23 @@ export class PdfDesigner implements OnInit, OnDestroy {
     }
   }
 
-  private captureAndUploadThumbnail(id: string): void {
+  private captureAndUploadThumbnail(id: string): Promise<void> {
     const container = document.getElementById('designer');
-    if (!container) return;
+    if (!container) return Promise.resolve();
 
-    html2canvas(container, { scale: 0.5 }).then((canvas: HTMLCanvasElement) => {
-      canvas.toBlob((blob: Blob | null) => {
-        if (!blob) return;
-        this.reportTemplateService.uploadThumbnail(id, blob).subscribe({
-          error: (err: HttpErrorResponse) => {
-            console.error('Failed to upload thumbnail:', err);
-          },
-        });
-      }, 'image/png');
+    return html2canvas(container, { scale: 0.5 }).then((canvas: HTMLCanvasElement) => {
+      return new Promise<void>((resolve) => {
+        canvas.toBlob((blob: Blob | null) => {
+          if (!blob) { resolve(); return; }
+          this.reportTemplateService.uploadThumbnail(id, blob).subscribe({
+            next: () => resolve(),
+            error: (err: HttpErrorResponse) => {
+              console.error('Failed to upload thumbnail:', err);
+              resolve();
+            },
+          });
+        }, 'image/png');
+      });
     }).catch((err: unknown) => {
       console.error('Failed to capture thumbnail:', err);
     });

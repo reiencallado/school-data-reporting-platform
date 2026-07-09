@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StudentService } from '../../services/student.service';
 import { StudentSummary, StudentType } from '../../services/student.model';
@@ -19,8 +19,6 @@ export class Students implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // Grade/Strand/Section filters only applied to K12 — now that the list
-  // merges K12 + College, a Type filter replaces them.
   typeOptions: StudentType[] = ['K12', 'COLLEGE'];
   statusOptions = ['ACTIVE', 'INACTIVE'];
 
@@ -38,7 +36,7 @@ export class Students implements OnInit {
   totalPagesArray: number[] = [];
   searchTerm = '';
 
-  constructor(private studentService: StudentService) {}
+  constructor(private studentService: StudentService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
     this.fetchStudents();
@@ -53,11 +51,13 @@ export class Students implements OnInit {
         this.allStudents = data;
         this.loading = false;
         this.applyFiltersAndCalculations();
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Failed to fetch students:', err);
         this.error = 'Could not load students. Please try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -144,5 +144,17 @@ export class Students implements OnInit {
     const startIndex = (this.currentPage - 1) * this.pageSize;
     const endIndex = startIndex + this.pageSize;
     this.pagedStudents = this.filteredStudents.slice(startIndex, endIndex);
+  }
+
+  getGradeOrYear(s: StudentSummary): string {
+    return (s.studentType === 'K12' ? s.grade : s.yearLevel) || '—';
+  }
+
+  getStrandOrProgram(s: StudentSummary): string {
+    return (s.studentType === 'K12' ? s.strand : s.course) || '—';
+  }
+
+  getSection(s: StudentSummary): string {
+    return s.studentType === 'K12' ? (s.section || '—') : '—';
   }
 }

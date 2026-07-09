@@ -19,8 +19,8 @@
         </div>
         <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['type']" (click)="onCheckboxClick($event)">
           <div class="dropdown-panel-header">
-            <span>Type filters</span>
-            <button class="dropdown-clear-btn" *ngIf="selectedTypes.size > 0" (click)="clearFilter('type')">Clear all</button>
+            <span>Type</span>
+            <button class="dropdown-clear-btn" (click)="clearFilter('type')">Clear</button>
           </div>
           <label *ngFor="let option of typeOptions" class="checkbox-option-label">
             <input type="checkbox" [checked]="selectedTypes.has(option)" (change)="onCheckboxToggle('type', option)">
@@ -39,8 +39,8 @@
         </div>
         <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['status']" (click)="onCheckboxClick($event)">
           <div class="dropdown-panel-header">
-            <span>Status filters</span>
-            <button class="dropdown-clear-btn" *ngIf="selectedStatuses.size > 0" (click)="clearFilter('status')">Clear all</button>
+            <span>Status</span>
+            <button class="dropdown-clear-btn" (click)="clearFilter('status')">Clear</button>
           </div>
           <label *ngFor="let option of statusOptions" class="checkbox-option-label">
             <input type="checkbox" [checked]="selectedStatuses.has(option)" (change)="onCheckboxToggle('status', option)">
@@ -59,43 +59,41 @@
   <p *ngIf="error" class="template-state-msg error">{{ error }}</p>
 
   <div class="table-responsive-scroll" *ngIf="!loading && !error">
-    <table class="students-data-grid">
+    <table class="dashboard-table">
       <thead>
         <tr>
           <th>Student ID</th>
           <th>Name</th>
           <th>Type</th>
-          <th>Details</th>
-          <th class="text-center">Status</th>
+          <th>Grade / Year</th>
+          <th>Strand / Program</th>
+          <th>Section</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let student of pagedStudents">
-          <td class="id-cell-text">{{ student.studentId }}</td>
-          <td class="student-name-text">{{ student.name }}</td>
+          <td class="mono muted">{{ student.studentId }}</td>
+          <td>{{ student.name }}</td>
           <td><span class="type-badge" [attr.data-type]="student.studentType">{{ student.studentType }}</span></td>
-          <td class="badge-strand-text">{{ student.subtitle }}</td>
-          <td class="text-center">
-            <span class="status-pill-badge" [class.status-inactive]="student.status !== 'ACTIVE'">
+          <td>{{ getGradeOrYear(student) }}</td>
+          <td>{{ getStrandOrProgram(student) }}</td>
+          <td>{{ getSection(student) }}</td>
+          <td>
+            <span class="status-badge" [class.badge-active]="student.status === 'ACTIVE'" [class.badge-inactive]="student.status !== 'ACTIVE'">
               {{ student.status }}
             </span>
           </td>
         </tr>
       </tbody>
     </table>
-  </div>
 
-  <nav class="pagination-footer-nav" aria-label="Roster navigation pagination" *ngIf="!loading && !error">
-    <button class="pagination-step-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)" aria-label="Previous Page">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-    </button>
-    <div class="pagination-pages-list">
-      <button *ngFor="let page of totalPagesArray" class="page-number-btn" [class.is-active-page]="page === currentPage" (click)="changePage(page)">{{ page }}</button>
+    <div class="pagination-row">
+      <button class="page-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">&#8249;</button>
+      <button *ngFor="let page of totalPagesArray" class="page-btn" [class.active]="page === currentPage" (click)="changePage(page)">{{ page }}</button>
+      <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">&#8250;</button>
     </div>
-    <button class="pagination-step-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)" aria-label="Next Page">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-    </button>
-  </nav>
+  </div>
 </div>
 
 </div>

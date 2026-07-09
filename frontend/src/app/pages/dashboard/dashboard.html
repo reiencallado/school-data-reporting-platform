@@ -113,7 +113,7 @@
         </div>
       </button>
 
-      <button class="action-card" routerLink="/reports/generate">
+      <button class="action-card" routerLink="/generate-report">
         <div class="action-icon icon-bg-orange">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -128,7 +128,7 @@
         </div>
       </button>
 
-      <button class="action-card" routerLink="/reports/generate" [queryParams]="{type: 'diploma'}">
+      <button class="action-card" routerLink="/generate-report" [queryParams]="{type: 'diploma'}">
         <div class="action-icon icon-bg-green">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -157,7 +157,7 @@
         </div>
       </button>
 
-      <button class="action-card" routerLink="/reports/archives">
+      <button class="action-card" routerLink="/archives">
         <div class="action-icon icon-bg-blue-soft">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -223,7 +223,7 @@
     <div class="dashboard-section table-wrapper">
       <div class="section-header">
         <h3 class="section-heading">Recent Reports</h3>
-        <a routerLink="/reports/archives" class="view-all-link">View All</a>
+        <a routerLink="/archives" class="view-all-link">View All</a>
       </div>
       <div class="table-responsive">
         <table class="dashboard-table">
@@ -254,7 +254,7 @@
   <div class="dashboard-section" *ngIf="isAdmin">
     <div class="section-header">
       <h3 class="section-heading">System Overview</h3>
-      <a routerLink="/admin/logs" class="view-all-link">View Logs</a>
+      <a routerLink="/logs" class="view-all-link">View Logs</a>
     </div>
     <div class="overview-grid">
 

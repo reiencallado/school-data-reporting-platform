@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+// generate-report.ts
+import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -45,9 +46,6 @@ export interface ReportTemplate {
 export interface ReportDetails {
   academicYear:   string;
   term:           string;
-  issuanceDay:    string;
-  issuanceMonth:  string;
-  issuanceYear:   string;
   signatoryName:  string;
   signatoryTitle: string;
   purpose:        string;
@@ -99,11 +97,13 @@ export class GenerateReport implements OnInit {
           configuration: t.configuration,
         }));
         this.templatesLoading = false;
+        this.cdr.detectChanges();
       },
       error: (err: unknown) => {
         console.error('Failed to fetch report templates:', err);
         this.templatesError = 'Could not load templates. Please try again.';
         this.templatesLoading = false;
+        this.cdr.detectChanges();
       },
     });
   }
@@ -115,11 +115,81 @@ export class GenerateReport implements OnInit {
   // ── Step 2: Students ─────────────────────────────────────
   studentSearch    = '';
   selectedStudents = new Set<string>();
+  selectedGradeLevels = new Set<string>();
+  selectedStrands = new Set<string>();
+  selectedSections = new Set<string>();
   currentPage      = 1;
   studentsPerPage  = 10;
   allStudents: StudentSummary[] = [];
   studentsLoading = false;
   studentsError: string | null = null;
+
+  dropdownStates: { [key: string]: boolean } = {
+    grade: false,
+    strand: false,
+    section: false,
+  };
+
+  toggleDropdown(type: string, event: Event): void {
+    event.stopPropagation();
+    const targetState = !this.dropdownStates[type];
+    this.closeAllDropdowns();
+    this.dropdownStates[type] = targetState;
+  }
+
+  closeDropdown(type: string): void {
+    this.dropdownStates[type] = false;
+  }
+
+  private closeAllDropdowns(): void {
+    Object.keys(this.dropdownStates).forEach(key => this.dropdownStates[key] = false);
+  }
+
+  onCheckboxClick(event: Event): void {
+    event.stopPropagation();
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.closeAllDropdowns();
+  }
+
+  get gradeLevelOptions(): string[] {
+    return Array.from(new Set(this.allStudents.map(s => s.grade).filter((g): g is string => !!g)));
+  }
+
+  get strandOptions(): string[] {
+    return Array.from(new Set(this.allStudents.map(s => s.strand).filter((s): s is string => !!s)));
+  }
+
+  get sectionOptions(): string[] {
+    return Array.from(new Set(this.allStudents.map(s => s.section).filter((s): s is string => !!s)));
+  }
+
+  onFilterCheckboxToggle(filterType: 'grade' | 'strand' | 'section', value: string): void {
+    const targetSet = filterType === 'grade' ? this.selectedGradeLevels
+      : filterType === 'strand' ? this.selectedStrands
+      : this.selectedSections;
+    if (targetSet.has(value)) targetSet.delete(value);
+    else targetSet.add(value);
+    this.currentPage = 1;
+  }
+
+  clearStudentFilter(filterType: 'grade' | 'strand' | 'section'): void {
+    if (filterType === 'grade') this.selectedGradeLevels.clear();
+    else if (filterType === 'strand') this.selectedStrands.clear();
+    else this.selectedSections.clear();
+    this.currentPage = 1;
+  }
+
+  getFilterLabel(filterType: 'grade' | 'strand' | 'section', fallback: string): string {
+    const targetSet = filterType === 'grade' ? this.selectedGradeLevels
+      : filterType === 'strand' ? this.selectedStrands
+      : this.selectedSections;
+    if (targetSet.size === 0) return fallback;
+    if (targetSet.size === 1) return `${fallback}: ${Array.from(targetSet)[0]}`;
+    return `${fallback}: ${targetSet.size} selected`;
+  }
 
   fetchStudents(): void {
     this.studentsLoading = true;
@@ -129,22 +199,35 @@ export class GenerateReport implements OnInit {
       next: (data: StudentSummary[]) => {
         this.allStudents = data;
         this.studentsLoading = false;
+        this.cdr.detectChanges();
       },
       error: (err: unknown) => {
         console.error('Failed to fetch students:', err);
         this.studentsError = 'Could not load students. Please try again.';
         this.studentsLoading = false;
+        this.cdr.detectChanges();
       },
     });
   }
 
   private get searchFilteredStudents(): StudentSummary[] {
     const q = this.studentSearch.toLowerCase();
-    return q
-      ? this.allStudents.filter(s =>
-          s.name.toLowerCase().includes(q) ||
-          s.studentId.toLowerCase().includes(q))
-      : this.allStudents;
+    return this.allStudents.filter(s => {
+      const matchesSearch = !q ||
+        s.name.toLowerCase().includes(q) ||
+        s.studentId.toLowerCase().includes(q);
+
+      const matchesGrade = this.selectedGradeLevels.size === 0 ||
+        (s.grade && this.selectedGradeLevels.has(s.grade));
+
+      const matchesStrand = this.selectedStrands.size === 0 ||
+        (s.strand && this.selectedStrands.has(s.strand));
+
+      const matchesSection = this.selectedSections.size === 0 ||
+        (s.section && this.selectedSections.has(s.section));
+
+      return matchesSearch && matchesGrade && matchesStrand && matchesSection;
+    });
   }
 
   get pagedStudents(): StudentSummary[] {
@@ -184,18 +267,109 @@ export class GenerateReport implements OnInit {
     this.currentPage = page;
   }
 
+  getGradeOrYear(s: StudentSummary): string {
+    return (s.studentType === 'K12' ? s.grade : s.yearLevel) || '—';
+  }
+
+  getStrandOrProgram(s: StudentSummary): string {
+    return (s.studentType === 'K12' ? s.strand : s.course) || '—';
+  }
+
+  getSection(s: StudentSummary): string {
+    // College students don't have sections.
+    return s.studentType === 'K12' ? (s.section || '—') : '—';
+  }
+
   // ── Step 3: Report Details ───────────────────────────────
   reportDetails: ReportDetails = {
+    // TODO: pull academicYear/term from a school-settings endpoint once
+    // one exists, instead of a hardcoded default that goes stale yearly.
     academicYear:   '2025 - 2026',
     term:           'Term 1',
-    issuanceDay:    '',
-    issuanceMonth:  '',
-    issuanceYear:   '',
     signatoryName:  '',
     signatoryTitle: '',
     purpose:        '',
     remarks:        '',
   };
+
+  customFieldValues: Record<string, string> = {};
+
+  private readonly STUDENT_AUTO_KEYS = new Set([
+    'studentname', 'name', 'studentid', 'gradelevel', 'strand', 'section', 'course', 'yearlevel',
+  ]);
+
+  private readonly REPORT_DETAIL_FIELDS: { key: string; label: string }[] = [
+    { key: 'academicyear',   label: 'Academic year' },
+    { key: 'term',           label: 'Term' },
+    { key: 'signatoryname',  label: 'Issued by (signatory name)' },
+    { key: 'signatorytitle', label: 'Signatory Title' },
+    { key: 'purpose',        label: 'Purpose' },
+    { key: 'remarks',        label: 'Special notes / remarks' },
+  ];
+
+  get templateFieldKeys(): string[] {
+    if (!this.selectedTemplate) return [];
+    try {
+      const parsed = JSON.parse(this.selectedTemplate.configuration);
+      const keys = new Set<string>();
+      for (const row of parsed.schemas ?? []) {
+        for (const schema of row as any[]) {
+          if (!schema?.name) continue;
+          if (schema.type === 'multiVariableText' && Array.isArray(schema.variables)) {
+            schema.variables.forEach((v: string) => keys.add(v.toLowerCase().replace(/[\s_-]/g, '')));
+          } else {
+            keys.add((schema.name as string).toLowerCase().replace(/[\s_-]/g, ''));
+          }
+        }
+      }
+      return Array.from(keys);
+    } catch {
+      return [];
+    }
+  }
+
+  get autoFilledFieldLabels(): string[] {
+    const labelMap: Record<string, string> = {
+      studentname: 'Student name', name: 'Student name', studentid: 'Student ID',
+      gradelevel: 'Grade level', strand: 'Strand', section: 'Section',
+      course: 'Course', yearlevel: 'Year level',
+      issuancedate: "Today's date",
+    };
+    const autoKeys = new Set([...this.STUDENT_AUTO_KEYS, 'issuancedate']);
+    const seen = new Set<string>();
+    return this.templateFieldKeys
+      .filter(k => autoKeys.has(k))
+      .map(k => labelMap[k] ?? k)
+      .filter(label => (seen.has(label) ? false : (seen.add(label), true)));
+  }
+
+  get manualReportFields(): { key: string; label: string }[] {
+    const keys = this.templateFieldKeys;
+    return this.REPORT_DETAIL_FIELDS.filter(f => keys.includes(f.key));
+  }
+
+  get customFieldKeys(): string[] {
+    const known = new Set([...this.STUDENT_AUTO_KEYS, 'issuancedate', ...this.REPORT_DETAIL_FIELDS.map(f => f.key)]);
+    return this.templateFieldKeys.filter(k => !known.has(k));
+  }
+
+  humanizeKey(key: string): string {
+    return key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+  }
+
+  private reportDetailFormKey(key: string): keyof ReportDetails | null {
+    const map: Record<string, keyof ReportDetails> = {
+      academicyear: 'academicYear', term: 'term',
+      signatoryname: 'signatoryName', signatorytitle: 'signatoryTitle',
+      purpose: 'purpose', remarks: 'remarks',
+    };
+    return map[key] ?? null;
+  }
+
+  get todayFormatted(): string {
+    const today = new Date();
+    return `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+  }
 
   // ── Step 4: Generate ──────────────────────────────────────
   generating = false;
@@ -206,6 +380,7 @@ export class GenerateReport implements OnInit {
     private router: Router,
     private reportTemplateService: ReportTemplateService,
     private studentService: StudentService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
@@ -222,7 +397,14 @@ export class GenerateReport implements OnInit {
     switch (this.currentStep) {
       case 1: return !!this.selectedTemplate;
       case 2: return this.selectedStudents.size > 0;
-      case 3: return !!this.reportDetails.academicYear && !!this.reportDetails.signatoryName;
+      case 3: {
+        const reportFieldsOk = this.manualReportFields.every(f => {
+          const formKey = this.reportDetailFormKey(f.key);
+          return formKey ? !!this.reportDetails[formKey] : true;
+        });
+        const customFieldsOk = this.customFieldKeys.every(k => !!this.customFieldValues[k]?.trim());
+        return reportFieldsOk && customFieldsOk;
+      }
       case 4: return !this.generating;
       default: return false;
     }
@@ -240,44 +422,27 @@ export class GenerateReport implements OnInit {
     else this.currentStep--;
   }
 
-  /**
-   * Best-effort match of a pdfme schema field to known report/student data.
-   *
-   * multiVariableText schemas store their substitutable fields in
-   * `schema.variables` (an array of variable names) — NOT embedded as
-   * {tokens} inside `schema.content`. `content` is itself already a JSON
-   * string of variable→value pairs (pdfme's own saved defaults), and
-   * `text` is just the display template for the editor UI. The correct
-   * input value for this schema type is a fresh JSON string built from
-   * `variables`, not a parse of `content`.
-   *
-   * If `variables` is empty (e.g. static text placed via this schema type
-   * with nothing to substitute), the saved `content` is passed through
-   * unchanged rather than treated as though it had tokens to resolve.
-   *
-   * For all other schema types (image, text, etc.), an unmatched field
-   * name falls back to the schema's own saved `content` instead of being
-   * left blank — this is what keeps static images/logos intact instead
-   * of disappearing, since an Image schema with no matching input renders
-   * nothing.
-   */
   private buildInputsForStudent(template: Template, student: StudentSummary): Record<string, string> {
+    const today = new Date();
+    const issuanceDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
     const known: Record<string, string> = {
       academicyear:   this.reportDetails.academicYear,
       term:           this.reportDetails.term,
-      issuancedate:   `${this.reportDetails.issuanceDay}/${this.reportDetails.issuanceMonth}/${this.reportDetails.issuanceYear}`,
+      issuancedate:   issuanceDate,
       signatoryname:  this.reportDetails.signatoryName,
       signatorytitle: this.reportDetails.signatoryTitle,
       purpose:        this.reportDetails.purpose,
       remarks:        this.reportDetails.remarks,
       studentname:    student.name,
-      name:           student.name, //bakit iba yung student meron {studentname} at {name}? Same lang sila lol
+      name:           student.name, //bakit iba yung student meron {studentname} at {name}? Same lang sila lol [-rei havent checked yet kung parehas nagamit will do so latur]
       studentid:      student.studentId,
-      gradelevel:     student.grade ?? '',
-      strand:         student.strand ?? '',
+      gradelevel:     student.grade ?? student.yearLevel ?? '',
+      strand:         student.strand ?? student.course ?? '',
       section:        student.section ?? '',
       course:         student.course ?? '',
       yearlevel:      student.yearLevel ?? '',
+      ...this.customFieldValues,
     };
 
     const page: Record<string, string> = {};

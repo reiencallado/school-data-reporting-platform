@@ -1,4 +1,4 @@
-import { Component, HostListener, OnInit, OnDestroy } from '@angular/core';
+import { Component, HostListener, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, NavigationEnd } from '@angular/router';
@@ -41,14 +41,11 @@ export class Templates implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private reportTemplateService: ReportTemplateService,
+    private cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit(): void {
     this.fetchTemplates();
-
-    // Re-fetch every time this route becomes active again (e.g. clicking the
-    // sidebar link while already on/near this page), since Angular reuses
-    // the component instance and ngOnInit alone won't re-fire in that case.
     this.navSubscription = this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
       .subscribe((e) => {
@@ -80,11 +77,13 @@ export class Templates implements OnInit, OnDestroy {
           thumbnailUrl: t.thumbnailUrl,
         }));
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Failed to fetch report templates:', err);
         this.error = 'Could not load templates. Please try again.';
         this.loading = false;
+        this.cdr.detectChanges();
       },
     });
   }

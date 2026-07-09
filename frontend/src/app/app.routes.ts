@@ -8,6 +8,7 @@ import { GenerateReport } from './pages/generate-report/generate-report';
 import { Archives } from './pages/archives/archives';
 import { PdfDesigner } from './pdf-designer/pdf-designer';
 import { Students } from './pages/students/students';
+import { Users } from './pages/users/users';
 import { authGuard } from './services/auth-guard';
 
 export const routes: Routes = [
@@ -26,6 +27,7 @@ export const routes: Routes = [
       { path: 'reports/templates/:id/preview', component: PdfDesigner },
       { path: 'reports/templates/:id/edit', component: PdfDesigner },
       { path: 'students', component: Students },
+      { path: 'users', component: Users },
     ]
   },
   { path: '**', component: NotFound }
