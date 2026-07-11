@@ -5,11 +5,13 @@
 
     <!-- Brand / Logo -->
     <div class="brand-header">
-      <div class="brand-logo-circle">
-        <span>Logo</span>
-      </div>
+      <label class="brand-logo-circle" title="Click to change your logo">
+        <img *ngIf="logoUrl" [src]="logoUrl" alt="Logo" class="brand-logo-image" />
+        <span *ngIf="!logoUrl">LOGO</span>
+        <input type="file" accept="image/*" class="sr-only" (change)="onLogoFileSelected($event)" />
+      </label>
       <div class="brand-text">
-        <h1>SCHOOL</h1>
+        <h1>{{ schoolName }}</h1>
         <h2>Admin Portal</h2>
       </div>
     </div>

@@ -23,23 +23,31 @@ public class JwtUtil {
     }
 
     /**
-     * Overload kept for backward compatibility with any existing callers
-     * that don't have a school context (e.g. a global ADMIN with no school).
+     * Kept for backward compatibility with any existing callers that
+     * don't have school/name context.
      */
     public String generateToken(String username, String role) {
-        return generateToken(username, role, null);
+        return generateToken(username, role, null, null);
+    }
+
+    public String generateToken(String username, String role, String schoolId) {
+        return generateToken(username, role, schoolId, null);
     }
 
     /**
      * @param schoolId the AppUser's associated school id, used for
-     *                 school-scoped role enforcement (ROLE_K12, ROLE_COLLEGE,
-     *                 ROLE_ADMISSIONS). Pass null for roles that aren't
-     *                 school-scoped (e.g. ROLE_ADMIN).
+     *                 school-scoped role enforcement. Pass null for roles
+     *                 that aren't school-scoped (e.g. ROLE_ADMIN).
+     * @param name     the AppUser's display name, embedded purely so the
+     *                 frontend can show "Hello, X" without a second
+     *                 network round-trip. Not used for any backend
+     *                 authorization decision.
      */
-    public String generateToken(String username, String role, String schoolId) {
+    public String generateToken(String username, String role, String schoolId, String name) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
         claims.put("schoolId", schoolId);
+        claims.put("name", name);
 
         // ISOLATE TENANT METADATA
         if (role.contains("SCHOOL_ADMIN")) {

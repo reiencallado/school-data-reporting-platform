@@ -1,7 +1,8 @@
 import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StudentService } from '../../services/student.service';
-import { StudentSummary, StudentType } from '../../services/student.model';
+import { StudentSummary, StudentType, canViewStudentType } from '../../services/student.model';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-student-list',
@@ -19,7 +20,13 @@ export class Students implements OnInit {
   loading = false;
   error: string | null = null;
 
-  typeOptions: StudentType[] = ['K12', 'COLLEGE'];
+  // Only offer filter checkboxes for types the current role can actually
+  // see — the data itself is already restricted server-side/in
+  // StudentService, so showing e.g. a "COLLEGE" filter to a ROLE_K12 user
+  // would just be a checkbox that always yields zero results.
+  // Computed in ngOnInit (not here) since authService isn't assigned yet
+  // at field-initializer time.
+  typeOptions: StudentType[] = [];
   statusOptions = ['ACTIVE', 'INACTIVE'];
 
   selectedTypes = new Set<string>();
@@ -36,9 +43,15 @@ export class Students implements OnInit {
   totalPagesArray: number[] = [];
   searchTerm = '';
 
-  constructor(private studentService: StudentService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private studentService: StudentService,
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService,
+  ) {}
 
   ngOnInit(): void {
+    this.typeOptions = (['K12', 'COLLEGE'] as StudentType[])
+      .filter(t => canViewStudentType(this.authService.getCurrentRole(), t));
     this.fetchStudents();
   }
 

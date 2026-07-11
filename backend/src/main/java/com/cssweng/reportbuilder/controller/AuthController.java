@@ -50,7 +50,7 @@ public class AuthController {
             String schoolId = user.getSchool() != null ? user.getSchool().getId().toString() : null;
 
             // Use their email as the subject string for the token passport
-            String token = jwtUtil.generateToken(user.getEmail(), user.getRole(), schoolId);
+            String token = jwtUtil.generateToken(user.getEmail(), user.getRole(), schoolId, user.getName());
 
             return ResponseEntity.ok(Map.of(
                 "status", 200,

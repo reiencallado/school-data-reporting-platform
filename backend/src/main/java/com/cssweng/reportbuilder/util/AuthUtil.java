@@ -1,6 +1,7 @@
 package com.cssweng.reportbuilder.util;
 
 import io.jsonwebtoken.Claims;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.UUID;
@@ -28,6 +29,16 @@ public final class AuthUtil {
     public static String getCurrentRole() {
         Claims claims = getCurrentClaims();
         return claims != null ? claims.get("role", String.class) : null;
+    }
+
+    /**
+     * Returns the current request's authenticated principal — this is the
+     * email string set as the JWT subject (see AuthController.login /
+     * JwtAuthenticationFilter), not a separately-stored "username" field.
+     */
+    public static String getCurrentUsername() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null ? auth.getName() : null;
     }
 
     public static boolean isAdmin() {
