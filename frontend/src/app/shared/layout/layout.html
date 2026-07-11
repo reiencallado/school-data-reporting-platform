@@ -6,10 +6,12 @@
     <!-- Brand / Logo -->
     <div class="brand-header">
       <div class="brand-logo-circle">
-        <span>Logo</span>
+        <img *ngIf="schoolLogoUrl && !logoFailed" [src]="schoolLogoUrl" [alt]="schoolName + ' logo'"
+             (error)="onLogoError()" class="brand-logo-img" />
+        <span *ngIf="!schoolLogoUrl || logoFailed">{{ getInitialsPublic(schoolName) }}</span>
       </div>
       <div class="brand-text">
-        <h1>SCHOOL</h1>
+        <h1>{{ schoolName }}</h1>
         <h2>Admin Portal</h2>
       </div>
     </div>
@@ -21,50 +23,86 @@
         <span class="category-title">Main</span>
 
         <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-item">
-          <i class="icon-dashboard" aria-hidden="true"></i>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+            <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+            <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+          </svg>
           <span class="link-label">Dashboard</span>
         </a>
 
         <a routerLink="/students" routerLinkActive="active" class="nav-item">
-          <i class="icon-students" aria-hidden="true"></i>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
           <span class="link-label">Student List</span>
         </a>
       </div>
 
       <div class="nav-category">
         <span class="category-title">Reports</span>
+        <span class="nav-divider" aria-hidden="true"></span>
 
         <a routerLink="/generate-report" routerLinkActive="active" class="nav-item">
-          <i class="icon-generate" aria-hidden="true"></i>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="20" x2="12" y2="10"></line>
+            <line x1="18" y1="20" x2="18" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="16"></line>
+          </svg>
           <span class="link-label">Generate Report</span>
         </a>
 
         <a routerLink="/templates" routerLinkActive="active" class="nav-item">
-          <i class="icon-templates" aria-hidden="true"></i>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="8" y1="13" x2="16" y2="13"></line>
+            <line x1="8" y1="17" x2="16" y2="17"></line>
+          </svg>
           <span class="link-label">Report Templates</span>
         </a>
 
         <a routerLink="/archives" routerLinkActive="active" class="nav-item">
-          <i class="icon-archives" aria-hidden="true"></i>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="4" width="20" height="5" rx="1"></rect>
+            <path d="M4 9v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"></path>
+            <line x1="10" y1="13" x2="14" y2="13"></line>
+          </svg>
           <span class="link-label">Report Archives</span>
         </a>
       </div>
 
-      <div class="nav-category" *ngIf="isAdmin">
+      <div class="nav-category" *ngIf="canManageSchool">
         <span class="category-title">Admin Tools</span>
+        <span class="nav-divider" aria-hidden="true"></span>
 
-        <a routerLink="/users" routerLinkActive="active" class="nav-item">
-          <i class="icon-users" aria-hidden="true"></i>
+        <a routerLink="/users" routerLinkActive="active" class="nav-item" *ngIf="isAdmin">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"></circle>
+            <path d="M20 21a8 8 0 0 0-16 0"></path>
+          </svg>
           <span class="link-label">Users &amp; Roles</span>
         </a>
 
         <a routerLink="/settings" routerLinkActive="active" class="nav-item">
-          <i class="icon-settings" aria-hidden="true"></i>
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
           <span class="link-label">Settings</span>
         </a>
 
-        <a routerLink="/logs" routerLinkActive="active" class="nav-item">
-          <i class="icon-logs" aria-hidden="true"></i>
+        <a routerLink="/logs" routerLinkActive="active" class="nav-item" *ngIf="isAdmin">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <line x1="7" y1="8" x2="17" y2="8"></line>
+            <line x1="7" y1="12" x2="17" y2="12"></line>
+            <line x1="7" y1="16" x2="13" y2="16"></line>
+          </svg>
           <span class="link-label">System Logs</span>
         </a>
       </div>
@@ -75,7 +113,7 @@
     <div class="sidebar-footer">
 
       <div class="footer-user-profile" title="Your profile">
-        <div class="avatar-circle" aria-hidden="true">{{ userInitial }}</div>
+        <div class="avatar-circle" aria-hidden="true">{{ userInitials }}</div>
         <div class="user-meta">
           <span class="user-name">{{ userName }}</span>
           <span class="user-role">{{ userRole }}</span>
@@ -129,7 +167,7 @@
       <div class="topbar-actions">
         <!-- Topbar user pill -->
         <div class="topbar-user-pill" aria-hidden="true">
-          <div class="topbar-avatar">{{ userInitial }}</div>
+          <div class="topbar-avatar">{{ userInitials }}</div>
           <span class="topbar-user-name">Hello, {{ userName }}!</span>
         </div>
       </div>

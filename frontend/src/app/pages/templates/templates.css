@@ -6,7 +6,6 @@
   gap: 20px;
 }
 
-/* ── Shared section card ── */
 .section-card {
   background: var(--white-1);
   border: 1px solid var(--gray-4);
@@ -22,15 +21,38 @@
   margin: 0 0 16px;
 }
 
-/* ── Filter row ── */
+/* ── Filter row: search + type pills + create button ── */
 .filter-row {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 900px) {
+  .search-bar-wrapper {
+    flex: 1 1 100%;
+    order: -1;
+  }
+}
+
+.search-bar-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 220px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--gray-3);
+  pointer-events: none;
 }
 
 .search-input {
-  flex: 1;
+  width: 100%;
   height: 40px;
   border: 1px solid var(--gray-4);
   border-radius: var(--radius-md);
@@ -43,29 +65,49 @@
   transition: border-color 0.15s ease;
 }
 
+.search-input-icon { padding-left: 38px; }
 .search-input::placeholder { color: var(--gray-3); }
 .search-input:focus { border-color: var(--blue-3); }
 
-.dropdown-btn {
+.type-toggle {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 16px;
-  background: var(--blue-3);
-  color: var(--white-1);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  user-select: none;
-  transition: background 0.15s ease;
+  background: var(--white-2);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
 }
 
-.dropdown-btn:hover { background: var(--blue-2); }
+.type-pill {
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.type-pill:hover { color: var(--blue-1); }
+
+.type-pill.active {
+  background: var(--blue-3);
+  color: var(--white-1);
+}
+
+/* "All" is visually distinct (orange) from the specific-type pills (blue)
+   since it's a different kind of choice — "show everything" vs "show one
+   type" — not just another option in the same row. */
+.type-pill.pill-all.active {
+  background: var(--orange-1);
+  color: var(--white-1);
+}
 
 /* ==== TEMPLATE GRID ==== */
+/* ── CREATE card ── */
 .template-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -75,13 +117,12 @@
 @media (max-width: 1200px) { .template-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 860px)  { .template-grid { grid-template-columns: repeat(2, 1fr); } }
 
-/* ── Base card ── */
 .template-card {
   background: var(--white-1);
   min-height: 340px;
   border: 1px solid var(--gray-4);
   border-radius: var(--radius-xl);
-  overflow: visible;          /* let kebab dropdown overflow */
+  overflow: visible; /* let the kebab dropdown overflow */
   position: relative;
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -132,13 +173,26 @@
   color: var(--blue-2);
 }
 
+.create-text {
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue-1);
+  opacity: 0.6;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.create-card:hover .create-text {
+  opacity: 0.9;
+  color: var(--blue-2);
+}
+
 /* ==== KEBAB MENU ==== */
 .kebab-wrapper {
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 300; /* must outrank .menu-backdrop's z-index (199) so the
-                   dropdown's own stacking context paints above it */
+  z-index: 300; /* must outrank .menu-backdrop's z-index (199) */
 }
 
 .kebab-btn {
@@ -154,11 +208,10 @@
   gap: 3.5px;
   cursor: pointer;
   padding: 0;
-  opacity: 0;                  /* hidden until hover */
+  opacity: 0;
   transition: opacity 0.15s ease, background 0.15s ease;
 }
 
-/* Show kebab on card hover or when menu is open */
 .template-card:hover .kebab-btn,
 .kebab-btn.open {
   opacity: 1;
@@ -184,7 +237,6 @@
   background: var(--blue-1);
 }
 
-/* Dropdown */
 .kebab-dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -240,98 +292,23 @@
   margin: 4px 0;
 }
 
-/* Click-outside backdrop */
 .menu-backdrop {
   position: fixed;
   inset: 0;
   z-index: 199;
 }
 
-/* ==== DOCUMENT THUMBNAIL ==== */
+/* ==== THUMBNAIL AREA ====
+   Actual rendering (real image or live schema preview) is owned by
+   <app-template-thumbnail>; this just sizes/frames the slot for it. */
 .template-preview {
-  padding: 16px 16px 12px;  
+  padding: 16px 16px 12px;
   flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   border-bottom: 1px solid var(--gray-4);
-  pointer-events: none;        /* clicks go to card, not thumbnail */
+  pointer-events: none; /* clicks go to the card, not the thumbnail */
 }
-
-.doc-header-bar {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  margin-bottom: 8px;
-}
-
-.doc-logo-placeholder {
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  border-radius: 50%;
-  background: var(--gray-4);
-}
-
-.doc-header-lines {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.doc-line {
-  height: 5px;
-  background: var(--gray-4);
-  border-radius: 3px;
-}
-
-.doc-line.bold  { background: var(--gray-2); height: 6px; }
-.doc-line.w-50  { width: 50%; }
-.doc-line.w-60  { width: 60%; }
-.doc-line.w-70  { width: 70%; }
-.doc-line.w-80  { width: 80%; }
-
-.doc-divider {
-  height: 3px;
-  background: var(--black);
-  margin: 8px 0;
-  border-radius: 1px;
-}
-
-.doc-body {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.doc-title-line {
-  height: 6px;
-  width: 65%;
-  background: var(--gray-3);
-  border-radius: 3px;
-  margin: 0 auto 6px;
-}
-
-.doc-salutation {
-  height: 4px;
-  width: 40%;
-  background: var(--gray-4);
-  border-radius: 2px;
-  margin-bottom: 4px;
-}
-
-.doc-paragraph {
-  height: 4px;
-  width: 100%;
-  background: var(--gray-4);
-  border-radius: 2px;
-}
-
-.doc-paragraph.w-90  { width: 90%; }
-.doc-paragraph.w-75  { width: 75%; }
-.doc-paragraph.w-70  { width: 70%; }
-.doc-paragraph.w-60  { width: 60%; }
-.doc-paragraph.mt-4  { margin-top: 4px; }
 
 /* ==== CARD FOOTER ==== */
 .template-footer {
@@ -360,10 +337,14 @@
   color: var(--gray-2);
   display: block;
 }
-/* ==== THUMBNAIL IMAGE ==== */
-.thumbnail-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: var(--radius-md);
+
+.template-state-msg {
+  font-size: 13px;
+  color: var(--gray-2);
+  padding: 24px;
+  text-align: center;
+}
+
+.template-state-msg.error {
+  color: var(--color-danger, #dc2626);
 }

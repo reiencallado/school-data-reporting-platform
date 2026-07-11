@@ -4,21 +4,25 @@ import { FormsModule } from '@angular/forms';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { ReportTemplateService } from '../../services/report-template.service';
-import { ReportTemplate as ApiReportTemplate } from '../../services/report-template.model';
-import { ResolutionModalComponent } from '../../shared/components/resolution-modal/resolution-modal';
+import { ReportTemplate as ApiReportTemplate, TemplateStudentType } from '../../services/report-template.model';
+import { TemplateThumbnailComponent } from '../../shared/components/template-thumbnail/template-thumbnail';
+import { TemplateCreationWizard } from './template-creation-wizard/template-creation-wizard';
 
-// Local shape used for display in this component's grid/cards
+export type StudentTypeFilter = TemplateStudentType | 'ALL';
+
 export interface TemplateCard {
-  id:       string;
-  name:     string;
+  id: string;
+  name: string;
   lastUsed: string;
   thumbnailUrl?: string;
+  configuration?: string;          // raw pdfme JSON — feeds the live-preview fallback
+  studentType?: TemplateStudentType; // ⚠️ not yet returned by backend, see report-template.model.ts
 }
 
 @Component({
   selector: 'app-report-templates',
   standalone: true,
-  imports: [CommonModule, FormsModule, ResolutionModalComponent],
+  imports: [CommonModule, FormsModule, TemplateThumbnailComponent, TemplateCreationWizard],
   templateUrl: './templates.html',
   styleUrl: './templates.css',
 })
@@ -31,12 +35,15 @@ export class Templates implements OnInit, OnDestroy {
 
   templates: TemplateCard[] = [];
 
-  private navSubscription?: Subscription;
+  // Type pills are meaningful now that templates can be tagged with a
+  // student type at creation (see TemplateCreationWizard). 'GENERAL' has
+  // no pill of its own — GENERAL-tagged templates are treated as
+  // type-agnostic and shown under every pill, not just 'ALL'.
+  selectedType: StudentTypeFilter = 'ALL';
 
-  get filteredTemplates(): TemplateCard[] {
-    const q = this.search.toLowerCase();
-    return q ? this.templates.filter(t => t.name.toLowerCase().includes(q)) : this.templates;
-  }
+  wizardOpen = false;
+
+  private navSubscription?: Subscription;
 
   constructor(
     private router: Router,
@@ -75,6 +82,8 @@ export class Templates implements OnInit, OnDestroy {
               })
             : 'Never opened',
           thumbnailUrl: t.thumbnailUrl,
+          configuration: t.configuration,
+          studentType: t.studentType, // undefined until backend actually returns this
         }));
         this.loading = false;
         this.cdr.detectChanges();
@@ -88,6 +97,41 @@ export class Templates implements OnInit, OnDestroy {
     });
   }
 
+  selectType(type: StudentTypeFilter): void {
+    this.selectedType = type;
+  }
+
+  get filteredTemplates(): TemplateCard[] {
+    const q = this.search.toLowerCase();
+    return this.templates.filter(t => {
+      const matchesSearch = !q || t.name.toLowerCase().includes(q);
+      const matchesType = this.selectedType === 'ALL' || t.studentType === this.selectedType;
+      return matchesSearch && matchesType;
+    });
+  }
+
+  // Legacy templates saved before student-type tagging existed — shown
+  // only under "All" so filtering by a specific type never silently hides
+  // work someone made before this feature existed. Surfaced only when
+  // it's actually relevant (a specific pill is active and something's
+  // being hidden by it).
+  get untaggedCount(): number {
+    return this.templates.filter(t => !t.studentType).length;
+  }
+
+  get showUntaggedNote(): boolean {
+    return this.selectedType !== 'ALL' && this.untaggedCount > 0;
+  }
+
+  parsedConfiguration(t: TemplateCard): any {
+    if (!t.configuration) return null;
+    try { return JSON.parse(t.configuration); } catch { return null; }
+  }
+
+  onSearchChange(event: Event): void {
+    this.search = (event.target as HTMLInputElement).value;
+  }
+
   // ── Kebab menu ───────────────────────────────────────────
   toggleMenu(id: string): void {
     this.openMenuId = this.openMenuId === id ? null : id;
@@ -97,15 +141,10 @@ export class Templates implements OnInit, OnDestroy {
     this.openMenuId = null;
   }
 
-  // Close on Escape key
   @HostListener('document:keydown.escape')
   onEscape(): void { this.closeMenu(); }
 
   // ── Actions ──────────────────────────────────────────────
-  createTemplate(): void {
-    this.router.navigate(['/editor']);
-  }
-
   editTemplate(t: TemplateCard): void {
     this.router.navigate(['/reports/templates', t.id, 'edit']);
   }
@@ -123,9 +162,16 @@ export class Templates implements OnInit, OnDestroy {
         console.error('Failed to delete template:', err);
         this.error = 'Could not delete template. Please try again.';
       },
-    }
-    );
+    });
   }
-  showConfigModal = false;
 
+  // ── Create flow — a single guided wizard (purpose -> student type ->
+  // default or custom) instead of two disconnected entry points. ──
+  openWizard(): void {
+    this.wizardOpen = true;
+  }
+
+  closeWizard(): void {
+    this.wizardOpen = false;
+  }
 }

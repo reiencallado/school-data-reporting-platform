@@ -29,10 +29,18 @@ import JSZip from 'jszip';
 
 import { ReportTemplateService } from '../../services/report-template.service';
 import { ReportTemplate as ApiReportTemplate } from '../../services/report-template.model';
-// TODO: Change the service and model for Students? Since data exposure for K12, College, and Admission students are different. 
-// For now, just use the StudentService and StudentSummary model.
 import { StudentService } from '../../services/student.service';
-import { StudentSummary } from '../../services/student.model';
+import {
+  StudentSummary,
+  StudentType,
+  typeFilterFields,
+  typeColumns,
+  FilterFieldConfig,
+  ColumnConfig,
+  getStatusBadgeClass,
+} from '../../services/student.model';
+
+export type StudentTypeFilter = StudentType | 'ALL';
 import { PLUGINS } from '../../pdf-designer/pdf-designer';
 
 export interface ReportTemplate {
@@ -41,6 +49,7 @@ export interface ReportTemplate {
   lastUsed:      string;
   thumbnailUrl?: string;
   configuration: string;   // raw pdfme JSON — needed to actually generate PDFs
+  studentType?:  StudentType;   // ⚠️ mirror of templates.ts — not yet returned by backend for all rows
 }
 
 export interface ReportDetails {
@@ -61,7 +70,12 @@ export interface ReportDetails {
 })
 export class GenerateReport implements OnInit {
 
-  steps = ['Select template', 'Select students', 'Fill report details', 'Confirm & Submit'];
+  // 3 steps instead of 4 — "Fill report details" is no longer a standalone
+  // step. If a template needs manual input, those fields now live directly
+  // inside Review & Generate instead of forcing a click through a step that
+  // might render completely empty (templates using only auto-filled student
+  // data have nothing to show on a dedicated fill-in step).
+  steps = ['Select template', 'Select students', 'Review & generate'];
   currentStep = 1;
 
   // ── Step 1: Template ─────────────────────────────────────
@@ -73,9 +87,11 @@ export class GenerateReport implements OnInit {
 
   get filteredTemplates(): ReportTemplate[] {
     const q = this.templateSearch.toLowerCase();
-    return q
-      ? this.templates.filter(t => t.name.toLowerCase().includes(q))
-      : this.templates;
+    return this.templates.filter(t => {
+      const matchesSearch = !q || t.name.toLowerCase().includes(q);
+      const matchesType = this.selectedType === 'ALL' || t.studentType === this.selectedType;
+      return matchesSearch && matchesType;
+    });
   }
 
   fetchTemplates(): void {
@@ -95,6 +111,7 @@ export class GenerateReport implements OnInit {
             : 'Never opened',
           thumbnailUrl: t.thumbnailUrl,
           configuration: t.configuration,
+          studentType: t.studentType,
         }));
         this.templatesLoading = false;
         this.cdr.detectChanges();
@@ -113,39 +130,109 @@ export class GenerateReport implements OnInit {
   }
 
   // ── Step 2: Students ─────────────────────────────────────
-  studentSearch    = '';
+  // Mirrors the Students List page's filtering system (type tabs, search
+  // field scope, status filter, sortable columns) so both pages behave
+  // identically. Filter/sort state below drives `filteredStudents`, a
+  // getter re-evaluated on each change cycle — no manual recompute calls
+  // scattered through every handler.
+  studentSearch = '';
+  // ── Shared between Step 1 (template type) and Step 2 (student list) ──
+  // A specific type must be chosen in Step 1 before proceeding — templates
+  // and the student roster are both scoped to it, so there's no separate
+  // type toggle in Step 2 anymore.
+  selectedType: StudentTypeFilter = 'ALL';
   selectedStudents = new Set<string>();
-  selectedGradeLevels = new Set<string>();
-  selectedStrands = new Set<string>();
-  selectedSections = new Set<string>();
-  currentPage      = 1;
-  studentsPerPage  = 10;
+
+  statusOptions = ['ACTIVE', 'ENROLLED', 'DROPPED', 'PENDING', 'INACTIVE'];
+  selectedStatuses = new Set<string>();
+  statusDropdownOpen = false;
+
+  searchFieldsOpen = false;
+  enabledSearchFields = new Set<string>();
+
+  sortColumn: string | null = null;
+  sortDirection: 'asc' | 'desc' = 'asc';
+
+  currentPage = 1;
+  studentsPerPage = 10;
   allStudents: StudentSummary[] = [];
   studentsLoading = false;
   studentsError: string | null = null;
 
-  dropdownStates: { [key: string]: boolean } = {
-    grade: false,
-    strand: false,
-    section: false,
-  };
+  getStatusBadgeClass = getStatusBadgeClass;
 
-  toggleDropdown(type: string, event: Event): void {
-    event.stopPropagation();
-    const targetState = !this.dropdownStates[type];
-    this.closeAllDropdowns();
-    this.dropdownStates[type] = targetState;
+  get columns(): ColumnConfig[] {
+    return typeColumns[this.selectedType as StudentType];
   }
 
-  closeDropdown(type: string): void {
-    this.dropdownStates[type] = false;
+  get searchFieldOptions(): FilterFieldConfig[] {
+    return typeFilterFields[this.selectedType as StudentType];
+  }
+
+  private resetSearchFieldsForType(): void {
+    this.enabledSearchFields = new Set(this.searchFieldOptions.map(f => f.key));
+  }
+
+  selectTemplateType(type: StudentTypeFilter): void {
+    if (this.selectedType === type) return;
+    this.selectedType = type;
+    this.selectedTemplate = null;   // previously selected template may not match the new type
+    this.currentPage = 1;
+    this.sortColumn = null;
+    this.resetSearchFieldsForType();
+  }
+
+  toggleStatusDropdown(event: Event): void {
+    event.stopPropagation();
+    const next = !this.statusDropdownOpen;
+    this.closeAllDropdowns();
+    this.statusDropdownOpen = next;
+  }
+
+  onStatusToggle(value: string): void {
+    if (this.selectedStatuses.has(value)) this.selectedStatuses.delete(value);
+    else this.selectedStatuses.add(value);
+    this.currentPage = 1;
+  }
+
+  clearStatusFilter(): void {
+    this.selectedStatuses.clear();
+    this.currentPage = 1;
+  }
+
+  getStatusLabel(): string {
+    if (this.selectedStatuses.size === 0) return 'Status';
+    if (this.selectedStatuses.size === 1) return `Status: ${Array.from(this.selectedStatuses)[0]}`;
+    return `Status: ${this.selectedStatuses.size} selected`;
+  }
+
+  toggleSearchFieldsPanel(event: Event): void {
+    event.stopPropagation();
+    const next = !this.searchFieldsOpen;
+    this.closeAllDropdowns();
+    this.searchFieldsOpen = next;
+  }
+
+  onSearchFieldToggle(key: string): void {
+    if (this.enabledSearchFields.has(key)) this.enabledSearchFields.delete(key);
+    else this.enabledSearchFields.add(key);
+  }
+
+  isSearchFieldEnabled(key: string): boolean {
+    return this.enabledSearchFields.has(key);
+  }
+
+  onSearchChange(event: Event): void {
+    this.studentSearch = (event.target as HTMLInputElement).value.toLowerCase();
+    this.currentPage = 1;
   }
 
   private closeAllDropdowns(): void {
-    Object.keys(this.dropdownStates).forEach(key => this.dropdownStates[key] = false);
+    this.statusDropdownOpen = false;
+    this.searchFieldsOpen = false;
   }
 
-  onCheckboxClick(event: Event): void {
+  onPanelClick(event: Event): void {
     event.stopPropagation();
   }
 
@@ -154,41 +241,16 @@ export class GenerateReport implements OnInit {
     this.closeAllDropdowns();
   }
 
-  get gradeLevelOptions(): string[] {
-    return Array.from(new Set(this.allStudents.map(s => s.grade).filter((g): g is string => !!g)));
-  }
-
-  get strandOptions(): string[] {
-    return Array.from(new Set(this.allStudents.map(s => s.strand).filter((s): s is string => !!s)));
-  }
-
-  get sectionOptions(): string[] {
-    return Array.from(new Set(this.allStudents.map(s => s.section).filter((s): s is string => !!s)));
-  }
-
-  onFilterCheckboxToggle(filterType: 'grade' | 'strand' | 'section', value: string): void {
-    const targetSet = filterType === 'grade' ? this.selectedGradeLevels
-      : filterType === 'strand' ? this.selectedStrands
-      : this.selectedSections;
-    if (targetSet.has(value)) targetSet.delete(value);
-    else targetSet.add(value);
-    this.currentPage = 1;
-  }
-
-  clearStudentFilter(filterType: 'grade' | 'strand' | 'section'): void {
-    if (filterType === 'grade') this.selectedGradeLevels.clear();
-    else if (filterType === 'strand') this.selectedStrands.clear();
-    else this.selectedSections.clear();
-    this.currentPage = 1;
-  }
-
-  getFilterLabel(filterType: 'grade' | 'strand' | 'section', fallback: string): string {
-    const targetSet = filterType === 'grade' ? this.selectedGradeLevels
-      : filterType === 'strand' ? this.selectedStrands
-      : this.selectedSections;
-    if (targetSet.size === 0) return fallback;
-    if (targetSet.size === 1) return `${fallback}: ${Array.from(targetSet)[0]}`;
-    return `${fallback}: ${targetSet.size} selected`;
+  // 3-state cycle per column: ascending -> descending -> back to default order
+  toggleSort(key: string): void {
+    if (this.sortColumn !== key) {
+      this.sortColumn = key;
+      this.sortDirection = 'asc';
+    } else if (this.sortDirection === 'asc') {
+      this.sortDirection = 'desc';
+    } else {
+      this.sortColumn = null;
+    }
   }
 
   fetchStudents(): void {
@@ -210,55 +272,75 @@ export class GenerateReport implements OnInit {
     });
   }
 
-  private get searchFilteredStudents(): StudentSummary[] {
-    const q = this.studentSearch.toLowerCase();
-    return this.allStudents.filter(s => {
-      const matchesSearch = !q ||
+  get filteredStudents(): StudentSummary[] {
+    const q = this.studentSearch;
+
+    const filtered = this.allStudents.filter(s => {
+      const matchesType = s.studentType === this.selectedType;
+
+      const matchesCore = !q ||
         s.name.toLowerCase().includes(q) ||
         s.studentId.toLowerCase().includes(q);
 
-      const matchesGrade = this.selectedGradeLevels.size === 0 ||
-        (s.grade && this.selectedGradeLevels.has(s.grade));
+      const matchesExtraField = this.searchFieldOptions.some(field =>
+        this.enabledSearchFields.has(field.key) &&
+        (field.getValue(s) ?? '').toLowerCase().includes(q)
+      );
 
-      const matchesStrand = this.selectedStrands.size === 0 ||
-        (s.strand && this.selectedStrands.has(s.strand));
+      const matchesSearch = !q || matchesCore || matchesExtraField;
+      const matchesStatus = this.selectedStatuses.size === 0 || this.selectedStatuses.has(s.status);
 
-      const matchesSection = this.selectedSections.size === 0 ||
-        (s.section && this.selectedSections.has(s.section));
-
-      return matchesSearch && matchesGrade && matchesStrand && matchesSection;
+      return matchesType && matchesSearch && matchesStatus;
     });
+
+    return this.applySort(filtered);
+  }
+
+  private applySort(list: StudentSummary[]): StudentSummary[] {
+    if (!this.sortColumn) return list;
+    const col = this.columns.find(c => c.key === this.sortColumn);
+    if (!col) return list;
+    const dir = this.sortDirection === 'asc' ? 1 : -1;
+    return [...list].sort((a, b) =>
+      col.getValue(a).localeCompare(col.getValue(b), undefined, { numeric: true }) * dir
+    );
   }
 
   get pagedStudents(): StudentSummary[] {
     const start = (this.currentPage - 1) * this.studentsPerPage;
-    return this.searchFilteredStudents.slice(start, start + this.studentsPerPage);
+    return this.filteredStudents.slice(start, start + this.studentsPerPage);
   }
 
   get totalPages(): number {
-    return Math.ceil(this.searchFilteredStudents.length / this.studentsPerPage) || 1;
+    return Math.ceil(this.filteredStudents.length / this.studentsPerPage) || 1;
   }
 
   get pageNumbers(): number[] {
     return Array.from({ length: this.totalPages }, (_, i) => i + 1);
   }
 
+  // Scoped to the currently filtered list, not the entire dataset — so
+  // "select all" only ever touches what's actually visible/searchable
+  // right now, matching what the checkbox and the count communicate.
   get allSelected(): boolean {
-    return this.allStudents.length > 0 &&
-           this.allStudents.every(s => this.selectedStudents.has(s.id));
+    const list = this.filteredStudents;
+    return list.length > 0 && list.every(s => this.selectedStudents.has(s.id));
   }
 
   toggleSelectAll(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
-    if (checked) this.allStudents.forEach(s => this.selectedStudents.add(s.id));
-    else this.allStudents.forEach(s => this.selectedStudents.delete(s.id));
+    this.filteredStudents.forEach(s => {
+      if (checked) this.selectedStudents.add(s.id);
+      else this.selectedStudents.delete(s.id);
+    });
     this.selectedStudents = new Set(this.selectedStudents);
   }
 
-  toggleStudent(id: string, event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    if (checked) this.selectedStudents.add(id);
-    else this.selectedStudents.delete(id);
+  // Single toggle used by both the row click and the checkbox itself — no
+  // event/checked-state plumbing needed, it just flips membership.
+  toggleStudent(id: string): void {
+    if (this.selectedStudents.has(id)) this.selectedStudents.delete(id);
+    else this.selectedStudents.add(id);
     this.selectedStudents = new Set(this.selectedStudents);
   }
 
@@ -267,20 +349,7 @@ export class GenerateReport implements OnInit {
     this.currentPage = page;
   }
 
-  getGradeOrYear(s: StudentSummary): string {
-    return (s.studentType === 'K12' ? s.grade : s.yearLevel) || '—';
-  }
-
-  getStrandOrProgram(s: StudentSummary): string {
-    return (s.studentType === 'K12' ? s.strand : s.course) || '—';
-  }
-
-  getSection(s: StudentSummary): string {
-    // College students don't have sections.
-    return s.studentType === 'K12' ? (s.section || '—') : '—';
-  }
-
-  // ── Step 3: Report Details ───────────────────────────────
+  // ── Step 3: Review & Generate (was step 3 "Fill report details" + step 4) ──
   reportDetails: ReportDetails = {
     // TODO: pull academicYear/term from a school-settings endpoint once
     // one exists, instead of a hardcoded default that goes stale yearly.
@@ -295,7 +364,7 @@ export class GenerateReport implements OnInit {
   customFieldValues: Record<string, string> = {};
 
   private readonly STUDENT_AUTO_KEYS = new Set([
-    'studentname', 'name', 'studentid', 'gradelevel', 'strand', 'section', 'course', 'yearlevel',
+    'studentname', 'studentid', 'gradelevel', 'strand', 'section', 'course', 'yearlevel',
   ]);
 
   private readonly REPORT_DETAIL_FIELDS: { key: string; label: string }[] = [
@@ -330,7 +399,7 @@ export class GenerateReport implements OnInit {
 
   get autoFilledFieldLabels(): string[] {
     const labelMap: Record<string, string> = {
-      studentname: 'Student name', name: 'Student name', studentid: 'Student ID',
+      studentname: 'Student name', studentid: 'Student ID',
       gradelevel: 'Grade level', strand: 'Strand', section: 'Section',
       course: 'Course', yearlevel: 'Year level',
       issuancedate: "Today's date",
@@ -371,7 +440,39 @@ export class GenerateReport implements OnInit {
     return `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
   }
 
-  // ── Step 4: Generate ──────────────────────────────────────
+  // Report Summary rows — only includes fields that actually have a value,
+  // so a template with no manual fields doesn't render a wall of dashes.
+  get summaryRows(): { key: string; val: string; accent?: boolean }[] {
+    const rows: { key: string; val: string; accent?: boolean }[] = [];
+    if (this.selectedTemplate) rows.push({ key: 'Template', val: this.selectedTemplate.name });
+    if (this.reportDetails.academicYear) rows.push({ key: 'Academic year', val: this.reportDetails.academicYear });
+    if (this.reportDetails.term) rows.push({ key: 'Term', val: this.reportDetails.term });
+    rows.push({ key: 'Date of issuance', val: this.todayFormatted });
+    if (this.reportDetails.signatoryName) rows.push({ key: 'Issued by', val: this.reportDetails.signatoryName });
+    if (this.reportDetails.signatoryTitle) rows.push({ key: 'Signatory Title', val: this.reportDetails.signatoryTitle });
+    if (this.reportDetails.purpose) rows.push({ key: 'Purpose', val: this.reportDetails.purpose });
+    rows.push({ key: 'Students', val: `${this.selectedStudents.size} student(s)`, accent: true });
+    return rows;
+  }
+
+  // Composition breakdown of the selected batch (e.g. "Grade 11 - STEM A · 20")
+  // — lets whoever's generating sanity-check they picked the right group
+  // before committing, without scrolling back through step 2.
+  get selectionBreakdown(): { label: string; count: number }[] {
+    const selected = this.allStudents.filter(s => this.selectedStudents.has(s.id));
+    const counts = new Map<string, number>();
+    for (const s of selected) {
+      const label = s.studentType === 'K12'
+        ? [s.grade, s.section].filter(Boolean).join(' - ') || 'K12 (unspecified)'
+        : s.course || 'College (unspecified)';
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  // ── Generation ────────────────────────────────────────────
   generating = false;
   generateError: string | null = null;
   generateProgress = { done: 0, total: 0 };
@@ -386,16 +487,16 @@ export class GenerateReport implements OnInit {
   ngOnInit(): void {
     this.fetchTemplates();
     this.fetchStudents();
+    this.resetSearchFieldsForType();
   }
 
   goToStep(n: number): void {
     if (n >= 1 && n <= this.steps.length) this.currentStep = n;
   }
 
-  // TODO: Validation should exist on the front-end?
   canProceed(): boolean {
     switch (this.currentStep) {
-      case 1: return !!this.selectedTemplate;
+      case 1: return !!this.selectedTemplate && this.selectedType !== 'ALL';
       case 2: return this.selectedStudents.size > 0;
       case 3: {
         const reportFieldsOk = this.manualReportFields.every(f => {
@@ -403,16 +504,15 @@ export class GenerateReport implements OnInit {
           return formKey ? !!this.reportDetails[formKey] : true;
         });
         const customFieldsOk = this.customFieldKeys.every(k => !!this.customFieldValues[k]?.trim());
-        return reportFieldsOk && customFieldsOk;
+        return reportFieldsOk && customFieldsOk && !this.generating;
       }
-      case 4: return !this.generating;
       default: return false;
     }
   }
 
   onNext(): void {
     if (!this.canProceed()) return;
-    if (this.currentStep < 4) this.currentStep++;
+    if (this.currentStep < 3) this.currentStep++;
     else this.generate();
   }
 
@@ -435,7 +535,6 @@ export class GenerateReport implements OnInit {
       purpose:        this.reportDetails.purpose,
       remarks:        this.reportDetails.remarks,
       studentname:    student.name,
-      name:           student.name, //bakit iba yung student meron {studentname} at {name}? Same lang sila lol [-rei havent checked yet kung parehas nagamit will do so latur]
       studentid:      student.studentId,
       gradelevel:     student.grade ?? student.yearLevel ?? '',
       strand:         student.strand ?? student.course ?? '',

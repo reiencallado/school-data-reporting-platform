@@ -8,7 +8,7 @@ import { Designer } from '@pdfme/ui';
 import { Template } from '@pdfme/common';
 import { text, barcodes, image, multiVariableText, rectangle, ellipse, line, table } from '@pdfme/schemas';
 import { ReportTemplateService } from '../services/report-template.service';
-import { ReportTemplate } from '../services/report-template.model';
+import { ReportTemplate, TemplateStudentType } from '../services/report-template.model';
 import { HttpErrorResponse } from '@angular/common/http';
 import html2canvas from 'html2canvas';
 import { ResolutionModalComponent, SizeSelection, PaperSize as ModalPaperSize } from '../shared/components/resolution-modal/resolution-modal';
@@ -58,21 +58,48 @@ export interface PresetField {
   variable: string;
 }
 
-export const PRESET_FIELDS: PresetField[] = [
-  { label: 'Student Name', variable: 'studentName' },
-  { label: 'Student ID', variable: 'studentId' },
-  { label: 'Grade Level', variable: 'gradeLevel' },
-  { label: 'Section', variable: 'section' },
-  { label: 'Strand', variable: 'strand' },
-  { label: 'Course', variable: 'course' },
-  { label: 'Year Level', variable: 'yearLevel' },
-  { label: 'Academic Year', variable: 'academicYear' },
-  { label: 'Term', variable: 'term' },
-  { label: 'Issuance Date', variable: 'issuanceDate' },
-  { label: 'Signatory Name', variable: 'signatoryName' },
-  { label: 'Signatory Title', variable: 'signatoryTitle' },
-  { label: 'Purpose', variable: 'purpose' },
-  { label: 'Remarks', variable: 'remarks' },
+export interface PresetFieldGroup {
+  label: string;
+  fields: PresetField[];
+}
+
+export const PRESET_FIELD_GROUPS: PresetFieldGroup[] = [
+  {
+    label: 'Student Info',
+    fields: [
+      { label: 'Student Name', variable: 'studentName' },
+      { label: 'Student ID', variable: 'studentId' },
+    ],
+  },
+  {
+    label: 'K12',
+    fields: [
+      { label: 'Grade Level', variable: 'gradeLevel' },
+      { label: 'Strand', variable: 'strand' },
+      { label: 'Section', variable: 'section' },
+    ],
+  },
+  {
+    label: 'College',
+    fields: [
+      { label: 'Course', variable: 'course' },
+      { label: 'Year Level', variable: 'yearLevel' },
+    ],
+  },
+  {
+    label: 'Document Info',
+    fields: [
+      { label: 'Issuance Date', variable: 'issuanceDate' },
+    ],
+  },
+];
+
+export const PRESET_FIELDS: PresetField[] = PRESET_FIELD_GROUPS.flatMap(g => g.fields);
+
+export const STUDENT_TYPES: { id: TemplateStudentType; label: string }[] = [
+  { id: 'K12', label: 'K12' },
+  { id: 'COLLEGE', label: 'College' },
+  { id: 'ADMISSIONS', label: 'Admissionss' },
 ];
 
 @Component({
@@ -87,6 +114,8 @@ export class PdfDesigner implements OnInit, OnDestroy {
   templateId: string | null = null;
   private paramSub?: Subscription;
   private incomingTemplate?: Template;
+  currentStudentType: TemplateStudentType | null = null;
+  studentTypes = STUDENT_TYPES;
 
   currentName = 'Untitled Template';
   currentSchoolId = '';
@@ -99,7 +128,7 @@ export class PdfDesigner implements OnInit, OnDestroy {
 
   
   // ── Preset field drawer ──────────────────────────────────
-  presetFields = PRESET_FIELDS;
+  presetFieldGroups = PRESET_FIELD_GROUPS;
   showPresetDrawer = false;
 
   togglePresetDrawer(): void {
@@ -136,6 +165,11 @@ export class PdfDesigner implements OnInit, OnDestroy {
     this.changeSubject.next();
   }
 
+  onStudentTypeChange(): void {
+    this.autosaveStatus = 'Unsaved changes…';
+    this.changeSubject.next();
+  }
+
   // Guards against two presets silently colliding on the same schema name,
   // which would make one overwrite the other's value in
   // buildInputsForStudent()'s output map at generation time.
@@ -160,8 +194,9 @@ export class PdfDesigner implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
   ) {
     const navState = this.router.getCurrentNavigation()?.extras?.state as
-      { template?: Template; scale?: number } | undefined;
+      { template?: Template; scale?: number; studentType?: TemplateStudentType } | undefined;
     this.incomingTemplate = navState?.template;
+    this.currentStudentType = navState?.studentType ?? null;
   }
 
   ngOnInit() {
@@ -191,6 +226,7 @@ export class PdfDesigner implements OnInit, OnDestroy {
         next: (template: ReportTemplate) => {
           this.currentName = template.name;
           this.currentSchoolId = (template.school as any)?.id ?? '';
+          this.currentStudentType = template.studentType ?? null;
 
           let parsedTemplate = BLANK_TEMPLATE;
           try {
@@ -315,6 +351,7 @@ export class PdfDesigner implements OnInit, OnDestroy {
       name: this.currentName,
       configuration,
       school: { id: this.currentSchoolId } as any,
+      studentType: this.currentStudentType ?? undefined,
     };
 
     this.saveError = null;

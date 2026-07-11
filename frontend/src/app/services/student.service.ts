@@ -19,7 +19,7 @@ export class StudentService {
    * single backend endpoint for this — /api/k12-students and
    * /api/college-students are separate REST resources on two unrelated
    * tables, so the merge happens here on the client via forkJoin.
-   * AdmissionStudents doesn't exist on the backend yet; add a third call
+   * AdmissionsStudents doesn't exist on the backend yet; add a third call
    * here (and a third mapper) once it does.
    */
   getAllStudents(): Observable<StudentSummary[]> {

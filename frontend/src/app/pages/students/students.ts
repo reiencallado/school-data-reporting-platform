@@ -1,7 +1,15 @@
 import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { StudentService } from '../../services/student.service';
-import { StudentSummary, StudentType } from '../../services/student.model';
+import {
+  StudentSummary,
+  StudentType,
+  typeFilterFields,
+  typeColumns,
+  FilterFieldConfig,
+  ColumnConfig,
+  getStatusBadgeClass,
+} from '../../services/student.model';
 
 @Component({
   selector: 'app-student-list',
@@ -19,26 +27,36 @@ export class Students implements OnInit {
   loading = false;
   error: string | null = null;
 
-  typeOptions: StudentType[] = ['K12', 'COLLEGE'];
-  statusOptions = ['ACTIVE', 'INACTIVE'];
+  // ── Type tabs — no "ALL"; columns genuinely differ per type ──
+  selectedType: StudentType = 'K12';
 
-  selectedTypes = new Set<string>();
+  // ── Status filter (value-based multi-select) ──
+  // NOTE: Active/Enrolled currently overlap conceptually — see student.model.ts note.
+  statusOptions = ['ACTIVE', 'ENROLLED', 'DROPPED', 'PENDING', 'INACTIVE'];
   selectedStatuses = new Set<string>();
+  statusDropdownOpen = false;
 
-  dropdownStates: { [key: string]: boolean } = {
-    type: false,
-    status: false
-  };
+  // ── Search field scope: which extra fields the search term matches against ──
+  searchTerm = '';
+  searchFieldsOpen = false;
+  enabledSearchFields = new Set<string>();
+
+  // ── Column sort — null means default (most recently added first) ──
+  sortColumn: string | null = null;
+  sortDirection: 'asc' | 'desc' = 'asc';
 
   currentPage = 1;
-  pageSize = 10;
+  pageSize = 16;
   totalPages = 1;
   totalPagesArray: number[] = [];
-  searchTerm = '';
+
+  // Exposed to template for status badge coloring
+  getStatusBadgeClass = getStatusBadgeClass;
 
   constructor(private studentService: StudentService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
+    this.resetSearchFieldsForType();
     this.fetchStudents();
   }
 
@@ -62,22 +80,111 @@ export class Students implements OnInit {
     });
   }
 
-  toggleDropdown(type: string, event: Event): void {
-    event.stopPropagation();
-    const targetState = !this.dropdownStates[type];
-    this.closeAllDropdowns();
-    this.dropdownStates[type] = targetState;
+  // ── Columns / search fields for the active type ──
+  get columns(): ColumnConfig[] {
+    return typeColumns[this.selectedType];
   }
 
-  closeDropdown(type: string): void {
-    this.dropdownStates[type] = false;
+  get searchFieldOptions(): FilterFieldConfig[] {
+    return typeFilterFields[this.selectedType];
+  }
+
+  private resetSearchFieldsForType(): void {
+    this.enabledSearchFields = new Set(this.searchFieldOptions.map(f => f.key));
+  }
+
+  // ── Type tabs ──
+  selectType(type: StudentType): void {
+    if (this.selectedType === type) return;
+    this.selectedType = type;
+    this.currentPage = 1;
+    this.sortColumn = null; // previous sort column may not exist on the new type's columns
+    this.resetSearchFieldsForType();
+    this.applyFiltersAndCalculations();
+  }
+
+  // ── Status dropdown ──
+  toggleStatusDropdown(event: Event): void {
+    event.stopPropagation();
+    const next = !this.statusDropdownOpen;
+    this.closeAllDropdowns();
+    this.statusDropdownOpen = next;
+  }
+
+  onStatusToggle(value: string): void {
+    if (this.selectedStatuses.has(value)) this.selectedStatuses.delete(value);
+    else this.selectedStatuses.add(value);
+    this.currentPage = 1;
+    this.applyFiltersAndCalculations();
+  }
+
+  clearStatusFilter(): void {
+    this.selectedStatuses.clear();
+    this.currentPage = 1;
+    this.applyFiltersAndCalculations();
+  }
+
+  getStatusLabel(): string {
+    if (this.selectedStatuses.size === 0) return 'Status';
+    if (this.selectedStatuses.size === 1) return `Status: ${Array.from(this.selectedStatuses)[0]}`;
+    return `Status: ${this.selectedStatuses.size} selected`;
+  }
+
+  // ── Search field scope dropdown ──
+  toggleSearchFieldsPanel(event: Event): void {
+    event.stopPropagation();
+    const next = !this.searchFieldsOpen;
+    this.closeAllDropdowns();
+    this.searchFieldsOpen = next;
+  }
+
+  onSearchFieldToggle(key: string): void {
+    if (this.enabledSearchFields.has(key)) this.enabledSearchFields.delete(key);
+    else this.enabledSearchFields.add(key);
+    this.applyFiltersAndCalculations();
+  }
+
+  isSearchFieldEnabled(key: string): boolean {
+    return this.enabledSearchFields.has(key);
+  }
+
+  onSearchChange(event: Event): void {
+    this.searchTerm = (event.target as HTMLInputElement).value.toLowerCase();
+    this.currentPage = 1;
+    this.applyFiltersAndCalculations();
+  }
+
+  // ── Column sort ──
+  // 3-state cycle per column: ascending -> descending -> back to default (recency)
+  toggleSort(key: string): void {
+    if (this.sortColumn !== key) {
+      this.sortColumn = key;
+      this.sortDirection = 'asc';
+    } else if (this.sortDirection === 'asc') {
+      this.sortDirection = 'desc';
+    } else {
+      this.sortColumn = null; // third click resets to default recency order
+    }
+    this.applyFiltersAndCalculations();
+  }
+
+  get tableHeading(): string {
+    if (this.selectedType === 'ADMISSIONS') return 'Recent Students';
+
+    const isFiltered = !!this.searchTerm || this.selectedStatuses.size > 0 || this.sortColumn !== null;
+    const count = this.filteredStudents.length;
+
+    return isFiltered
+      ? `Results (${count})`
+      : `Recent Students (${count})`;
   }
 
   private closeAllDropdowns(): void {
-    Object.keys(this.dropdownStates).forEach(key => this.dropdownStates[key] = false);
+    this.statusDropdownOpen = false;
+    this.searchFieldsOpen = false;
   }
 
-  onCheckboxClick(event: Event): void {
+  onPanelClick(event: Event): void {
     event.stopPropagation();
   }
 
@@ -86,52 +193,58 @@ export class Students implements OnInit {
     this.closeAllDropdowns();
   }
 
-  onCheckboxToggle(filterType: 'type' | 'status', value: string): void {
-    const targetSet = filterType === 'type' ? this.selectedTypes : this.selectedStatuses;
-    if (targetSet.has(value)) targetSet.delete(value);
-    else targetSet.add(value);
-
-    this.currentPage = 1;
-    this.applyFiltersAndCalculations();
-  }
-
-  clearFilter(filterType: 'type' | 'status'): void {
-    if (filterType === 'type') this.selectedTypes.clear();
-    else this.selectedStatuses.clear();
-
-    this.currentPage = 1;
-    this.applyFiltersAndCalculations();
-  }
-
-  getDropdownLabel(filterType: 'type' | 'status', fallbackLabel: string): string {
-    const targetSet = filterType === 'type' ? this.selectedTypes : this.selectedStatuses;
-    if (targetSet.size === 0) return fallbackLabel;
-    if (targetSet.size === 1) return `${fallbackLabel}: ${Array.from(targetSet)[0]}`;
-    return `${fallbackLabel}: ${targetSet.size} selected`;
-  }
-
-  onSearchChange(event: Event): void {
-    const inputElement = event.target as HTMLInputElement;
-    this.searchTerm = inputElement.value.toLowerCase();
-    this.currentPage = 1;
-    this.applyFiltersAndCalculations();
-  }
-
   private applyFiltersAndCalculations(): void {
-    this.filteredStudents = this.allStudents.filter(student => {
-      const matchesSearch =
-        student.name.toLowerCase().includes(this.searchTerm) ||
-        student.studentId.toLowerCase().includes(this.searchTerm);
+    if (this.selectedType === 'ADMISSIONS') {
+      this.filteredStudents = [];
+      this.totalPages = 1;
+      this.totalPagesArray = [1];
+      this.pagedStudents = [];
+      return;
+    }
 
-      const matchesType = this.selectedTypes.size === 0 || this.selectedTypes.has(student.studentType);
+    const query = this.searchTerm;
+
+    this.filteredStudents = this.allStudents.filter(student => {
+      const matchesType = student.studentType === this.selectedType;
+
+      const matchesCore =
+        student.name.toLowerCase().includes(query) ||
+        student.studentId.toLowerCase().includes(query);
+
+      const matchesExtraField = this.searchFieldOptions.some(field =>
+        this.enabledSearchFields.has(field.key) &&
+        (field.getValue(student) ?? '').toLowerCase().includes(query)
+      );
+
+      const matchesSearch = !query || matchesCore || matchesExtraField;
       const matchesStatus = this.selectedStatuses.size === 0 || this.selectedStatuses.has(student.status);
 
-      return matchesSearch && matchesType && matchesStatus;
+      return matchesType && matchesSearch && matchesStatus;
     });
+
+    this.filteredStudents = this.applySort(this.filteredStudents);
 
     this.totalPages = Math.ceil(this.filteredStudents.length / this.pageSize) || 1;
     this.totalPagesArray = Array.from({ length: this.totalPages }, (_, i) => i + 1);
     this.updatePagedSlice();
+  }
+
+  private applySort(list: StudentSummary[]): StudentSummary[] {
+    if (!this.sortColumn) {
+      // Default: most recently added first. Falls back to name if createdAt is missing.
+      return [...list].sort((a, b) => {
+        if (a.createdAt && b.createdAt) return b.createdAt.localeCompare(a.createdAt);
+        return a.name.localeCompare(b.name);
+      });
+    }
+
+    const col = this.columns.find(c => c.key === this.sortColumn);
+    if (!col) return list;
+
+    const dir = this.sortDirection === 'asc' ? 1 : -1;
+    return [...list].sort((a, b) =>
+      col.getValue(a).localeCompare(col.getValue(b), undefined, { numeric: true }) * dir
+    );
   }
 
   changePage(page: number): void {
@@ -141,20 +254,7 @@ export class Students implements OnInit {
   }
 
   private updatePagedSlice(): void {
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    const endIndex = startIndex + this.pageSize;
-    this.pagedStudents = this.filteredStudents.slice(startIndex, endIndex);
-  }
-
-  getGradeOrYear(s: StudentSummary): string {
-    return (s.studentType === 'K12' ? s.grade : s.yearLevel) || '—';
-  }
-
-  getStrandOrProgram(s: StudentSummary): string {
-    return (s.studentType === 'K12' ? s.strand : s.course) || '—';
-  }
-
-  getSection(s: StudentSummary): string {
-    return s.studentType === 'K12' ? (s.section || '—') : '—';
+    const start = (this.currentPage - 1) * this.pageSize;
+    this.pagedStudents = this.filteredStudents.slice(start, start + this.pageSize);
   }
 }

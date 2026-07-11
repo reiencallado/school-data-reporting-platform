@@ -1,0 +1,97 @@
+{
+  "basePdf": {
+    "width": 85.6,
+    "height": 54,
+    "padding": [4, 4, 4, 4]
+  },
+  "schemas": [
+    [
+      {
+        "name": "schoolNameLine",
+        "type": "text",
+        "content": "SCHOOL NAME",
+        "position": { "x": 4, "y": 4 },
+        "width": 77.6,
+        "height": 5,
+        "fontSize": 7,
+        "fontColor": "#013157",
+        "alignment": "center"
+      },
+      {
+        "name": "photoPlaceholder",
+        "type": "rectangle",
+        "position": { "x": 6, "y": 12 },
+        "width": 22,
+        "height": 26,
+        "color": "#E5F5FB",
+        "borderWidth": 0.3,
+        "borderColor": "#D9D9D9"
+      },
+      {
+        "name": "studentName",
+        "type": "multiVariableText",
+        "content": "{\"studentName\":\"Student Name\"}",
+        "text": "{studentName}",
+        "variables": ["studentName"],
+        "position": { "x": 32, "y": 14 },
+        "width": 50,
+        "height": 6,
+        "fontSize": 8,
+        "fontColor": "#013157",
+        "alignment": "left"
+      },
+      {
+        "name": "studentId",
+        "type": "multiVariableText",
+        "content": "{\"studentId\":\"Student ID\"}",
+        "text": "ID: {studentId}",
+        "variables": ["studentId"],
+        "position": { "x": 32, "y": 22 },
+        "width": 50,
+        "height": 5,
+        "fontSize": 7,
+        "fontColor": "#555555",
+        "alignment": "left"
+      },
+      {
+        "name": "gradeOrYear",
+        "type": "multiVariableText",
+        "content": "{\"gradeLevel\":\"Grade Level\"}",
+        "text": "{gradeLevel}",
+        "variables": ["gradeLevel"],
+        "position": { "x": 32, "y": 29 },
+        "width": 50,
+        "height": 5,
+        "fontSize": 7,
+        "fontColor": "#555555",
+        "alignment": "left"
+      },
+      {
+        "name": "sectionOrProgram",
+        "type": "multiVariableText",
+        "content": "{\"section\":\"Section\"}",
+        "text": "{section}",
+        "variables": ["section"],
+        "position": { "x": 32, "y": 35 },
+        "width": 50,
+        "height": 5,
+        "fontSize": 7,
+        "fontColor": "#555555",
+        "alignment": "left"
+      },
+      {
+        "name": "issuanceDate",
+        "type": "multiVariableText",
+        "content": "{\"issuanceDate\":\"Issuance Date\"}",
+        "text": "Valid as of {issuanceDate}",
+        "variables": ["issuanceDate"],
+        "position": { "x": 4, "y": 46 },
+        "width": 77.6,
+        "height": 5,
+        "fontSize": 6,
+        "fontColor": "#888888",
+        "alignment": "center"
+      }
+    ]
+  ]
+}

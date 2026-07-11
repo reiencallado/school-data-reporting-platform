@@ -1,0 +1,102 @@
+<div class="modal-backdrop" *ngIf="isOpen" (click)="onBackdropClick()">
+  <div class="modal-panel" (click)="$event.stopPropagation()">
+
+    <div class="modal-header">
+      <h3>Create a new template</h3>
+      <button class="modal-close-btn" (click)="close.emit()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Left category rail -->
+      <nav class="category-rail">
+        <button class="category-item" [class.active]="activeCategory === 'RECENT'" (click)="activeCategory = 'RECENT'">
+          Recent
+        </button>
+        <button class="category-item" [class.active]="activeCategory === 'ALL'" (click)="activeCategory = 'ALL'">
+          All Templates
+        </button>
+        <span class="category-divider"></span>
+        <button class="category-item" [class.active]="activeCategory === 'K12'" (click)="activeCategory = 'K12'">
+          K12
+        </button>
+        <button class="category-item" [class.active]="activeCategory === 'COLLEGE'" (click)="activeCategory = 'COLLEGE'">
+          College
+        </button>
+        <button class="category-item" [class.active]="activeCategory === 'ADMISSIONS'" (click)="activeCategory = 'ADMISSIONS'">
+          Admissionss
+        </button>
+      </nav>
+
+      <!-- Right content area -->
+      <div class="template-content-area">
+
+        <!-- Blank is always pinned at the top of "All Templates" -->
+        <div class="template-section" *ngIf="activeCategory === 'ALL'">
+          <div class="template-grid">
+            <button class="template-tile blank-tile" (click)="blankSelected.emit()">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              <span>Blank Template</span>
+            </button>
+
+            <button
+              *ngFor="let starter of starterTemplates"
+              class="template-tile"
+              (click)="templateSelected.emit(starter)">
+              <div class="template-thumb">
+                <img *ngIf="starter.thumbnailUrl" [src]="starter.thumbnailUrl" [alt]="starter.name" />
+                <span *ngIf="!starter.thumbnailUrl" class="thumb-placeholder">{{ starter.name.charAt(0) }}</span>
+              </div>
+              <span class="template-name">{{ starter.name }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Category-filtered view -->
+        <div class="template-section" *ngIf="activeCategory !== 'ALL' && activeCategory !== 'RECENT'">
+          <div class="template-grid">
+            <button
+              *ngFor="let starter of templatesForCategory(activeCategory)"
+              class="template-tile"
+              (click)="templateSelected.emit(starter)">
+              <div class="template-thumb">
+                <img *ngIf="starter.thumbnailUrl" [src]="starter.thumbnailUrl" [alt]="starter.name" />
+                <span *ngIf="!starter.thumbnailUrl" class="thumb-placeholder">{{ starter.name.charAt(0) }}</span>
+              </div>
+              <span class="template-name">{{ starter.name }}</span>
+            </button>
+          </div>
+          <p class="empty-category-msg" *ngIf="templatesForCategory(activeCategory).length === 0">
+            No templates yet in this category.
+          </p>
+        </div>
+
+        <!-- Recent: user's own previously created templates -->
+        <div class="template-section" *ngIf="activeCategory === 'RECENT'">
+          <div class="template-grid" *ngIf="recentTemplates.length > 0">
+            <button
+              *ngFor="let recent of recentTemplates"
+              class="template-tile"
+              (click)="recentSelected.emit(recent)">
+              <div class="template-thumb">
+                <img *ngIf="recent.thumbnailUrl" [src]="recent.thumbnailUrl" [alt]="recent.name" />
+                <span *ngIf="!recent.thumbnailUrl" class="thumb-placeholder">{{ recent.name.charAt(0) }}</span>
+              </div>
+              <span class="template-name">{{ recent.name }}</span>
+            </button>
+          </div>
+          <p class="empty-category-msg" *ngIf="recentTemplates.length === 0">
+            You haven't created any templates yet.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

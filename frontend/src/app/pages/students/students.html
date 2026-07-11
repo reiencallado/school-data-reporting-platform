@@ -1,99 +1,142 @@
 <div class="students-page-container">
 
   <div class="section-card">
-    <h4 class="section-label">Search Filters</h4>
-    <div class="filter-row">
-      <input
-        type="text"
-        placeholder="Search students..."
-        class="search-input"
-        (input)="onSearchChange($event)" />
 
-      <div class="checkbox-dropdown-wrapper" (clickOutside)="closeDropdown('type')">
-        <div class="dropdown-btn" (click)="toggleDropdown('type', $event)">
-          {{ getDropdownLabel('type', 'Type') }}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
+    <div class="filter-row">
+
+      <div class="search-bar-wrapper">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+
+        <input
+          type="text"
+          placeholder="Search students..."
+          class="search-input search-input-icon"
+          (input)="onSearchChange($event)" />
+
+        <button
+          class="search-fields-btn"
+          (click)="toggleSearchFieldsPanel($event)"
+          title="Choose searchable fields"
+          [disabled]="searchFieldOptions.length === 0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="7" x2="20" y2="7"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="17" x2="20" y2="17"/>
           </svg>
-        </div>
-        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['type']" (click)="onCheckboxClick($event)">
+        </button>
+
+        <div class="dropdown-checkbox-panel search-fields-panel" *ngIf="searchFieldsOpen" (click)="onPanelClick($event)">
           <div class="dropdown-panel-header">
-            <span>Type</span>
-            <button class="dropdown-clear-btn" (click)="clearFilter('type')">Clear</button>
+            <span>Search in</span>
           </div>
-          <label *ngFor="let option of typeOptions" class="checkbox-option-label">
-            <input type="checkbox" [checked]="selectedTypes.has(option)" (change)="onCheckboxToggle('type', option)">
-            <span>{{ option }}</span>
+          <label *ngFor="let field of searchFieldOptions" class="checkbox-option-label">
+            <input type="checkbox" [checked]="isSearchFieldEnabled(field.key)" (change)="onSearchFieldToggle(field.key)">
+            <span>{{ field.label }}</span>
           </label>
+          <p class="no-options-msg" *ngIf="searchFieldOptions.length === 0">No extra fields for this type</p>
         </div>
       </div>
 
-      <div class="checkbox-dropdown-wrapper" (clickOutside)="closeDropdown('status')">
-        <div class="dropdown-btn" (click)="toggleDropdown('status', $event)">
-          {{ getDropdownLabel('status', 'Status') }}
+      <div class="checkbox-dropdown-wrapper">
+        <div class="dropdown-btn" (click)="toggleStatusDropdown($event)">
+          {{ getStatusLabel() }}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </div>
-        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['status']" (click)="onCheckboxClick($event)">
+        <div class="dropdown-checkbox-panel" *ngIf="statusDropdownOpen" (click)="onPanelClick($event)">
           <div class="dropdown-panel-header">
             <span>Status</span>
-            <button class="dropdown-clear-btn" (click)="clearFilter('status')">Clear</button>
+            <button class="dropdown-clear-btn" (click)="clearStatusFilter()">Clear</button>
           </div>
           <label *ngFor="let option of statusOptions" class="checkbox-option-label">
-            <input type="checkbox" [checked]="selectedStatuses.has(option)" (change)="onCheckboxToggle('status', option)">
+            <input type="checkbox" [checked]="selectedStatuses.has(option)" (change)="onStatusToggle(option)">
             <span>{{ option }}</span>
           </label>
         </div>
       </div>
 
+      <div class="type-toggle">
+        <button class="type-pill" [class.active]="selectedType === 'K12'" (click)="selectType('K12')">K12</button>
+        <button class="type-pill" [class.active]="selectedType === 'COLLEGE'" (click)="selectType('COLLEGE')">College</button>
+        <button class="type-pill" [class.active]="selectedType === 'ADMISSIONS'" (click)="selectType('ADMISSIONS')">Admissionss</button>
+      </div>
+
     </div>
   </div>
 
-<div class="section-card">
-  <h4 class="section-label">Recent Students</h4>
+  <div class="section-card">
+    <h4 class="section-label">{{ tableHeading }}</h4>
 
-  <p *ngIf="loading" class="template-state-msg">Loading students…</p>
-  <p *ngIf="error" class="template-state-msg error">{{ error }}</p>
+    <p *ngIf="loading" class="template-state-msg">Loading students…</p>
+    <p *ngIf="error" class="template-state-msg error">{{ error }}</p>
 
-  <div class="table-responsive-scroll" *ngIf="!loading && !error">
-    <table class="dashboard-table">
-      <thead>
-        <tr>
-          <th>Student ID</th>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Grade / Year</th>
-          <th>Strand / Program</th>
-          <th>Section</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let student of pagedStudents">
-          <td class="mono muted">{{ student.studentId }}</td>
-          <td>{{ student.name }}</td>
-          <td><span class="type-badge" [attr.data-type]="student.studentType">{{ student.studentType }}</span></td>
-          <td>{{ getGradeOrYear(student) }}</td>
-          <td>{{ getStrandOrProgram(student) }}</td>
-          <td>{{ getSection(student) }}</td>
-          <td>
-            <span class="status-badge" [class.badge-active]="student.status === 'ACTIVE'" [class.badge-inactive]="student.status !== 'ACTIVE'">
-              {{ student.status }}
-            </span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-responsive-scroll" *ngIf="!loading && !error">
+      <table class="dashboard-table">
+        <colgroup>
+          <col *ngFor="let col of columns"
+               [style.width]="col.key === 'studentId' ? '130px' : col.key === 'status' ? '110px' : null">
+        </colgroup>
+        <thead>
+          <tr>
+            <th *ngFor="let col of columns" [class.col-pinned]="col.key === 'studentId'">
+              <button class="col-sort-btn" (click)="toggleSort(col.key)" [attr.aria-label]="'Sort by ' + col.label">
+                <span>{{ col.label }}</span>
+                <span class="sort-carets">
+                  <svg class="caret caret-up" [class.active]="sortColumn === col.key && sortDirection === 'asc'"
+                       width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
+                    <path d="M4 0L8 5H0L4 0Z"/>
+                  </svg>
+                  <svg class="caret caret-down" [class.active]="sortColumn === col.key && sortDirection === 'desc'"
+                       width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
+                    <path d="M4 5L0 0H8L4 5Z"/>
+                  </svg>
+                </span>
+              </button>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let student of pagedStudents">
+            <td *ngFor="let col of columns" [ngSwitch]="col.type" [class.col-pinned]="col.key === 'studentId'">
+              <span *ngSwitchCase="'mono'" class="mono muted">{{ col.getValue(student) }}</span>
+              <span *ngSwitchCase="'status'"
+                    class="status-badge"
+                    [ngClass]="getStatusBadgeClass(col.getValue(student))">
+                {{ col.getValue(student) }}
+              </span>
+              <span *ngSwitchDefault>{{ col.getValue(student) }}</span>
+            </td>
+          </tr>
 
-    <div class="pagination-row">
-      <button class="page-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">&#8249;</button>
-      <button *ngFor="let page of totalPagesArray" class="page-btn" [class.active]="page === currentPage" (click)="changePage(page)">{{ page }}</button>
-      <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">&#8250;</button>
+          <tr *ngIf="pagedStudents.length === 0">
+            <td [attr.colspan]="columns.length || 1" class="template-state-msg">
+              {{ selectedType === 'ADMISSIONS' ? 'Admissionss data isn\'t available yet.' : 'No students match your search.' }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pagination-row" *ngIf="selectedType !== 'ADMISSIONS'">
+        <button class="page-step-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+
+        <button *ngFor="let page of totalPagesArray" class="page-btn" [class.active]="page === currentPage" (click)="changePage(page)">{{ page }}</button>
+
+        <button class="page-step-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
-</div>
 
 </div>

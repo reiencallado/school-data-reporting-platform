@@ -16,23 +16,22 @@
         <option *ngFor="let school of schools" [value]="school.id">{{ school.name }}</option>
     </select>
 
-    <!-- Toolbar toggle -->
-    <button type="button" (click)="togglePresetDrawer()">
-        {{ showPresetDrawer ? 'Hide' : 'Show' }} Preset Fields
-    </button>
+    <select
+        class="school-select"
+        [(ngModel)]="currentStudentType"
+        (ngModelChange)="onStudentTypeChange()"
+    >
+        <option [ngValue]="null" disabled>Select student type...</option>
+        <option *ngFor="let t of studentTypes" [ngValue]="t.id">{{ t.label }}</option>
+    </select>
 
-    <!-- Preset drawer -->
-    <aside class="preset-drawer" *ngIf="showPresetDrawer">
-        <h3>Insert Field</h3>
-        <button
-            *ngFor="let preset of presetFields"
-            type="button"
-            class="preset-drawer__item"
-            (click)="insertPresetField(preset)"
-            >
-            {{ preset.label }}
-        </button>
-    </aside>
+    <button class="preset-toggle-btn" type="button" (click)="togglePresetDrawer()" [class.active]="showPresetDrawer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Insert Field
+    </button>
 
     <button class="paper-size-btn" type="button" (click)="showSizeModal = true">
         {{ paperSizeButtonLabel }}
@@ -49,7 +48,37 @@
 
 <p class="save-error" *ngIf="saveError">{{ saveError }}</p>
 
-<div id="designer"></div>
+<div class="designer-layout">
+  <div id="designer"></div>
+
+  <!-- Preset field drawer -->
+  <aside class="preset-drawer" *ngIf="showPresetDrawer">
+    <div class="preset-drawer-header">
+      <h3>Insert Field</h3>
+      <button class="preset-drawer-close" (click)="togglePresetDrawer()" aria-label="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="preset-drawer-body">
+      <div class="preset-group" *ngFor="let group of presetFieldGroups">
+        <span class="preset-group-label">{{ group.label }}</span>
+        <div class="preset-group-items">
+          <button
+            *ngFor="let preset of group.fields"
+            type="button"
+            class="preset-field-btn"
+            (click)="insertPresetField(preset)">
+            {{ preset.label }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
 
 <app-resolution-modal
     [isOpen]="showSizeModal"

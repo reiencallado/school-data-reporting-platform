@@ -10,6 +10,7 @@ import { PdfDesigner } from './pdf-designer/pdf-designer';
 import { Students } from './pages/students/students';
 import { Users } from './pages/users/users';
 import { authGuard } from './services/auth-guard';
+import { roleGuard } from './services/role-guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/login', pathMatch: 'full' },
@@ -27,7 +28,11 @@ export const routes: Routes = [
       { path: 'reports/templates/:id/preview', component: PdfDesigner },
       { path: 'reports/templates/:id/edit', component: PdfDesigner },
       { path: 'students', component: Students },
-      { path: 'users', component: Users },
+      {
+        path: 'users',
+        component: Users,
+        canActivate: [roleGuard(['ROLE_ADMIN'])]
+      },
     ]
   },
   { path: '**', component: NotFound }

@@ -1,0 +1,69 @@
+<div class="wizard-overlay" *ngIf="isOpen" (click)="reset()"></div>
+
+<div class="wizard-modal" *ngIf="isOpen">
+  <div class="wizard-header">
+    <button class="wizard-back" *ngIf="step !== 'type'" (click)="back()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </button>
+    <h3 class="wizard-title">
+      <ng-container [ngSwitch]="step">
+        <ng-container *ngSwitchCase="'type'">Who is this template for?</ng-container>
+        <ng-container *ngSwitchCase="'pick'">Choose a starting point</ng-container>
+      </ng-container>
+    </h3>
+    <button class="wizard-close" (click)="reset()" aria-label="Close">&times;</button>
+  </div>
+
+  <!-- STEP 1: Student type -->
+  <div class="wizard-body" *ngIf="step === 'type'">
+    <div class="wizard-type-grid">
+      <button class="wizard-type-card" *ngFor="let t of studentTypeOptions" (click)="chooseStudentType(t.key)">
+        <span class="wizard-type-label">{{ t.label }}</span>
+        <span class="wizard-type-sub">{{ t.sub }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Start from scratch, or pick a default for this type -->
+  <div class="wizard-body" *ngIf="step === 'pick'">
+    <div class="wizard-pick-grid">
+
+      <button class="wizard-pick-card wizard-custom-card" (click)="pickCustom()">
+        <div class="wizard-custom-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </div>
+        <span class="wizard-pick-name">Start from scratch</span>
+        <span class="wizard-pick-sub">Pick your own paper size and layout</span>
+      </button>
+
+      <button class="wizard-pick-card" *ngFor="let starter of matchingStarters" (click)="pickStarter(starter)">
+        <div class="wizard-pick-thumb">
+          <span class="wizard-doc-type-badge">{{ docTypeLabel(starter.docType) }}</span>
+          <app-template-thumbnail
+            [thumbnailUrl]="starter.thumbnailUrl"
+            [template]="starter.template"
+            [label]="starter.name">
+          </app-template-thumbnail>
+        </div>
+        <span class="wizard-pick-name">{{ starter.name }}</span>
+        <span class="wizard-pick-sub">{{ starter.description }}</span>
+      </button>
+
+    </div>
+
+    <p class="wizard-empty-note" *ngIf="matchingStarters.length === 0">
+      No default templates yet for this student type.
+    </p>
+  </div>
+
+</div>
+
+<app-resolution-modal
+  [isOpen]="showResolutionModal"
+  mode="create"
+  [extraState]="{ studentType: selectedStudentType }"
+  (close)="closeResolutionModal()">
+</app-resolution-modal>

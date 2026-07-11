@@ -1,3 +1,4 @@
+// resolution-modal.ts
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -41,6 +42,15 @@ export class ResolutionModalComponent implements OnChanges {
   @Input() initialOrientation?: Orientation;
   @Input() initialCustomWidth?: number;
   @Input() initialCustomHeight?: number;
+  @Input() initialSchemas?: any[][];
+
+  // NEW — optional extra keys merged into the router state on create-mode
+  // confirm. Added so callers like the template creation wizard can pass
+  // along things (e.g. studentType) that need to travel with the fresh
+  // template into the editor, without this component needing to know
+  // what they mean. Fully backward-compatible: undefined by default,
+  // existing callers that don't pass it see zero behavior change.
+  @Input() extraState?: Record<string, any>;
 
   selectedSize: PaperSize   = 'A4';
   orientation:  Orientation = 'portrait';
@@ -123,13 +133,13 @@ export class ResolutionModalComponent implements OnChanges {
 
     const freshTemplate: Template = {
       basePdf: { width: this.effectiveWidth, height: this.effectiveHeight, padding: [0, 0, 0, 0] },
-      schemas: [[]],
+      schemas: this.initialSchemas ?? [[]],
     };
 
     this.emitClose();
 
     this.router.navigate(['/editor'], {
-      state: { template: freshTemplate, scale: this.renderScale },
+      state: { template: freshTemplate, scale: this.renderScale, ...(this.extraState ?? {}) },
     });
   }
 }
