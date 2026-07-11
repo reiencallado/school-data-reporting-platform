@@ -1,22 +1,24 @@
+// templates.ts
 import { Component, HostListener, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { ReportTemplateService } from '../../services/report-template.service';
-import { ReportTemplate as ApiReportTemplate, TemplateStudentType } from '../../services/report-template.model';
+import { ReportTemplate as ApiReportTemplate } from '../../services/report-template.model';
+import { StudentType } from '../../services/student.model';
 import { TemplateThumbnailComponent } from '../../shared/components/template-thumbnail/template-thumbnail';
 import { TemplateCreationWizard } from './template-creation-wizard/template-creation-wizard';
 
-export type StudentTypeFilter = TemplateStudentType | 'ALL';
+export type StudentTypeFilter = StudentType | 'ALL';
 
 export interface TemplateCard {
   id: string;
   name: string;
   lastUsed: string;
   thumbnailUrl?: string;
-  configuration?: string;          // raw pdfme JSON — feeds the live-preview fallback
-  studentType?: TemplateStudentType; // ⚠️ not yet returned by backend, see report-template.model.ts
+  configuration?: string;
+  studentType?: StudentType;
 }
 
 @Component({
@@ -35,10 +37,6 @@ export class Templates implements OnInit, OnDestroy {
 
   templates: TemplateCard[] = [];
 
-  // Type pills are meaningful now that templates can be tagged with a
-  // student type at creation (see TemplateCreationWizard). 'GENERAL' has
-  // no pill of its own — GENERAL-tagged templates are treated as
-  // type-agnostic and shown under every pill, not just 'ALL'.
   selectedType: StudentTypeFilter = 'ALL';
 
   wizardOpen = false;
@@ -83,7 +81,7 @@ export class Templates implements OnInit, OnDestroy {
             : 'Never opened',
           thumbnailUrl: t.thumbnailUrl,
           configuration: t.configuration,
-          studentType: t.studentType, // undefined until backend actually returns this
+          studentType: t.studentType,
         }));
         this.loading = false;
         this.cdr.detectChanges();
@@ -110,11 +108,6 @@ export class Templates implements OnInit, OnDestroy {
     });
   }
 
-  // Legacy templates saved before student-type tagging existed — shown
-  // only under "All" so filtering by a specific type never silently hides
-  // work someone made before this feature existed. Surfaced only when
-  // it's actually relevant (a specific pill is active and something's
-  // being hidden by it).
   get untaggedCount(): number {
     return this.templates.filter(t => !t.studentType).length;
   }
@@ -132,7 +125,6 @@ export class Templates implements OnInit, OnDestroy {
     this.search = (event.target as HTMLInputElement).value;
   }
 
-  // ── Kebab menu ───────────────────────────────────────────
   toggleMenu(id: string): void {
     this.openMenuId = this.openMenuId === id ? null : id;
   }
@@ -144,7 +136,6 @@ export class Templates implements OnInit, OnDestroy {
   @HostListener('document:keydown.escape')
   onEscape(): void { this.closeMenu(); }
 
-  // ── Actions ──────────────────────────────────────────────
   editTemplate(t: TemplateCard): void {
     this.router.navigate(['/reports/templates', t.id, 'edit']);
   }
@@ -165,8 +156,6 @@ export class Templates implements OnInit, OnDestroy {
     });
   }
 
-  // ── Create flow — a single guided wizard (purpose -> student type ->
-  // default or custom) instead of two disconnected entry points. ──
   openWizard(): void {
     this.wizardOpen = true;
   }

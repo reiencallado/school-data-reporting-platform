@@ -1,4 +1,3 @@
-// archives.ts
 import { Component, HostListener, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -62,7 +61,7 @@ export class Archives implements OnInit {
     status: false,
   };
 
-  // ── Search scope toggle (which fields the free-text search matches against) ──
+  // ── Search scope toggle ──
   searchFieldsOpen = false;
   searchFieldOptions = [
     { key: 'template', label: 'Template' },
@@ -92,9 +91,6 @@ export class Archives implements OnInit {
   constructor(private authService: AuthService, private studentService: StudentService, private cdr: ChangeDetectorRef) {}
 
   ngOnInit(): void {
-    // Batches are built from the same student roster used on the Students
-    // page, instead of separate hardcoded stand-ins, so archive data stays
-    // consistent with whoever's actually enrolled.
     this.studentService.getAllStudents().subscribe({
       next: (students) => {
         this.batches = this.buildMockBatches(students);
@@ -453,9 +449,6 @@ export class Archives implements OnInit {
     this.selectedIds = new Set(this.selectedIds);
   }
 
-  // Single toggle used both by clicking anywhere on the row and by
-  // clicking the checkbox itself (the checkbox stops its own click from
-  // bubbling, so this never double-fires).
   toggleRow(id: string): void {
     const report = this.selectedBatch?.reports.find(r => r.id === id);
     if (report?.status === 'PROCESSING') return; // Safety guard

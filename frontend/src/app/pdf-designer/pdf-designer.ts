@@ -8,7 +8,8 @@ import { Designer } from '@pdfme/ui';
 import { Template } from '@pdfme/common';
 import { text, barcodes, image, multiVariableText, rectangle, ellipse, line, table } from '@pdfme/schemas';
 import { ReportTemplateService } from '../services/report-template.service';
-import { ReportTemplate, TemplateStudentType } from '../services/report-template.model';
+import { ReportTemplate } from '../services/report-template.model';
+import { StudentType } from '../services/student.model';
 import { HttpErrorResponse } from '@angular/common/http';
 import html2canvas from 'html2canvas';
 import { ResolutionModalComponent, SizeSelection, PaperSize as ModalPaperSize } from '../shared/components/resolution-modal/resolution-modal';
@@ -96,10 +97,10 @@ export const PRESET_FIELD_GROUPS: PresetFieldGroup[] = [
 
 export const PRESET_FIELDS: PresetField[] = PRESET_FIELD_GROUPS.flatMap(g => g.fields);
 
-export const STUDENT_TYPES: { id: TemplateStudentType; label: string }[] = [
+export const STUDENT_TYPES: { id: StudentType; label: string }[] = [
   { id: 'K12', label: 'K12' },
   { id: 'COLLEGE', label: 'College' },
-  { id: 'ADMISSIONS', label: 'Admissionss' },
+  { id: 'ADMISSIONS', label: 'Admissions' },
 ];
 
 @Component({
@@ -114,7 +115,7 @@ export class PdfDesigner implements OnInit, OnDestroy {
   templateId: string | null = null;
   private paramSub?: Subscription;
   private incomingTemplate?: Template;
-  currentStudentType: TemplateStudentType | null = null;
+  currentStudentType: StudentType | null = null;
   studentTypes = STUDENT_TYPES;
 
   currentName = 'Untitled Template';
@@ -126,7 +127,6 @@ export class PdfDesigner implements OnInit, OnDestroy {
 
   showSizeModal = false;
 
-  
   // ── Preset field drawer ──────────────────────────────────
   presetFieldGroups = PRESET_FIELD_GROUPS;
   showPresetDrawer = false;
@@ -194,7 +194,7 @@ export class PdfDesigner implements OnInit, OnDestroy {
     private cdr: ChangeDetectorRef,
   ) {
     const navState = this.router.getCurrentNavigation()?.extras?.state as
-      { template?: Template; scale?: number; studentType?: TemplateStudentType } | undefined;
+      { template?: Template; scale?: number; studentType?: StudentType } | undefined;
     this.incomingTemplate = navState?.template;
     this.currentStudentType = navState?.studentType ?? null;
   }

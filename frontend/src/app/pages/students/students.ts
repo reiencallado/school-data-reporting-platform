@@ -4,12 +4,14 @@ import { StudentService } from '../../services/student.service';
 import {
   StudentSummary,
   StudentType,
+  canViewStudentType,
   typeFilterFields,
   typeColumns,
+  getStatusBadgeClass,
   FilterFieldConfig,
   ColumnConfig,
-  getStatusBadgeClass,
 } from '../../services/student.model';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-student-list',
@@ -27,11 +29,23 @@ export class Students implements OnInit {
   loading = false;
   error: string | null = null;
 
-  // ── Type tabs — no "ALL"; columns genuinely differ per type ──
+  // ── Type tabs ──
   selectedType: StudentType = 'K12';
 
+  // Only offer tabs for types the current role can actually see - the data
+  // itself is already restricted server-side/in StudentService, so showing
+  // e.g. a "COLLEGE" tab to a ROLE_K12 user would just be a tab that always
+  // yields zero results. Computed in ngOnInit (not as a field initializer)
+  // since authService isn't assigned yet at that point.
+  //
+  // NOTE: ADMISSIONS is intentionally left out of this role check for now -
+  // canViewStudentType always returns false for it (see student.model.ts),
+  // so it would never appear here regardless. If/when AdmissionStudents
+  // gets merged into StudentSummary, revisit this list.
+  typeOptions: StudentType[] = [];
+
   // ── Status filter (value-based multi-select) ──
-  // NOTE: Active/Enrolled currently overlap conceptually — see student.model.ts note.
+  // NOTE: Active/Enrolled currently overlap conceptually - see student.model.ts note.
   statusOptions = ['ACTIVE', 'ENROLLED', 'DROPPED', 'PENDING', 'INACTIVE'];
   selectedStatuses = new Set<string>();
   statusDropdownOpen = false;
@@ -41,7 +55,7 @@ export class Students implements OnInit {
   searchFieldsOpen = false;
   enabledSearchFields = new Set<string>();
 
-  // ── Column sort — null means default (most recently added first) ──
+  // ── Column sort - null means default (most recently added first) ──
   sortColumn: string | null = null;
   sortDirection: 'asc' | 'desc' = 'asc';
 
@@ -53,9 +67,22 @@ export class Students implements OnInit {
   // Exposed to template for status badge coloring
   getStatusBadgeClass = getStatusBadgeClass;
 
-  constructor(private studentService: StudentService, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private studentService: StudentService,
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService,
+  ) {}
 
   ngOnInit(): void {
+    this.typeOptions = (['K12', 'COLLEGE'] as StudentType[])
+      .filter(t => canViewStudentType(this.authService.getCurrentRole(), t));
+
+    // Default to the first type the role can actually see, rather than
+    // always defaulting to K12 (which a COLLEGE-only user can't view).
+    if (this.typeOptions.length > 0 && !this.typeOptions.includes(this.selectedType)) {
+      this.selectedType = this.typeOptions[0];
+    }
+
     this.resetSearchFieldsForType();
     this.fetchStudents();
   }

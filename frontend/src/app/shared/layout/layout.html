@@ -5,11 +5,12 @@
 
     <!-- Brand / Logo -->
     <div class="brand-header">
-      <div class="brand-logo-circle">
-        <img *ngIf="schoolLogoUrl && !logoFailed" [src]="schoolLogoUrl" [alt]="schoolName + ' logo'"
-             (error)="onLogoError()" class="brand-logo-img" />
-        <span *ngIf="!schoolLogoUrl || logoFailed">{{ getInitialsPublic(schoolName) }}</span>
-      </div>
+      <label class="brand-logo-circle" title="Click to change your logo">
+        <img *ngIf="logoUrl && !logoFailed" [src]="logoUrl" [alt]="schoolName + ' logo'"
+            (error)="onLogoError()" class="brand-logo-image" />
+        <span *ngIf="!logoUrl || logoFailed">{{ getInitialsPublic(schoolName) }}</span>
+        <input type="file" accept="image/*" class="sr-only" (change)="onLogoFileSelected($event)" />
+      </label>
       <div class="brand-text">
         <h1>{{ schoolName }}</h1>
         <h2>Admin Portal</h2>
@@ -113,7 +114,7 @@
     <div class="sidebar-footer">
 
       <div class="footer-user-profile" title="Your profile">
-        <div class="avatar-circle" aria-hidden="true">{{ userInitials }}</div>
+        <div class="avatar-circle" aria-hidden="true">{{ userInitial }}</div>
         <div class="user-meta">
           <span class="user-name">{{ userName }}</span>
           <span class="user-role">{{ userRole }}</span>
@@ -167,7 +168,7 @@
       <div class="topbar-actions">
         <!-- Topbar user pill -->
         <div class="topbar-user-pill" aria-hidden="true">
-          <div class="topbar-avatar">{{ userInitials }}</div>
+          <div class="topbar-avatar">{{ userInitial }}</div>
           <span class="topbar-user-name">Hello, {{ userName }}!</span>
         </div>
       </div>

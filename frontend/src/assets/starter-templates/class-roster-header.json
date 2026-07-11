@@ -80,7 +80,7 @@
       {
         "name": "listAreaLabel",
         "type": "text",
-        "content": "(Student roster table area — extend layout below as needed)",
+        "content": "(Student roster table area  extend layout below as needed)",
         "position": { "x": 20, "y": 78 },
         "width": 170,
         "height": 8,

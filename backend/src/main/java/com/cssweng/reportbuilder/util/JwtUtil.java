@@ -22,10 +22,33 @@ public class JwtUtil {
         return this.secretKey;
     }
 
+    /**
+     * Kept for backward compatibility with any existing callers that
+     * don't have school/name context.
+     */
     public String generateToken(String username, String role) {
+        return generateToken(username, role, null, null);
+    }
+
+    public String generateToken(String username, String role, String schoolId) {
+        return generateToken(username, role, schoolId, null);
+    }
+
+    /**
+     * @param schoolId the AppUser's associated school id, used for
+     *                 school-scoped role enforcement. Pass null for roles
+     *                 that aren't school-scoped (e.g. ROLE_ADMIN).
+     * @param name     the AppUser's display name, embedded purely so the
+     *                 frontend can show "Hello, X" without a second
+     *                 network round-trip. Not used for any backend
+     *                 authorization decision.
+     */
+    public String generateToken(String username, String role, String schoolId, String name) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
-        
+        claims.put("schoolId", schoolId);
+        claims.put("name", name);
+
         // ISOLATE TENANT METADATA
         if (role.contains("SCHOOL_ADMIN")) {
             claims.put("tenantId", "school-cluster-alpha");

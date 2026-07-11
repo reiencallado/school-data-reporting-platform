@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding-bottom: 100px;   /* clear the sticky footer */
+  padding-bottom: 100px;
 }
 
 /* ==== SHARED SECTION CARD ==== */
@@ -118,8 +118,7 @@
   flex-wrap: wrap;
 }
 
-/* Search bar with leading icon + trailing field-scope button — same
-   system as the Students List page, so both pages behave identically. */
+/* Search bar */
 .search-bar-wrapper {
   position: relative;
   flex: 1;
@@ -222,7 +221,7 @@
   background: var(--blue-2);
 }
 
-/* ── Type toggle (K12 / College pill group) — same as Students List ── */
+/* ── Type toggle ── */
 .type-toggle {
   display: flex;
   background: var(--white-2);
@@ -259,7 +258,7 @@
   color: var(--white-1);
 }
 
-/* ==== STEP 1 — TEMPLATE GRID ==== */
+/* ==== STEP 1 - TEMPLATE GRID ==== */
 .template-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -450,7 +449,7 @@
   text-decoration: underline;
 }
 
-/* ==== STEP 2 — STUDENT TABLE ==== */
+/* ==== STEP 2 - STUDENT TABLE ==== */
 .checkbox-label {
   display: flex;
   align-items: center;
@@ -462,9 +461,7 @@
   user-select: none;
 }
 
-/* Vertically scrollable table area — same treatment as Students List's
-   fixed-height card, so a long roster doesn't push the page (and the
-   sticky footer below it) further down. */
+/* Vertically scrollable table area */
 .table-scroll-area {
   max-height: 480px;
   overflow-y: auto;
@@ -518,7 +515,7 @@
   background: var(--blue-4);
 }
 
-/* Sortable column header — same as Students List */
+/* Sortable column header */
 .col-sort-btn {
   display: flex;
   align-items: center;
@@ -564,8 +561,7 @@
   padding: 11px 12px !important;
 }
 
-/* Pinned columns (checkbox + Student ID) stay visible while scrolling
-   horizontally on narrow screens — same pattern as Students List. */
+/* Pinned columns (checkbox + Student ID) stay visible while scrolling horizontally on narrow screens */
 .col-pinned-check {
   position: sticky;
   left: 0;
@@ -620,9 +616,7 @@
   color: var(--gray-2);
 }
 
-/* Custom checkbox — white check on a blue-3 fill, used everywhere
-   (row select, select-all, filter panels) for a consistent look
-   instead of relying on inconsistent native accent-color rendering. */
+/* Checkbox */
 .checkbox-label input[type="checkbox"],
 .col-check input[type="checkbox"],
 .checkbox-option-label input[type="checkbox"] {
@@ -666,7 +660,7 @@
   transform: rotate(45deg);
 }
 
-/* Pagination — divider line above the numbers, matching the design system */
+/* Pagination */
 .pagination-row {
   display: flex;
   align-items: center;
@@ -733,7 +727,7 @@
   cursor: not-allowed;
 }
 
-/* ==== FORM FIELDS (Review step — Complete Report Details) ==== */
+/* ==== FORM FIELDS (Review step - Complete Report Details) ==== */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -847,8 +841,7 @@
   color: var(--blue-2);
 }
 
-/* Composition breakdown chips — shown under the Report Summary so
-   whoever's generating can sanity-check the selected batch. */
+/* Composition breakdown chips shown under the Report Summary */
 .breakdown-list {
   margin-top: 8px;
   padding-top: 12px;
@@ -938,13 +931,7 @@
   justify-content: center;
 }
 
-/* ==== STICKY FOOTER NAV ====
-   Translucent + blurred instead of a fully opaque white panel — same
-   position and behavior, but doesn't read as "yet another white card"
-   stacked on top of a page that already has several. This is the same
-   approach macOS/iOS toolbars and apps like Notion/Linear use for
-   persistent bottom controls: a soft separation (blur + hairline
-   border) instead of a heavy, fully opaque surface + shadow. */
+/* ==== STICKY FOOTER NAV ==== */
 .step-footer {
   position: fixed;
   bottom: 0;

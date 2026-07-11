@@ -28,7 +28,7 @@
           College
         </button>
         <button class="category-item" [class.active]="activeCategory === 'ADMISSIONS'" (click)="activeCategory = 'ADMISSIONS'">
-          Admissionss
+          Admissions
         </button>
       </nav>
 
@@ -77,7 +77,7 @@
           </p>
         </div>
 
-        <!-- Recent: user's own previously created templates -->
+        <!-- Recent -->
         <div class="template-section" *ngIf="activeCategory === 'RECENT'">
           <div class="template-grid" *ngIf="recentTemplates.length > 0">
             <button

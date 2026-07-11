@@ -3,9 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { ResolutionModalComponent } from '../../../shared/components/resolution-modal/resolution-modal';
 import { TemplateThumbnailComponent } from '../../../shared/components/template-thumbnail/template-thumbnail';
-import { STARTER_TEMPLATES, StarterTemplate, DOC_TYPES, DocType } from '../../starter-templates.manifest';
-
-// Place at: app/pages/templates/template-creation-wizard/template-creation-wizard.ts
+import { STARTER_TEMPLATES, StarterTemplate } from '../../starter-templates.manifest';
 
 export type WizardStudentType = 'K12' | 'COLLEGE' | 'ADMISSIONS';
 
@@ -29,15 +27,9 @@ export class TemplateCreationWizard {
   studentTypeOptions: StudentTypeOption[] = [
     { key: 'K12',        label: 'K12',        sub: 'Grade school & high school' },
     { key: 'COLLEGE',    label: 'College',    sub: 'Tertiary / university'       },
-    { key: 'ADMISSIONS', label: 'Admissionss', sub: 'Applicants, not yet enrolled' },
+    { key: 'ADMISSIONS', label: 'Admissions', sub: 'Applicants, not yet enrolled' },
   ];
 
-  // 2 steps instead of 3 — student type is a real technical constraint
-  // (it determines which data fields exist to autofill), so it stays a
-  // gate. "Purpose" (doc type) isn't structural, just a category label —
-  // shown as a badge on each preset card instead of a forced step, since
-  // with only a handful of starters, gating on both axes mostly produced
-  // dead ends ("no default yet") rather than useful narrowing.
   step: 'type' | 'pick' = 'type';
   selectedStudentType: WizardStudentType | null = null;
   showResolutionModal = false;
@@ -57,10 +49,6 @@ export class TemplateCreationWizard {
     if (!this.selectedStudentType) return [];
     const wantCategory = this.selectedStudentType === 'ADMISSIONS' ? 'ADMISSIONS' : this.selectedStudentType;
     return STARTER_TEMPLATES.filter(t => t.category === wantCategory);
-  }
-
-  docTypeLabel(docType: DocType): string {
-    return DOC_TYPES.find(d => d.key === docType)?.label ?? docType;
   }
 
   pickStarter(t: StarterTemplate): void {

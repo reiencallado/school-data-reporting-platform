@@ -174,15 +174,13 @@
 }
 
 @media (max-width: 640px) {
-  .wizard-purpose-grid,
   .wizard-type-grid,
   .wizard-pick-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-/* Sizing wrapper for <app-template-thumbnail> inside a pick card — the
-   component fills whatever box it's given. */
+/* the component fills whatever box it's given. */
 .wizard-pick-thumb {
   min-height: 110px;
   border-radius: var(--radius-md);

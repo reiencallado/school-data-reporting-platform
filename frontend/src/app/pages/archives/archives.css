@@ -27,7 +27,7 @@
   align-items: center;
 }
 
-/* ── Search bar (matches students list page) ── */
+/* ── Search bar ── */
 .search-bar-wrapper {
   position: relative;
   flex: 1;
@@ -92,7 +92,7 @@
   min-width: 200px;
 }
 
-/* ── Dropdown buttons (matches students list page) ── */
+/* ── Dropdown buttons ── */
 .checkbox-dropdown-wrapper {
   position: relative;
   display: inline-block;
@@ -499,7 +499,7 @@
   font-size: 14px;
 }
 
-/* ── Pagination (shared style, batch list + roster) ── */
+/* ── Pagination ── */
 .pagination-row {
   display: flex;
   align-items: center;
@@ -588,9 +588,7 @@
   align-items: center;
 }
 
-/* Custom checkbox — white check on a blue-3 fill, used everywhere
-   (row select, select-all, filter panels) for a consistent look
-   instead of relying on inconsistent native accent-color rendering. */
+/* Checkbox*/
 .checkbox-label input[type="checkbox"],
 .col-check input[type="checkbox"],
 .checkbox-option-label input[type="checkbox"] {
@@ -634,7 +632,6 @@
   transform: rotate(45deg);
 }
 
-/* Disabled styling matching logic updates for checkboxes */
 .checkbox-label input[type="checkbox"]:disabled {
   background: var(--gray-4) !important;
   border-color: var(--gray-4) !important;
@@ -687,8 +684,7 @@
 
 .dashboard-table tbody tr:hover td.col-pinned { background: var(--blue-4); }
 
-/* Row states — mirrors students list hover, adds a persistent "selected" state
-   since archives rows are actually selectable (students list rows aren't) */
+/* Row states */
 .dashboard-table tbody tr.row-selected td {
   background: var(--blue-4);
 }
@@ -709,7 +705,7 @@
   text-align: left;
 }
 
-/* Nav divider line, matching students list */
+/* Nav divider line */
 .pagination-row {
   border-top: 1px solid var(--gray-4);
 }
@@ -756,7 +752,7 @@
   }
 }
 
-/* ── Type toggle (pill group) — matches students.css ── */
+/* ── Type toggle ── */
 .type-toggle {
   display: flex;
   background: var(--white-2);
@@ -786,8 +782,6 @@
   color: var(--white-1);
 }
 
-/* "All" is visually distinct (orange) since it's a reset/catch-all,
-   not a population filter like the others */
 .type-pill-all.active {
   background: var(--orange-1);
   color: var(--white-1);

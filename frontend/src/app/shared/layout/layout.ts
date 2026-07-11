@@ -1,7 +1,14 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet, ActivatedRoute, NavigationEnd } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+
+const ROLE_LABELS: Record<string, string> = {
+  ROLE_ADMIN: 'Admin',
+  ROLE_K12: 'K-12 Staff',
+  ROLE_COLLEGE: 'College Staff',
+  ROLE_ADMISSIONS: 'Admissions Staff',
+};
 
 @Component({
   selector: 'app-layout',
@@ -19,60 +26,32 @@ export class Layout implements OnInit {
   pageTitle = '';
 
   // ── User Profile ─────────────────────────────────────────
-  get userName(): string {
-    return this.authService.getCurrentUser()?.username ?? 'Guest';
-  }
+  userName    = 'User';
+  userRole    = '';
+  userInitial = 'U';
+  isAdmin     = false;
 
-  get userRole(): string {
-    const role = this.authService.getCurrentUser()?.role ?? '';
-    // remove "ROLE_" prefix for display, e.g. "ROLE_SCHOOL_ADMIN" -> "School Admin"
-    return role
-      .replace(/^ROLE_/i, '')
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ') || 'User';
-  }
-
-  get schoolName(): string {
-    // TODO: replace with real school name once backend adds it
-    return this.authService.getCurrentUser()?.tenantId ?? 'School';
-  }
-
-  get schoolLogoUrl(): string | null {
-    // No logo field yet from backend — always fall back to initials
-    return null;
-  }
+  // ── Branding (per-user logo + school name) ────────────────
+  schoolName = 'SCHOOL';
+  logoUrl: string | null = null;
+  logoUploadError: string | null = null;
+  logoFailed = false;
 
   // ── Role checks ──────────────────────────────────────────
   get currentRole(): string | null {
-    return this.authService.getCurrentUser()?.role ?? null;
+    return this.authService.getCurrentRole();
   }
 
-  get isAdmin(): boolean {
-    return this.currentRole === 'ROLE_ADMIN';
-  }
-
-  get isSchoolAdmin(): boolean {
-    return this.currentRole === 'ROLE_SCHOOL_ADMIN';
-  }
-
-  get isViewer(): boolean {
-    return this.currentRole === 'ROLE_VIEWER';
-  }
-
-  // Convenience: anyone who should see the "Admin Tools" section at all
   get canManageSchool(): boolean {
-    return this.isAdmin || this.isSchoolAdmin;
-  }
-
-  get userInitials(): string {
-    return this.getInitials(this.userName);
+    return this.isAdmin;
   }
 
   constructor(private router: Router, private authService: AuthService) {}
 
   // ── Lifecycle ────────────────────────────────────────────
   ngOnInit(): void {
+    this.loadUserProfileFromToken();
+    this.loadFullProfile();
     this.restoreSidebarPreference();
   }
 
@@ -88,8 +67,27 @@ export class Layout implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  // ── Logo error handling ──────────────────────────────────
-  logoFailed = false;
+  // ── Branding: logo upload ─────────────────────────────────
+  onLogoFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    this.logoUploadError = null;
+
+    this.authService.uploadLogo(file).subscribe({
+      next: (res) => {
+        this.logoUrl = res.logoUrl;
+        this.logoFailed = false;
+      },
+      error: (err) => {
+        console.error('Failed to upload logo:', err);
+        this.logoUploadError = 'Failed to upload logo.';
+      },
+    });
+
+    input.value = '';
+  }
 
   onLogoError(): void {
     this.logoFailed = true;
@@ -100,6 +98,35 @@ export class Layout implements OnInit {
   }
 
   // ── Private helpers ──────────────────────────────────────
+  private loadUserProfileFromToken(): void {
+    const name = this.authService.getCurrentName();
+    const role = this.authService.getCurrentRole();
+
+    this.userName    = name ?? 'User';
+    this.userRole    = role ? (ROLE_LABELS[role] ?? role) : '';
+    this.userInitial = this.getInitials(this.userName);
+    this.isAdmin     = this.authService.isAdmin();
+  }
+
+  private loadFullProfile(): void {
+    this.authService.getProfile().subscribe({
+      next: (profile) => {
+        if (profile.name) {
+          this.userName = profile.name;
+          this.userInitial = this.getInitials(profile.name);
+        }
+        if (profile.schoolName) {
+          this.schoolName = profile.schoolName;
+        }
+        this.logoUrl = profile.logoUrl ?? null;
+        this.logoFailed = false;
+      },
+      error: (err) => {
+        console.error('Failed to load full profile:', err);
+      },
+    });
+  }
+
   private getInitials(fullName: string): string {
     const parts = fullName.trim().split(/\s+/).filter(Boolean);
     if (parts.length === 0) return '';

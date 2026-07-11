@@ -1,8 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-// Place at: app/shared/components/template-thumbnail/template-thumbnail.ts
-
 @Component({
   selector: 'app-template-thumbnail',
   standalone: true,
@@ -11,21 +9,9 @@ import { CommonModule } from '@angular/common';
   styleUrl: './template-thumbnail.css',
 })
 export class TemplateThumbnailComponent {
-  // A real rendered thumbnail image always wins — cheapest and most
-  // accurate. Otherwise falls back to a live proportional preview built
-  // straight from the template's own pdfme schema, so a template never
-  // shows as a bare lettered placeholder once it actually has content.
   @Input() thumbnailUrl?: string | null;
   @Input() template?: any;
   @Input() label = '';
-
-  // ✅ CONFIRMED against real starter template JSON (pdfme standard shape):
-  //   template.basePdf = { width, height, padding }         (mm)
-  //   template.schemas[0] = [{ type, position:{x,y}, width, height }, ...]
-  // Real saved templates almost always have a thumbnailUrl already (the
-  // editor uploads a screenshot on save) — this live-SVG path mainly
-  // exists for the static starter presets, which never touch the editor
-  // and so never get a real screenshot.
 
   get basePdfWidth(): number {
     return this.template?.basePdf?.width ?? 210;

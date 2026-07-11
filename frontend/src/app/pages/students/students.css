@@ -56,7 +56,7 @@
   }
 }
 
-/* ── Search bar with leading icon + trailing field-scope button ── */
+/* ── Search bar ── */
 .search-bar-wrapper {
   position: relative;
   flex: 1;
@@ -266,16 +266,7 @@
   text-align: center;
 }
 
-/* --- DATAGRID ROSTER (shared with Generate Report) ---
-   Layout strategy:
-   - table-layout: fixed + a <colgroup> lets us pin Student ID and Status to
-     consistent widths while the remaining columns (Name, Grade, Strand, etc.)
-     automatically share the leftover space evenly — no manual % math needed
-     per student type.
-   - min-width on the table + overflow-x on the wrapper means on narrow
-     screens the table scrolls horizontally instead of squishing every
-     column's text into unreadable slivers. Student ID stays pinned via
-     position: sticky so identity is never lost while scrolling sideways. */
+/* DATAGRID ROSTER */
 .table-responsive-scroll {
   width: 100%;
   overflow-x: auto;
@@ -486,7 +477,7 @@
   color: var(--color-danger, #dc2626);
 }
 
-/* ── Type toggle (pill group) ── */
+/* ── Type toggle ── */
 .type-toggle {
   display: flex;
   background: var(--white-2);

@@ -21,7 +21,7 @@
   margin: 0 0 16px;
 }
 
-/* ── Filter row: search + type pills + create button ── */
+/* ── Filter row ── */
 .filter-row {
   display: flex;
   gap: 10px;
@@ -98,9 +98,6 @@
   color: var(--white-1);
 }
 
-/* "All" is visually distinct (orange) from the specific-type pills (blue)
-   since it's a different kind of choice — "show everything" vs "show one
-   type" — not just another option in the same row. */
 .type-pill.pill-all.active {
   background: var(--orange-1);
   color: var(--white-1);
@@ -192,7 +189,7 @@
   position: absolute;
   top: 10px;
   right: 10px;
-  z-index: 300; /* must outrank .menu-backdrop's z-index (199) */
+  z-index: 300;
 }
 
 .kebab-btn {

@@ -44,8 +44,13 @@ public class AuthController {
         if (userOptional.isPresent() && passwordEncoder.matches(password, userOptional.get().getPassword())) {
             
             AppUser user = userOptional.get();
+
+            // School id is null for roles that aren't school-scoped (e.g. ROLE_ADMIN
+            // users may not have a school set); JwtUtil handles a null schoolId fine.
+            String schoolId = user.getSchool() != null ? user.getSchool().getId().toString() : null;
+
             // Use their email as the subject string for the token passport
-            String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+            String token = jwtUtil.generateToken(user.getEmail(), user.getRole(), schoolId, user.getName());
 
             return ResponseEntity.ok(Map.of(
                 "status", 200,

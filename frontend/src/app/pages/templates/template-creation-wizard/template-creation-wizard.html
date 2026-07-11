@@ -41,7 +41,6 @@
 
       <button class="wizard-pick-card" *ngFor="let starter of matchingStarters" (click)="pickStarter(starter)">
         <div class="wizard-pick-thumb">
-          <span class="wizard-doc-type-badge">{{ docTypeLabel(starter.docType) }}</span>
           <app-template-thumbnail
             [thumbnailUrl]="starter.thumbnailUrl"
             [template]="starter.template"

@@ -31,6 +31,10 @@ public class AppUser {
     @Column(nullable = false, length = 50)
     private String role;
 
+    // Per-user branding logo, uploaded via StorageService (S3/LocalStack).
+    @Column(name = "logo_url")
+    private String logoUrl;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -54,6 +58,9 @@ public class AppUser {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getLogoUrl() { return logoUrl; }
+    public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

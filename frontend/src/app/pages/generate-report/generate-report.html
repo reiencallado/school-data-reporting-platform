@@ -25,7 +25,7 @@
   </div>
 
 
-  <!-- ==== STEP 1 — Select Template ==== -->
+  <!-- ==== STEP 1 - Select Template ==== -->
   <ng-container *ngIf="currentStep === 1">
 
     <div class="section-card">
@@ -101,13 +101,13 @@
       Select a student type above to continue.
     </p>
     <p *ngIf="selectedType !== 'ALL' && !templatesLoading && !templatesError && filteredTemplates.length === 0" class="template-state-msg">
-      No templates yet — create one from the Templates page first.
+      No templates yet - create one from the Templates page first.
     </p>
 
   </ng-container>
 
 
-  <!-- ==== STEP 2 — Select Students ==== -->
+  <!-- ==== STEP 2 - Select Students ==== -->
   <ng-container *ngIf="currentStep === 2">
 
     <div class="context-banner">
@@ -117,7 +117,7 @@
         <polyline points="14 2 14 8 20 8"/>
       </svg>
       <strong>{{ selectedTemplate?.name }}</strong>
-      <span class="banner-sub">— selected template</span>
+      <span class="banner-sub">- selected template</span>
       <button class="banner-link" (click)="goToStep(1)">Change</button>
     </div>
 
@@ -230,7 +230,7 @@
   </ng-container>
 
 
-  <!-- ==== STEP 3 — Review & Generate ==== -->
+  <!-- ==== STEP 3 - Review & Generate ==== -->
   <ng-container *ngIf="currentStep === 3">
     <div class="confirm-grid">
 
@@ -238,7 +238,7 @@
 
         <div class="info-notice" *ngIf="autoFilledFieldLabels.length > 0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-          <p>This template auto-fills <strong>{{ autoFilledFieldLabels.join(', ') }}</strong> from each student's record — no need to enter these below.</p>
+          <p>This template auto-fills <strong>{{ autoFilledFieldLabels.join(', ') }}</strong> from each student's record - no need to enter these below.</p>
         </div>
 
         <div class="section-card" *ngIf="manualReportFields.length > 0 || customFieldKeys.length > 0">
@@ -287,7 +287,7 @@
 
         <div class="info-notice" *ngIf="manualReportFields.length === 0 && customFieldKeys.length === 0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-          <p>Everything for this template is auto-filled from student records — you're ready to generate.</p>
+          <p>Everything for this template is auto-filled from student records - you're ready to generate.</p>
         </div>
 
         <div class="section-card">
@@ -331,7 +331,7 @@
                [src]="selectedTemplate!.thumbnailUrl"
                [alt]="selectedTemplate!.name + ' preview'" />
           <p *ngIf="!selectedTemplate?.thumbnailUrl" class="template-state-msg">
-            No preview available — this template hasn't been saved yet.
+            No preview available - this template hasn't been saved yet.
           </p>
         </div>
       </div>

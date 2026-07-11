@@ -43,13 +43,6 @@ export class ResolutionModalComponent implements OnChanges {
   @Input() initialCustomWidth?: number;
   @Input() initialCustomHeight?: number;
   @Input() initialSchemas?: any[][];
-
-  // NEW — optional extra keys merged into the router state on create-mode
-  // confirm. Added so callers like the template creation wizard can pass
-  // along things (e.g. studentType) that need to travel with the fresh
-  // template into the editor, without this component needing to know
-  // what they mean. Fully backward-compatible: undefined by default,
-  // existing callers that don't pass it see zero behavior change.
   @Input() extraState?: Record<string, any>;
 
   selectedSize: PaperSize   = 'A4';

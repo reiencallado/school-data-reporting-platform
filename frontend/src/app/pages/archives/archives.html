@@ -42,7 +42,7 @@
                 <strong>{{ result.report.student.name }}</strong>
                 <span class="student-meta"> · {{ result.report.student.studentId }} · {{ result.report.student.subtitle }}</span>
               </div>
-              <div class="student-meta">{{ result.report.template }} — {{ result.batch.name }}</div>
+              <div class="student-meta">{{ result.report.template }} - {{ result.batch.name }}</div>
             </div>
           </div>
         </div>
@@ -231,7 +231,7 @@
                 </th>
               </ng-container>
               
-              <!-- K12: Grade, Name, Section, Strand — then Status right before Action -->
+              <!-- K12: Grade, Name, Section, Strand -->
               <ng-container *ngIf="batchStudentType(batch) === 'K12'">
                 <th>
                   <button class="col-sort-btn" (click)="sort('student.grade')" aria-label="Sort by Grade">

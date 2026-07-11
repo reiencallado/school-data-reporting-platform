@@ -1,7 +1,8 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { STARTER_TEMPLATES, StarterTemplate } from '../../../pages/starter-templates.manifest';
-import { TemplateCard } from '../../../pages/templates/templates';
+import { STARTER_TEMPLATES, StarterTemplate } from '../../../../pages/starter-templates.manifest';
+import { TemplateCard } from '../../../../pages/templates/templates';
+import { StudentType } from '../../../../services/student.model';
 
 @Component({
   selector: 'app-create-template-modal',
@@ -12,7 +13,7 @@ import { TemplateCard } from '../../../pages/templates/templates';
 })
 export class CreateTemplateModal {
   @Input() isOpen = false;
-  @Input() recentTemplates: TemplateCard[] = []; // pass in `this.templates` from Templates component, sliced/sorted
+  @Input() recentTemplates: TemplateCard[] = [];
 
   @Output() close = new EventEmitter<void>();
   @Output() blankSelected = new EventEmitter<void>();
@@ -20,9 +21,13 @@ export class CreateTemplateModal {
   @Output() recentSelected = new EventEmitter<TemplateCard>();
 
   starterTemplates = STARTER_TEMPLATES;
-  activeCategory: 'RECENT' | 'ALL' | 'K12' | 'COLLEGE' | 'ADMISSIONS' = 'ALL';
+  activeCategory: 'RECENT' | 'ALL' | StudentType = 'ALL';
 
-  templatesForCategory(category: string): StarterTemplate[] {
+  templatesForCategory(category: StudentType): StarterTemplate[] {
     return this.starterTemplates.filter(t => t.category === category);
+  }
+
+  onBackdropClick(): void {
+    this.close.emit();
   }
 }

@@ -1,4 +1,3 @@
-// generate-report.ts
 import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +10,7 @@ import { Template } from '@pdfme/common';
 // ────────────────────────────────────────────────────────────────────
 // Used ONLY to bundle multiple generated PDFs into a single .zip for
 // client-side download in generate() below. This is a temporary,
-// synchronous, client-side implementation — see the TODO on generate()
+// synchronous, client-side implementation - see the TODO on generate()
 // for the planned move to an async backend job.
 //
 // When report generation moves server-side, the zipping will very
@@ -48,8 +47,8 @@ export interface ReportTemplate {
   name:          string;
   lastUsed:      string;
   thumbnailUrl?: string;
-  configuration: string;   // raw pdfme JSON — needed to actually generate PDFs
-  studentType?:  StudentType;   // ⚠️ mirror of templates.ts — not yet returned by backend for all rows
+  configuration: string;   // raw pdfme JSON - needed to actually generate PDFs
+  studentType?:  StudentType;   // ⚠️ mirror of templates.ts - not yet returned by backend for all rows
 }
 
 export interface ReportDetails {
@@ -70,11 +69,6 @@ export interface ReportDetails {
 })
 export class GenerateReport implements OnInit {
 
-  // 3 steps instead of 4 — "Fill report details" is no longer a standalone
-  // step. If a template needs manual input, those fields now live directly
-  // inside Review & Generate instead of forcing a click through a step that
-  // might render completely empty (templates using only auto-filled student
-  // data have nothing to show on a dedicated fill-in step).
   steps = ['Select template', 'Select students', 'Review & generate'];
   currentStep = 1;
 
@@ -130,16 +124,9 @@ export class GenerateReport implements OnInit {
   }
 
   // ── Step 2: Students ─────────────────────────────────────
-  // Mirrors the Students List page's filtering system (type tabs, search
-  // field scope, status filter, sortable columns) so both pages behave
-  // identically. Filter/sort state below drives `filteredStudents`, a
-  // getter re-evaluated on each change cycle — no manual recompute calls
-  // scattered through every handler.
   studentSearch = '';
-  // ── Shared between Step 1 (template type) and Step 2 (student list) ──
-  // A specific type must be chosen in Step 1 before proceeding — templates
-  // and the student roster are both scoped to it, so there's no separate
-  // type toggle in Step 2 anymore.
+  // Shared between Step 1 and Step 2 
+  // A specific type must be chosen in Step 1 before proceeding
   selectedType: StudentTypeFilter = 'ALL';
   selectedStudents = new Set<string>();
 
@@ -319,9 +306,7 @@ export class GenerateReport implements OnInit {
     return Array.from({ length: this.totalPages }, (_, i) => i + 1);
   }
 
-  // Scoped to the currently filtered list, not the entire dataset — so
-  // "select all" only ever touches what's actually visible/searchable
-  // right now, matching what the checkbox and the count communicate.
+  // Scoped to the currently filtered list, not the entire dataset
   get allSelected(): boolean {
     const list = this.filteredStudents;
     return list.length > 0 && list.every(s => this.selectedStudents.has(s.id));
@@ -336,8 +321,7 @@ export class GenerateReport implements OnInit {
     this.selectedStudents = new Set(this.selectedStudents);
   }
 
-  // Single toggle used by both the row click and the checkbox itself — no
-  // event/checked-state plumbing needed, it just flips membership.
+  // Single toggle used by both the row click and the checkbox itself
   toggleStudent(id: string): void {
     if (this.selectedStudents.has(id)) this.selectedStudents.delete(id);
     else this.selectedStudents.add(id);
@@ -349,7 +333,7 @@ export class GenerateReport implements OnInit {
     this.currentPage = page;
   }
 
-  // ── Step 3: Review & Generate (was step 3 "Fill report details" + step 4) ──
+  // ── Step 3: Review & Generate ──
   reportDetails: ReportDetails = {
     // TODO: pull academicYear/term from a school-settings endpoint once
     // one exists, instead of a hardcoded default that goes stale yearly.
@@ -440,8 +424,7 @@ export class GenerateReport implements OnInit {
     return `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
   }
 
-  // Report Summary rows — only includes fields that actually have a value,
-  // so a template with no manual fields doesn't render a wall of dashes.
+  // Report Summary rows - only includes fields that actually have a value
   get summaryRows(): { key: string; val: string; accent?: boolean }[] {
     const rows: { key: string; val: string; accent?: boolean }[] = [];
     if (this.selectedTemplate) rows.push({ key: 'Template', val: this.selectedTemplate.name });
@@ -455,9 +438,7 @@ export class GenerateReport implements OnInit {
     return rows;
   }
 
-  // Composition breakdown of the selected batch (e.g. "Grade 11 - STEM A · 20")
-  // — lets whoever's generating sanity-check they picked the right group
-  // before committing, without scrolling back through step 2.
+  // Composition breakdown of the selected batch
   get selectionBreakdown(): { label: string; count: number }[] {
     const selected = this.allStudents.filter(s => this.selectedStudents.has(s.id));
     const counts = new Map<string, number>();
@@ -579,7 +560,7 @@ export class GenerateReport implements OnInit {
    * Synchronous, client-side, one-shot generation: builds one PDF per
    * selected student and bundles them into a single zip for download.
    *
-   * TODO (future): move this to a backend job — POST the template id,
+   * TODO (future): move this to a backend job - POST the template id,
    * student ids, and report details to a /api/reports/generate endpoint,
    * get back a job id immediately, and let the job show up as a
    * "PROCESSING" row in Report Archives that flips to "DONE" with a
@@ -604,7 +585,7 @@ export class GenerateReport implements OnInit {
         throw new Error('This template\u2019s layout data is corrupted and can\u2019t be used to generate reports.');
       }
 
-      // JSZip usage — see the large comment at the top of this file if
+      // JSZip usage - see the large comment at the top of this file if
       // this dependency is being removed/replaced.
       const zip = new JSZip();
 
