@@ -1,0 +1,2 @@
+ALTER TABLE admission_students
+ADD COLUMN school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE;

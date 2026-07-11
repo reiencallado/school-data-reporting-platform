@@ -22,10 +22,25 @@ public class JwtUtil {
         return this.secretKey;
     }
 
+    /**
+     * Overload kept for backward compatibility with any existing callers
+     * that don't have a school context (e.g. a global ADMIN with no school).
+     */
     public String generateToken(String username, String role) {
+        return generateToken(username, role, null);
+    }
+
+    /**
+     * @param schoolId the AppUser's associated school id, used for
+     *                 school-scoped role enforcement (ROLE_K12, ROLE_COLLEGE,
+     *                 ROLE_ADMISSIONS). Pass null for roles that aren't
+     *                 school-scoped (e.g. ROLE_ADMIN).
+     */
+    public String generateToken(String username, String role, String schoolId) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
-        
+        claims.put("schoolId", schoolId);
+
         // ISOLATE TENANT METADATA
         if (role.contains("SCHOOL_ADMIN")) {
             claims.put("tenantId", "school-cluster-alpha");
