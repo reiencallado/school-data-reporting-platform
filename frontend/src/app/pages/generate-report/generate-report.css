@@ -1,7 +1,3 @@
-/* ============================================================
-   GENERATE REPORT — 4-step wizard
-   ============================================================ */
-
 .generate-report-container {
   display: flex;
   flex-direction: column;
@@ -146,6 +142,7 @@
 .dropdown-btn {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   height: 40px;
   padding: 0 16px;
@@ -158,6 +155,7 @@
   white-space: nowrap;
   user-select: none;
   transition: background 0.15s ease;
+  min-width: 140px;
 }
 
 .dropdown-btn:hover {
@@ -181,12 +179,15 @@
 
 .template-card {
   background: var(--white-1);
+  min-height: 340px;
   border: 2px solid var(--gray-4);
   border-radius: var(--radius-lg);
   cursor: pointer;
   overflow: hidden;
   position: relative;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .template-card:hover {
@@ -220,7 +221,9 @@
   padding: 12px 12px 8px;
   background: var(--white-1);
   border-bottom: 1px solid var(--gray-4);
-  min-height: 200px;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .doc-header-bar {
@@ -294,8 +297,8 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  flex-shrink: 0;
 }
-
 .template-name {
   font-size: 13px;
   font-weight: 700;
@@ -906,4 +909,90 @@
   height: 100%;
   object-fit: cover;
   border-radius: var(--radius-md);
+}
+
+.checkbox-dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-checkbox-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: var(--white-1);
+  border: 1px solid var(--gray-4);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 1010;
+  max-height: 240px;
+  overflow-y: auto;
+  animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--gray-4);
+}
+
+.dropdown-panel-header span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue-1);
+}
+
+.dropdown-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--blue-3);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.dropdown-clear-btn:hover {
+  background: var(--blue-4);
+}
+
+.checkbox-option-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--blue-1);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.checkbox-option-label:hover {
+  background-color: var(--blue-4);
+}
+
+.checkbox-option-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--white-1);
+  cursor: pointer;
+  background-color: var(--blue-3);
+  border-color: var(--blue-3);
 }

@@ -45,7 +45,7 @@
 .search-input::placeholder { color: var(--gray-3); }
 .search-input:focus { border-color: var(--blue-3); }
 
-/* --- Buttons at top level --- */
+/* top buttons */
 .btn-primary {
   padding: 10px 24px;
   min-width: 140px;
@@ -64,7 +64,7 @@
   background: var(--blue-2); 
 }
 
-/* --- Dropdown buttons --- */
+/* dropdown buttons */
 .dropdown-btn {
   display: flex;
   align-items: center;
@@ -175,7 +175,7 @@
   border-color: var(--blue-3);
 }
 
-/* --- Role cards --- */
+/* role cards */
 .role-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -230,7 +230,7 @@
   list-style: disc;
 }
 
-/* --- Users table --- */
+/* users table */
 .section-card {
   background: var(--white-1);
   border: 1px solid var(--gray-4);
@@ -378,7 +378,7 @@
   background: var(--blue-4);
 }
 
-/* --- Modal styling --- */
+/* modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -485,7 +485,7 @@
   margin: 0;
 }
 
-/* --- Responsive --- */
+/* responsive */
 @media (max-width: 768px) {
   .filter-row {
     flex-direction: column;

@@ -127,23 +127,65 @@
       <div class="filter-row">
         <input class="search-input" type="text" placeholder="Search students..."
                [(ngModel)]="studentSearch" />
-        <div class="dropdown-btn">Grade Level
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
+
+        <div class="checkbox-dropdown-wrapper" (clickOutside)="closeDropdown('grade')">
+          <div class="dropdown-btn" (click)="toggleDropdown('grade', $event)">
+            {{ getFilterLabel('grade', 'Grade Level') }}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['grade']" (click)="onCheckboxClick($event)">
+            <div class="dropdown-panel-header">
+              <span>Grade Level</span>
+              <button class="dropdown-clear-btn" (click)="clearStudentFilter('grade')">Clear</button>
+            </div>
+            <label *ngFor="let option of gradeLevelOptions" class="checkbox-option-label">
+              <input type="checkbox" [checked]="selectedGradeLevels.has(option)" (change)="onFilterCheckboxToggle('grade', option)">
+              <span>{{ option }}</span>
+            </label>
+          </div>
         </div>
-        <div class="dropdown-btn">Strand
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
+
+        <div class="checkbox-dropdown-wrapper" (clickOutside)="closeDropdown('strand')">
+          <div class="dropdown-btn" (click)="toggleDropdown('strand', $event)">
+            {{ getFilterLabel('strand', 'Strand') }}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['strand']" (click)="onCheckboxClick($event)">
+            <div class="dropdown-panel-header">
+              <span>Strand</span>
+              <button class="dropdown-clear-btn" (click)="clearStudentFilter('strand')">Clear</button>
+            </div>
+            <label *ngFor="let option of strandOptions" class="checkbox-option-label">
+              <input type="checkbox" [checked]="selectedStrands.has(option)" (change)="onFilterCheckboxToggle('strand', option)">
+              <span>{{ option }}</span>
+            </label>
+          </div>
         </div>
-        <div class="dropdown-btn">Section
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
+
+        <div class="checkbox-dropdown-wrapper" (clickOutside)="closeDropdown('section')">
+          <div class="dropdown-btn" (click)="toggleDropdown('section', $event)">
+            {{ getFilterLabel('section', 'Section') }}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['section']" (click)="onCheckboxClick($event)">
+            <div class="dropdown-panel-header">
+              <span>Section</span>
+              <button class="dropdown-clear-btn" (click)="clearStudentFilter('section')">Clear</button>
+            </div>
+            <label *ngFor="let option of sectionOptions" class="checkbox-option-label">
+              <input type="checkbox" [checked]="selectedSections.has(option)" (change)="onFilterCheckboxToggle('section', option)">
+              <span>{{ option }}</span>
+            </label>
+          </div>
         </div>
       </div>
     </div>
@@ -167,8 +209,9 @@
               <th class="col-check">Generate</th>
               <th>Student ID</th>
               <th>Name</th>
-              <th>Grade Level</th>
-              <th>Strand</th>
+              <th>Type</th>
+              <th>Grade / Year</th>
+              <th>Strand / Program</th>
               <th>Section</th>
               <th>Status</th>
             </tr>
@@ -176,18 +219,16 @@
           <tbody>
             <tr *ngFor="let s of pagedStudents" [class.row-selected]="selectedStudents.has(s.id)">
               <td class="col-check">
-                <input type="checkbox"
-                       [checked]="selectedStudents.has(s.id)"
-                       (change)="toggleStudent(s.id, $event)" />
+                <input type="checkbox" [checked]="selectedStudents.has(s.id)" (change)="toggleStudent(s.id, $event)" />
               </td>
-              <td class="mono muted">{{ s.id }}</td>
+              <td class="mono muted">{{ s.studentId }}</td>
               <td>{{ s.name }}</td>
-              <td>{{ s.gradeLevel }}</td>
-              <td>{{ s.strand }}</td>
-              <td>{{ s.section }}</td>
+              <td><span class="type-badge" [attr.data-type]="s.studentType">{{ s.studentType }}</span></td>
+              <td>{{ getGradeOrYear(s) }}</td>
+              <td>{{ getStrandOrProgram(s) }}</td>
+              <td>{{ getSection(s) }}</td>
               <td>
-                <span class="status-badge" [class.badge-active]="s.status === 'Active'"
-                      [class.badge-inactive]="s.status !== 'Active'">{{ s.status }}</span>
+                <span class="status-badge" [class.badge-active]="s.status === 'ACTIVE'" [class.badge-inactive]="s.status !== 'ACTIVE'">{{ s.status }}</span>
               </td>
             </tr>
           </tbody>
@@ -220,65 +261,77 @@
       <span class="banner-sub">{{ selectedStudents.size }} student(s) selected</span>
     </div>
 
+    <!-- Auto-filled confirmation -->
+    <div class="info-notice" *ngIf="autoFilledFieldLabels.length > 0">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 6L9 17l-5-5"/>
+      </svg>
+      <p>
+        This template auto-fills <strong>{{ autoFilledFieldLabels.join(', ') }}</strong>
+        from each student's record — no need to enter these below.
+      </p>
+    </div>
+
     <!-- Document Fields -->
-    <div class="section-card">
+    <div class="section-card" *ngIf="manualReportFields.length > 0 || customFieldKeys.length > 0">
       <h4 class="section-label">Document Fields</h4>
 
       <div class="form-grid">
 
-        <div class="form-field">
-          <label class="field-label">Academic year</label>
-          <input class="field-input" type="text" placeholder="e.g. 2025 - 2026"
-                 [(ngModel)]="reportDetails.academicYear" />
+        <div class="form-field" *ngFor="let f of manualReportFields">
+          <ng-container [ngSwitch]="f.key">
+
+            <ng-container *ngSwitchCase="'academicyear'">
+              <label class="field-label">Academic year</label>
+              <input class="field-input" type="text" placeholder="e.g. 2025 - 2026" [(ngModel)]="reportDetails.academicYear" />
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'term'">
+              <label class="field-label">Term</label>
+              <input class="field-input" type="text" placeholder="e.g. Term 1" [(ngModel)]="reportDetails.term" />
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'signatoryname'">
+              <label class="field-label">Issued by (signatory name)</label>
+              <input class="field-input" type="text" placeholder="e.g. Dr. John Dela Cruz" [(ngModel)]="reportDetails.signatoryName" />
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'signatorytitle'">
+              <label class="field-label">Signatory Title</label>
+              <input class="field-input" type="text" placeholder="e.g. Registrar" [(ngModel)]="reportDetails.signatoryTitle" />
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'purpose'">
+              <label class="field-label">Purpose</label>
+              <input class="field-input" type="text" placeholder="e.g. Employment" [(ngModel)]="reportDetails.purpose" />
+            </ng-container>
+
+            <ng-container *ngSwitchCase="'remarks'">
+              <label class="field-label">Special notes / remarks <span class="optional">(optional)</span></label>
+              <textarea class="field-input field-textarea" rows="3"
+                        placeholder="e.g. This diploma is only valid for 30 days from date of issue."
+                        [(ngModel)]="reportDetails.remarks"></textarea>
+            </ng-container>
+
+          </ng-container>
         </div>
 
-        <div class="form-field">
-          <label class="field-label">Term</label>
-          <input class="field-input" type="text" placeholder="e.g. Term 1"
-                 [(ngModel)]="reportDetails.term" />
-        </div>
-
-        <!-- Date of issuance — split DD / MM / YYYY -->
-        <div class="form-field">
-          <label class="field-label">Date of issuance</label>
-          <div class="date-input-row">
-            <input class="field-input date-part" type="text" placeholder="DD" maxlength="2"
-                   [(ngModel)]="reportDetails.issuanceDay" />
-            <input class="field-input date-part" type="text" placeholder="MM" maxlength="2"
-                   [(ngModel)]="reportDetails.issuanceMonth" />
-            <input class="field-input date-part wide" type="text" placeholder="YYYY" maxlength="4"
-                   [(ngModel)]="reportDetails.issuanceYear" />
-          </div>
-        </div>
-
-        <div class="form-field">
-          <label class="field-label">Issued by (signatory name)</label>
-          <input class="field-input" type="text" placeholder="e.g. Dr. John Dela Cruz"
-                 [(ngModel)]="reportDetails.signatoryName" />
-        </div>
-
-        <div class="form-field">
-          <label class="field-label">Signatory Title</label>
-          <input class="field-input" type="text" placeholder="e.g. Registrar"
-                 [(ngModel)]="reportDetails.signatoryTitle" />
-        </div>
-
-        <div class="form-field">
-          <label class="field-label">Purpose</label>
-          <input class="field-input" type="text" placeholder="e.g. Employment"
-                 [(ngModel)]="reportDetails.purpose" />
-        </div>
-
-        <!-- Full-width remarks -->
-        <div class="form-field full-width">
-          <label class="field-label">Special notes / remarks <span class="optional">(optional)</span></label>
-          <textarea class="field-input field-textarea" rows="3"
-                    placeholder="e.g. This diploma is only valid for 30 days from date of issue."
-                    [(ngModel)]="reportDetails.remarks"></textarea>
+        <!-- Custom/unrecognized template fields — one value applied to the
+             whole batch (not per-student). -->
+        <div class="form-field" *ngFor="let key of customFieldKeys">
+          <label class="field-label">{{ humanizeKey(key) }}</label>
+          <input class="field-input" type="text" [placeholder]="'Enter ' + humanizeKey(key).toLowerCase()"
+                 [(ngModel)]="customFieldValues[key]" />
+          <span class="optional">This value will be the same for all selected students.</span>
         </div>
 
       </div>
     </div>
+
+    <p *ngIf="manualReportFields.length === 0 && customFieldKeys.length === 0" class="template-state-msg">
+      This template only uses auto-filled student fields — nothing more to enter here.
+    </p>
 
   </ng-container>
 
@@ -307,9 +360,7 @@
             </div>
             <div class="summary-row">
               <span class="summary-key">Date of issuance</span>
-              <span class="summary-val">
-                {{ reportDetails.issuanceDay }}/{{ reportDetails.issuanceMonth }}/{{ reportDetails.issuanceYear }}
-              </span>
+              <span class="summary-val">{{ todayFormatted }}</span>
             </div>
             <div class="summary-row">
               <span class="summary-key">Issued by</span>
@@ -367,7 +418,7 @@
 
 
   <!-- ==== STICKY FOOTER NAV ==== -->
-  <div class="step-footer">
+<div class="step-footer">
     <div class="footer-left">
       <span *ngIf="currentStep === 1 && selectedTemplate" class="footer-status">
         1 template selected
@@ -375,9 +426,15 @@
       <span *ngIf="currentStep === 2" class="footer-status">
         {{ selectedStudents.size }} student(s) selected
       </span>
+      <span *ngIf="currentStep === 4 && generating" class="footer-status">
+        Generating {{ generateProgress.done }} of {{ generateProgress.total }}…
+      </span>
+      <span *ngIf="currentStep === 4 && generateError" class="footer-status error">
+        {{ generateError }}
+      </span>
     </div>
     <div class="footer-actions">
-      <button class="btn-secondary" (click)="onBack()">
+      <button class="btn-secondary" (click)="onBack()" [disabled]="generating">
         {{ currentStep === 1 ? 'Cancel' : 'Back' }}
       </button>
       <button class="btn-primary" (click)="onNext()" [disabled]="!canProceed()">
@@ -385,7 +442,7 @@
           <ng-container *ngSwitchCase="1">Next: Select students →</ng-container>
           <ng-container *ngSwitchCase="2">Next: Set parameters →</ng-container>
           <ng-container *ngSwitchCase="3">Next: Confirm &amp; submit →</ng-container>
-          <ng-container *ngSwitchCase="4">Generate</ng-container>
+          <ng-container *ngSwitchCase="4">{{ generating ? 'Generating…' : 'Generate' }}</ng-container>
         </ng-container>
       </button>
     </div>

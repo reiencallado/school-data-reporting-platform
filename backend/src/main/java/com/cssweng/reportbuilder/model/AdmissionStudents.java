@@ -6,9 +6,12 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -18,6 +21,10 @@ public class AdmissionStudents {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "school_id", nullable = false)
+    private School school;
 
     @Column(name = "first_name", nullable = false, length = 255)
     private String firstName;
@@ -52,6 +59,9 @@ public class AdmissionStudents {
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
+    public School getSchool() { return school; }
+    public void setSchool(School school) { this.school = school; }
+
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
 
@@ -79,18 +89,3 @@ public class AdmissionStudents {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
-
-/**
- * CREATE TABLE admission_students (
-    id UUID PRIMARY KEY,
-    first_name VARCHAR(255) NOT NULL,
-    last_name VARCHAR(255) NOT NULL,
-    last_school_attended VARCHAR(255) NOT NULL,
-    highest_grade_completed VARCHAR(50) NOT NULL,
-    gpa DECIMAL(3, 2) NOT NULL,
-    grade_level_applied VARCHAR(50),
-    course_applied VARCHAR(255),
-    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-)
- */

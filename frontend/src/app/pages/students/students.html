@@ -3,79 +3,32 @@
   <div class="section-card">
     <h4 class="section-label">Search Filters</h4>
     <div class="filter-row">
-      <input 
-        type="text" 
-        placeholder="Search students..." 
+      <input
+        type="text"
+        placeholder="Search students..."
         class="search-input"
         (input)="onSearchChange($event)" />
-        
-      <!-- Grade Dropdown Trigger -->
-      <div class="checkbox-dropdown-wrapper" (clickOutside)="closeDropdown('grade')">
-        <div class="dropdown-btn" (click)="toggleDropdown('grade', $event)">
-          {{ getDropdownLabel('grade', 'Grade') }}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </div>
-        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['grade']" (click)="onCheckboxClick($event)">
-          <div class="dropdown-panel-header">
-            <span>Grade filters</span>
-            <button class="dropdown-clear-btn" *ngIf="selectedGrades.size > 0" (click)="clearFilter('grade')">Clear all</button>
-          </div>
-          <label *ngFor="let option of gradeOptions" class="checkbox-option-label">
-            <input 
-              type="checkbox" 
-              [checked]="selectedGrades.has(option)"
-              (change)="onCheckboxToggle('grade', option)">
-            <span>Grade {{ option }}</span>
-          </label>
-        </div>
-      </div>
 
-      <!-- Strand Dropdown Trigger -->
-      <div class="checkbox-dropdown-wrapper" (clickOutside)="closeDropdown('strand')">
-        <div class="dropdown-btn" (click)="toggleDropdown('strand', $event)">
-          {{ getDropdownLabel('strand', 'Strand') }}
+      <div class="checkbox-dropdown-wrapper" (clickOutside)="closeDropdown('type')">
+        <div class="dropdown-btn" (click)="toggleDropdown('type', $event)">
+          {{ getDropdownLabel('type', 'Type') }}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
         </div>
-        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['strand']" (click)="onCheckboxClick($event)">
+        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['type']" (click)="onCheckboxClick($event)">
           <div class="dropdown-panel-header">
-            <span>Strand filters</span>
-            <button class="dropdown-clear-btn" *ngIf="selectedStrands.size > 0" (click)="clearFilter('strand')">Clear all</button>
+            <span>Type</span>
+            <button class="dropdown-clear-btn" (click)="clearFilter('type')">Clear</button>
           </div>
-          <label *ngFor="let option of strandOptions" class="checkbox-option-label">
-            <input 
-              type="checkbox" 
-              [checked]="selectedStrands.has(option)"
-              (change)="onCheckboxToggle('strand', option)">
+          <label *ngFor="let option of typeOptions" class="checkbox-option-label">
+            <input type="checkbox" [checked]="selectedTypes.has(option)" (change)="onCheckboxToggle('type', option)">
             <span>{{ option }}</span>
           </label>
         </div>
       </div>
 
-       <!-- Section Dropdown Trigger -->
-      <div class="checkbox-dropdown-wrapper" (clickOutside)="closeDropdown('section')">
-      <div class="dropdown-btn" (click)="toggleDropdown('section', $event)">
-        {{ getDropdownLabel('section', 'Section') }}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['section']" (click)="onCheckboxClick($event)">
-        <div class="dropdown-panel-header">
-          <span>Section filters</span>
-          <button class="dropdown-clear-btn" *ngIf="selectedSections.size > 0" (click)="clearFilter('section')">Clear all</button>
-        </div>
-        <label *ngFor="let option of sectionOptions" class="checkbox-option-label">
-          <input type="checkbox" [checked]="selectedSections.has(option)" (change)="onCheckboxToggle('section', option)">
-          <span>{{ option }}</span>
-        </label>
-      </div>
-    </div>
-
-      <!-- Status Dropdown Trigger -->
       <div class="checkbox-dropdown-wrapper" (clickOutside)="closeDropdown('status')">
         <div class="dropdown-btn" (click)="toggleDropdown('status', $event)">
           {{ getDropdownLabel('status', 'Status') }}
@@ -86,14 +39,11 @@
         </div>
         <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['status']" (click)="onCheckboxClick($event)">
           <div class="dropdown-panel-header">
-            <span>Status filters</span>
-            <button class="dropdown-clear-btn" *ngIf="selectedStatuses.size > 0" (click)="clearFilter('status')">Clear all</button>
+            <span>Status</span>
+            <button class="dropdown-clear-btn" (click)="clearFilter('status')">Clear</button>
           </div>
           <label *ngFor="let option of statusOptions" class="checkbox-option-label">
-            <input 
-              type="checkbox" 
-              [checked]="selectedStatuses.has(option)"
-              (change)="onCheckboxToggle('status', option)">
+            <input type="checkbox" [checked]="selectedStatuses.has(option)" (change)="onCheckboxToggle('status', option)">
             <span>{{ option }}</span>
           </label>
         </div>
@@ -105,63 +55,45 @@
 <div class="section-card">
   <h4 class="section-label">Recent Students</h4>
 
-  <div class="table-responsive-scroll">
-    <table class="students-data-grid">
+  <p *ngIf="loading" class="template-state-msg">Loading students…</p>
+  <p *ngIf="error" class="template-state-msg error">{{ error }}</p>
+
+  <div class="table-responsive-scroll" *ngIf="!loading && !error">
+    <table class="dashboard-table">
       <thead>
         <tr>
           <th>Student ID</th>
           <th>Name</th>
-          <th>Grade Level</th>
-          <th>Strand</th>
+          <th>Type</th>
+          <th>Grade / Year</th>
+          <th>Strand / Program</th>
           <th>Section</th>
-          <th class="text-center">Status</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let student of pagedStudents">
-          <td class="id-cell-text">{{ student.studentId }}</td>
-          <td class="student-name-text">{{ student.name }}</td>
-          <td>{{ student.gradeLevel }}</td>
-          <td class="badge-strand-text">{{ student.strand }}</td>
-          <td>{{ student.section }}</td>
-          <td class="text-center">
-            <span class="status-pill-badge" [class.status-inactive]="student.status === 'Inactive'">
+          <td class="mono muted">{{ student.studentId }}</td>
+          <td>{{ student.name }}</td>
+          <td><span class="type-badge" [attr.data-type]="student.studentType">{{ student.studentType }}</span></td>
+          <td>{{ getGradeOrYear(student) }}</td>
+          <td>{{ getStrandOrProgram(student) }}</td>
+          <td>{{ getSection(student) }}</td>
+          <td>
+            <span class="status-badge" [class.badge-active]="student.status === 'ACTIVE'" [class.badge-inactive]="student.status !== 'ACTIVE'">
               {{ student.status }}
             </span>
           </td>
         </tr>
       </tbody>
     </table>
-  </div>
 
-  <!-- Pagination Footer -->
-  <nav class="pagination-footer-nav" aria-label="Roster navigation pagination">
-    <button 
-      class="pagination-step-btn" 
-      [disabled]="currentPage === 1"
-      (click)="changePage(currentPage - 1)"
-      aria-label="Previous Page">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-    </button>
-
-    <div class="pagination-pages-list">
-      <button 
-        *ngFor="let page of totalPagesArray"
-        class="page-number-btn"
-        [class.is-active-page]="page === currentPage"
-        (click)="changePage(page)">
-        {{ page }}
-      </button>
+    <div class="pagination-row">
+      <button class="page-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">&#8249;</button>
+      <button *ngFor="let page of totalPagesArray" class="page-btn" [class.active]="page === currentPage" (click)="changePage(page)">{{ page }}</button>
+      <button class="page-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">&#8250;</button>
     </div>
-
-    <button 
-      class="pagination-step-btn" 
-      [disabled]="currentPage === totalPages"
-      (click)="changePage(currentPage + 1)"
-      aria-label="Next Page">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-    </button>
-  </nav>
+  </div>
 </div>
 
 </div>
