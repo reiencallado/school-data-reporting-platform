@@ -83,7 +83,13 @@ export class GenerateReport implements OnInit {
     const q = this.templateSearch.toLowerCase();
     return this.templates.filter(t => {
       const matchesSearch = !q || t.name.toLowerCase().includes(q);
-      const matchesType = this.selectedType === 'ALL' || t.studentType === this.selectedType;
+      // TEMP: template studentType tagging is still being rolled out
+      // (backend migration + pdf-designer UI) — until that's fully in
+      // place and existing templates are retagged, show every template
+      // regardless of the selected K12/COLLEGE/ADMISSIONS filter instead
+      // of hiding untagged ones. Restore the real check
+      // (t.studentType === this.selectedType) once that's done.
+      const matchesType = true;
       return matchesSearch && matchesType;
     });
   }
@@ -492,7 +498,14 @@ export class GenerateReport implements OnInit {
   }
 
   onNext(): void {
-    if (!this.canProceed()) return;
+    // TEMP: canProceed() gate disabled per request while debugging why
+    // Step 1 wasn't advancing (it required selectedType !== 'ALL' in
+    // addition to a selected template — selecting a template via
+    // selectTemplate() alone doesn't set selectedType; that only happens
+    // through selectTemplateType()). Re-enable this guard once that flow
+    // is sorted out, otherwise users can skip required fields on later
+    // steps (e.g. Step 3's manualReportFields/customFieldKeys checks).
+    // if (!this.canProceed()) return;
     if (this.currentStep < 3) this.currentStep++;
     else this.generate();
   }
