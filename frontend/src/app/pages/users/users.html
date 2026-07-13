@@ -9,34 +9,17 @@
 
       <div class="checkbox-dropdown-wrapper">
         <div class="dropdown-btn" (click)="toggleDropdown('role', $event)">
-          {{ getLabel('role', 'Role') }}
+          {{ getLabel() }}
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['role']" (click)="onDropdownPanelClick($event)">
           <div class="dropdown-panel-header">
             <span>Role filters</span>
-            <button class="dropdown-clear-btn" *ngIf="selectedRoles.size > 0" (click)="clearFilter('role')">Clear all</button>
+            <button class="dropdown-clear-btn" *ngIf="selectedRoles.size > 0" (click)="clearFilter()">Clear all</button>
           </div>
           <label *ngFor="let role of roleOptions" class="checkbox-option-label">
-            <input type="checkbox" [checked]="selectedRoles.has(role)" (change)="toggleFilter('role', role)" />
-            <span>{{ role }}</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="checkbox-dropdown-wrapper">
-        <div class="dropdown-btn" (click)="toggleDropdown('status', $event)">
-          {{ getLabel('status', 'Status') }}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['status']" (click)="onDropdownPanelClick($event)">
-          <div class="dropdown-panel-header">
-            <span>Status filters</span>
-            <button class="dropdown-clear-btn" *ngIf="selectedStatuses.size > 0" (click)="clearFilter('status')">Clear all</button>
-          </div>
-          <label *ngFor="let status of statusOptions" class="checkbox-option-label">
-            <input type="checkbox" [checked]="selectedStatuses.has(status)" (change)="toggleFilter('status', status)" />
-            <span>{{ status }}</span>
+            <input type="checkbox" [checked]="selectedRoles.has(role)" (change)="toggleFilter(role)" />
+            <span>{{ roleLabel(role) }}</span>
           </label>
         </div>
       </div>
@@ -45,69 +28,19 @@
     </div>
   </div>
 
-  <section class="role-grid">
-    <article class="role-card">
-      <div class="role-header">
-        <span class="role-badge role-admin">Admin</span>
-        <span class="role-count">1</span>
-      </div>
-      <p>Full access to all reports, templates, settings, and audit logs.</p>
-      <ul>
-        <li>Manage users</li>
-        <li>System settings</li>
-        <li>View all logs</li>
-      </ul>
-    </article>
-
-    <article class="role-card">
-      <div class="role-header">
-        <span class="role-badge role-registrar">Registrar</span>
-        <span class="role-count">2</span>
-      </div>
-      <p>Generate reports, manage templates, and review archives.</p>
-      <ul>
-        <li>Create and export reports</li>
-        <li>Edit templates</li>
-        <li>View archive history</li>
-      </ul>
-    </article>
-
-    <article class="role-card">
-      <div class="role-header">
-        <span class="role-badge role-designer">Designer</span>
-        <span class="role-count">3</span>
-      </div>
-      <p>Build and update report templates with dedicated design access.</p>
-      <ul>
-        <li>Create template layouts</li>
-        <li>Edit template fields</li>
-        <li>No report generation</li>
-      </ul>
-    </article>
-
-    <article class="role-card">
-      <div class="role-header">
-        <span class="role-badge role-viewer">Viewer</span>
-        <span class="role-count">4</span>
-      </div>
-      <p>View and download reports without administrative permissions.</p>
-      <ul>
-        <li>Access report archives</li>
-        <li>Download files</li>
-        <li>No template or user access</li>
-      </ul>
-    </article>
-  </section>
-
   <div class="section-card">
-    <div class="table-responsive-scroll">
+    <p class="text-muted" *ngIf="users.length === 0">
+      No users to display yet. The backend doesn't have a "list users" endpoint yet, so newly created
+      users only appear here for this session. Use "+ Add User" to create one.
+    </p>
+
+    <div class="table-responsive-scroll" *ngIf="users.length > 0">
       <table class="users-data-grid">
         <thead>
           <tr>
             <th>User</th>
             <th>Role</th>
-            <th>Status</th>
-            <th>Last active</th>
+            <th>School</th>
             <th class="actions-col">Actions</th>
           </tr>
         </thead>
@@ -115,26 +48,23 @@
           <tr *ngFor="let user of filtered">
             <td>
               <div class="user-cell">
-                <div class="avatar">{{ user.name.split(' ').map(p => p[0]).join('') }}</div>
+                <div class="avatar">{{ initials(user.name) }}</div>
                 <div>
                   <div class="user-name">{{ user.name }}</div>
                   <div class="user-email">{{ user.email }}</div>
                 </div>
               </div>
             </td>
-            <td><span class="role-badge" [class]="'role-' + user.role.toLowerCase()">{{ user.role }}</span></td>
-            <td><span class="status-badge" [class]="user.status === 'Active' ? 'active' : 'inactive'">{{ user.status }}</span></td>
-            <td>{{ user.lastActive }}</td>
+            <td><span class="role-badge" [ngClass]="roleBadgeClass(user.role)">{{ roleLabel(user.role) }}</span></td>
+            <td>{{ user.schoolName || '-' }}</td>
             <td class="actions-col">
               <button class="btn-action" (click)="openEditModal(user)">Edit</button>
-              <button class="btn-action btn-danger" (click)="openDeactivateModal(user)">{{ user.status === 'Active' ? 'Deactivate' : 'Activate' }}</button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
-
 
   <div class="modal-overlay" *ngIf="modalState !== 'closed'" (click)="closeModal()"></div>
 
@@ -152,35 +82,27 @@
         <label>Email</label>
         <input type="email" [(ngModel)]="formData.email" placeholder="Email Address">
       </div>
+      <div class="form-group" *ngIf="modalState === 'add'">
+        <label>Temporary Password</label>
+        <input type="password" [(ngModel)]="formData.password" placeholder="Temporary password">
+      </div>
       <div class="form-group">
         <label>Role</label>
         <select [(ngModel)]="formData.role">
-          <option value="">Select Role</option>
-          <option value="Admin">Admin</option>
-          <option value="Registrar">Registrar</option>
-          <option value="Designer">Designer</option>
-          <option value="Viewer">Viewer</option>
+          <option *ngFor="let role of roleOptions" [value]="role">{{ roleLabel(role) }}</option>
         </select>
       </div>
+      <div class="form-group">
+        <label>School</label>
+        <select [(ngModel)]="formData.schoolId">
+          <option *ngFor="let school of schools" [value]="school.id">{{ school.name }}</option>
+        </select>
+      </div>
+      <p class="text-muted" *ngIf="saveError">{{ saveError }}</p>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" (click)="closeModal()">Cancel</button>
       <button class="btn-primary" (click)="saveUser()">{{ modalState === 'add' ? 'Add User' : 'Save Changes' }}</button>
-    </div>
-  </div>
-
-  <div class="modal-dialog" *ngIf="modalState === 'deactivate'">
-    <div class="modal-header">
-      <h4>{{ selectedUser?.status === 'Active' ? 'Deactivate' : 'Activate' }} User</h4>
-      <button class="modal-close" (click)="closeModal()">×</button>
-    </div>
-    <div class="modal-body">
-      <p>Are you sure you want to {{ selectedUser?.status === 'Active' ? 'deactivate' : 'activate' }} <strong>{{ selectedUser?.name }}</strong>?</p>
-      <p class="text-muted">This action can be reversed at any time.</p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" (click)="closeModal()">Cancel</button>
-      <button class="btn-primary" (click)="toggleStatus()">{{ selectedUser?.status === 'Active' ? 'Deactivate' : 'Activate' }}</button>
     </div>
   </div>
 

@@ -1,9 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet, ActivatedRoute, NavigationEnd } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
-// Human-readable labels for the raw ROLE_* strings stored in the JWT.
 const ROLE_LABELS: Record<string, string> = {
   ROLE_ADMIN: 'Admin',
   ROLE_K12: 'K-12 Staff',
@@ -36,15 +35,22 @@ export class Layout implements OnInit {
   schoolName = 'SCHOOL';
   logoUrl: string | null = null;
   logoUploadError: string | null = null;
+  logoFailed = false;
+
+  // ── Role checks ──────────────────────────────────────────
+  get currentRole(): string | null {
+    return this.authService.getCurrentRole();
+  }
+
+  get canManageSchool(): boolean {
+    return this.isAdmin;
+  }
 
   constructor(private router: Router, private authService: AuthService) {}
 
   // ── Lifecycle ────────────────────────────────────────────
   ngOnInit(): void {
-    // Fast initial paint from the JWT (no network wait)...
     this.loadUserProfileFromToken();
-    // ...then refresh with the real profile, which has schoolName/logoUrl
-    // that aren't (and shouldn't be) embedded in the JWT itself.
     this.loadFullProfile();
     this.restoreSidebarPreference();
   }
@@ -55,7 +61,7 @@ export class Layout implements OnInit {
     localStorage.setItem('sidebarCollapsed', String(this.sidebarCollapsed));
   }
 
-  // ── Auth
+  // ── Auth ─────────────────────────────────────────────────
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
@@ -72,6 +78,7 @@ export class Layout implements OnInit {
     this.authService.uploadLogo(file).subscribe({
       next: (res) => {
         this.logoUrl = res.logoUrl;
+        this.logoFailed = false;
       },
       error: (err) => {
         console.error('Failed to upload logo:', err);
@@ -79,19 +86,25 @@ export class Layout implements OnInit {
       },
     });
 
-    // Reset so selecting the same file again still fires a change event
     input.value = '';
   }
 
-  // ── Private helpers
+  onLogoError(): void {
+    this.logoFailed = true;
+  }
 
+  getInitialsPublic(name: string): string {
+    return this.getInitials(name);
+  }
+
+  // ── Private helpers ──────────────────────────────────────
   private loadUserProfileFromToken(): void {
     const name = this.authService.getCurrentName();
     const role = this.authService.getCurrentRole();
 
     this.userName    = name ?? 'User';
     this.userRole    = role ? (ROLE_LABELS[role] ?? role) : '';
-    this.userInitial = this.userName.charAt(0).toUpperCase();
+    this.userInitial = this.getInitials(this.userName);
     this.isAdmin     = this.authService.isAdmin();
   }
 
@@ -100,20 +113,27 @@ export class Layout implements OnInit {
       next: (profile) => {
         if (profile.name) {
           this.userName = profile.name;
-          this.userInitial = profile.name.charAt(0).toUpperCase();
+          this.userInitial = this.getInitials(profile.name);
         }
         if (profile.schoolName) {
           this.schoolName = profile.schoolName;
         }
         this.logoUrl = profile.logoUrl ?? null;
+        this.logoFailed = false;
       },
       error: (err) => {
-        // Non-fatal — the JWT-derived values from loadUserProfileFromToken()
-        // above are still shown, this just means school name/logo won't
-        // update this session.
         console.error('Failed to load full profile:', err);
       },
     });
+  }
+
+  private getInitials(fullName: string): string {
+    const parts = fullName.trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    const first = parts[0].charAt(0);
+    const last = parts[parts.length - 1].charAt(0);
+    return (first + last).toUpperCase();
   }
 
   private restoreSidebarPreference(): void {

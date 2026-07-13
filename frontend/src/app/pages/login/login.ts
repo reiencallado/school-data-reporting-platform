@@ -34,8 +34,15 @@ export class Login {
         // Save the JWT token to the browser's storage
         localStorage.setItem('token', response.token);
         
-        this.router.navigate(['/dashboard']);
-      },
+        // Fetch full profile before navigating so layout has data immediately
+      this.authService.getProfile().subscribe({
+        next: () => this.router.navigate(['/dashboard']),
+        error: (err) => {
+          console.error('Failed to load profile:', err);
+          this.router.navigate(['/dashboard']); // still proceed; layout will show fallback
+        }
+      });
+    },
       error: (err) => {
         // Show error pop-up if credentials don't match database
         alert('Unauthorized: Invalid email or password credentials supplied.');

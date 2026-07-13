@@ -1,15 +1,29 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
+import { AuthService } from './auth.service';
+import { map, catchError, of } from 'rxjs';
 
-export const authGuard: CanActivateFn = (route, state) => {
+export const authGuard: CanActivateFn = () => {
   const router = inject(Router);
-  
-  const token = localStorage.getItem('token');
+  const authService = inject(AuthService);
 
-  if (token) {
-    return true; 
-  } else {
+  const token = localStorage.getItem('token');
+  if (!token) {
     router.navigate(['/login']);
     return false;
   }
+
+  // Already loaded this session (e.g. came from login); skip refetch
+  if (authService.getCurrentUser()) {
+    return true;
+  }
+
+  // Page was refreshed; re-fetch profile before letting any child route resolve
+  return authService.getProfile().pipe(
+    map(() => true),
+    catchError(() => {
+      router.navigate(['/login']);
+      return of(false);
+    })
+  );
 };

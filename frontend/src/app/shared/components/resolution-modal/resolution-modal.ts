@@ -1,3 +1,4 @@
+// resolution-modal.ts
 import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -41,6 +42,8 @@ export class ResolutionModalComponent implements OnChanges {
   @Input() initialOrientation?: Orientation;
   @Input() initialCustomWidth?: number;
   @Input() initialCustomHeight?: number;
+  @Input() initialSchemas?: any[][];
+  @Input() extraState?: Record<string, any>;
 
   selectedSize: PaperSize   = 'A4';
   orientation:  Orientation = 'portrait';
@@ -123,13 +126,13 @@ export class ResolutionModalComponent implements OnChanges {
 
     const freshTemplate: Template = {
       basePdf: { width: this.effectiveWidth, height: this.effectiveHeight, padding: [0, 0, 0, 0] },
-      schemas: [[]],
+      schemas: this.initialSchemas ?? [[]],
     };
 
     this.emitClose();
 
     this.router.navigate(['/editor'], {
-      state: { template: freshTemplate, scale: this.renderScale },
+      state: { template: freshTemplate, scale: this.renderScale, ...(this.extraState ?? {}) },
     });
   }
 }

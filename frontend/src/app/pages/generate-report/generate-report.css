@@ -2,7 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding-bottom: 100px;   /* clear the sticky footer */
+  padding-bottom: 100px;
 }
 
 /* ==== SHARED SECTION CARD ==== */
@@ -15,7 +15,7 @@
 }
 
 .section-card.no-pad {
-  padding: 0;
+  padding: 0 24px;
   overflow: hidden;
 }
 
@@ -43,7 +43,6 @@
   gap: 0;
 }
 
-/* Connecting line between steps */
 .step-line {
   flex: 1;
   height: 3px;
@@ -51,14 +50,13 @@
   border-radius: 2px;
   transition: background 0.3s ease;
   margin: 0 4px;
-  margin-bottom: 22px;   /* align with bubble center */
+  margin-bottom: 22px;
 }
 
 .step-line.done {
   background: var(--green-1);
 }
 
-/* Individual step */
 .step {
   display: flex;
   flex-direction: column;
@@ -117,10 +115,27 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Search bar */
+.search-bar-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 220px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--gray-3);
+  pointer-events: none;
 }
 
 .search-input {
-  flex: 1;
+  width: 100%;
   height: 40px;
   border: 1px solid var(--gray-4);
   border-radius: var(--radius-md);
@@ -133,10 +148,54 @@
   transition: border-color 0.15s ease;
 }
 
+.search-input-icon {
+  padding-left: 38px;
+  padding-right: 40px;
+}
+
 .search-input::placeholder { color: var(--gray-3); }
 
 .search-input:focus {
   border-color: var(--blue-3);
+}
+
+.search-fields-btn {
+  position: absolute;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--gray-2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.search-fields-btn:hover:not(:disabled) {
+  background: var(--blue-4);
+  color: var(--blue-1);
+}
+
+.search-fields-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.search-fields-panel {
+  left: auto;
+  right: 0;
+  min-width: 200px;
+}
+
+.no-options-msg {
+  font-size: 12px;
+  color: var(--gray-3);
+  padding: 8px 12px;
+  text-align: center;
 }
 
 .dropdown-btn {
@@ -162,7 +221,44 @@
   background: var(--blue-2);
 }
 
-/* ==== STEP 1 — TEMPLATE GRID ==== */
+/* ── Type toggle ── */
+.type-toggle {
+  display: flex;
+  background: var(--white-2);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.type-pill {
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.type-pill:hover {
+  color: var(--blue-1);
+}
+
+.type-pill.active {
+  background: var(--blue-3);
+  color: var(--white-1);
+}
+
+.type-pill.pill-all.active {
+  background: var(--orange-1);
+  color: var(--white-1);
+}
+
+/* ==== STEP 1 - TEMPLATE GRID ==== */
 .template-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -200,7 +296,6 @@
   box-shadow: 0 0 0 3px var(--blue-4);
 }
 
-/* Selected checkmark badge */
 .template-check {
   position: absolute;
   top: 10px;
@@ -216,7 +311,6 @@
   z-index: 2;
 }
 
-/* Document thumbnail */
 .template-preview {
   padding: 12px 12px 8px;
   background: var(--white-1);
@@ -291,7 +385,6 @@
 
 .doc-paragraph.short { width: 75%; }
 
-/* Template card footer */
 .template-footer {
   padding: 10px 12px 12px;
   display: flex;
@@ -310,7 +403,7 @@
   color: var(--gray-2);
 }
 
-/* ==== CONTEXT BANNER (steps 2, 3) ==== */
+/* ==== CONTEXT BANNER ==== */
 .context-banner {
   background: var(--white-1);
   border: 1px solid var(--gray-4);
@@ -356,15 +449,7 @@
   text-decoration: underline;
 }
 
-/* ==== STEP 2 — STUDENT TABLE ==== */
-.table-control-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--gray-4);
-}
-
+/* ==== STEP 2 - STUDENT TABLE ==== */
 .checkbox-label {
   display: flex;
   align-items: center;
@@ -376,18 +461,10 @@
   user-select: none;
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--white-1);
-  cursor: pointer;
-  background-color: var(--blue-3);
-  border-color: var(--blue-3);
-}
-
-.selection-count {
-  font-size: 12px;
-  color: var(--gray-2);
+/* Vertically scrollable table area */
+.table-scroll-area {
+  max-height: 480px;
+  overflow-y: auto;
 }
 
 .table-responsive {
@@ -396,18 +473,20 @@
 
 .dashboard-table {
   width: 100%;
+  min-width: 700px;
   border-collapse: collapse;
   font-size: 13px;
+  table-layout: fixed;
 }
 
 .dashboard-table th {
   text-align: left;
-  padding: 10px 12px;
+  padding: 0;
   font-size: 11.5px;
   font-weight: 700;
   color: var(--blue-1);
   border-bottom: 1px solid var(--gray-4);
-  white-space: nowrap;
+  background: var(--white-1);
 }
 
 .dashboard-table td {
@@ -415,6 +494,13 @@
   color: var(--blue-1);
   border-bottom: 1px solid var(--white-2);
   vertical-align: middle;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dashboard-table tbody tr {
+  cursor: pointer;
 }
 
 .dashboard-table tbody tr:last-child td {
@@ -429,18 +515,72 @@
   background: var(--blue-4);
 }
 
+/* Sortable column header */
+.col-sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  font-family: var(--font-base);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--blue-1);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+}
+
+.col-sort-btn:hover {
+  color: var(--blue-2);
+}
+
+.sort-carets {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.caret {
+  color: var(--gray-4);
+  transition: color 0.15s ease;
+}
+
+.caret.active {
+  color: var(--blue-3);
+}
+
 .col-check {
   width: 56px;
   text-align: center !important;
+  padding: 11px 12px !important;
 }
 
-.col-check input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--white-1);
-  cursor: pointer;
-  background-color: var(--blue-3);
-  border-color: var(--blue-3);
+/* Pinned columns (checkbox + Student ID) stay visible while scrolling horizontally on narrow screens */
+.col-pinned-check {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--white-1);
+}
+
+.col-pinned-id {
+  position: sticky;
+  left: 56px;
+  z-index: 1;
+  background: var(--white-1);
+}
+
+.dashboard-table tbody tr:hover td.col-pinned-check,
+.dashboard-table tbody tr:hover td.col-pinned-id,
+.dashboard-table tbody tr.row-selected td.col-pinned-check,
+.dashboard-table tbody tr.row-selected td.col-pinned-id {
+  background: var(--blue-4);
 }
 
 .mono { font-family: monospace; font-size: 12px; }
@@ -455,14 +595,69 @@
   font-weight: 600;
 }
 
-.badge-active {
+.badge-active,
+.badge-enrolled {
   background: var(--green-2);
   color: var(--green-1);
+}
+
+.badge-dropped {
+  background: #ffe3d1;
+  color: var(--orange-2);
+}
+
+.badge-pending {
+  background: #fff1e0;
+  color: var(--orange-1);
 }
 
 .badge-inactive {
   background: var(--white-2);
   color: var(--gray-2);
+}
+
+/* Checkbox */
+.checkbox-label input[type="checkbox"],
+.col-check input[type="checkbox"],
+.checkbox-option-label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border: 1.5px solid var(--gray-4);
+  border-radius: 4px;
+  background: var(--white-1);
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.checkbox-label input[type="checkbox"]:hover,
+.col-check input[type="checkbox"]:hover,
+.checkbox-option-label input[type="checkbox"]:hover {
+  border-color: var(--blue-3);
+}
+
+.checkbox-label input[type="checkbox"]:checked,
+.col-check input[type="checkbox"]:checked,
+.checkbox-option-label input[type="checkbox"]:checked {
+  background: var(--blue-3);
+  border-color: var(--blue-3);
+}
+
+.checkbox-label input[type="checkbox"]:checked::after,
+.col-check input[type="checkbox"]:checked::after,
+.checkbox-option-label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--white-1);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 /* Pagination */
@@ -508,13 +703,31 @@
   cursor: default;
 }
 
-.page-ellipsis {
-  color: var(--gray-3);
-  font-size: 13px;
-  padding: 0 4px;
+.page-step-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--gray-2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
-/* ==== STEP 3 — FORM FIELDS ==== */
+.page-step-btn:hover:not(:disabled) {
+  background: var(--blue-4);
+  color: var(--blue-1);
+}
+
+.page-step-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ==== FORM FIELDS (Review step - Complete Report Details) ==== */
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -575,22 +788,7 @@
   line-height: 1.5;
 }
 
-/* Date split inputs */
-.date-input-row {
-  display: flex;
-  gap: 8px;
-}
-
-.date-part {
-  width: 64px;
-  text-align: center;
-}
-
-.date-part.wide {
-  width: 90px;
-}
-
-/* ==== STEP 4 — CONFIRM ====*/
+/* ==== REVIEW & GENERATE ==== */
 .confirm-grid {
   display: grid;
   grid-template-columns: 1fr 1.1fr;
@@ -608,7 +806,6 @@
   gap: 16px;
 }
 
-/* Summary list */
 .summary-list {
   display: flex;
   flex-direction: column;
@@ -644,7 +841,39 @@
   color: var(--blue-2);
 }
 
-/* Info notice */
+/* Composition breakdown chips shown under the Report Summary */
+.breakdown-list {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--white-2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.breakdown-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gray-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.breakdown-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.breakdown-chip {
+  background: var(--blue-4);
+  color: var(--blue-2);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
 .info-notice {
   background: var(--blue-4);
   border: 1px solid var(--blue-3);
@@ -668,7 +897,6 @@
   margin: 0;
 }
 
-/* Document preview card */
 .preview-card {
   background: var(--white-1);
   border: 1px solid var(--gray-4);
@@ -703,118 +931,21 @@
   justify-content: center;
 }
 
-/* Simulated certificate sheet */
-.doc-preview-sheet {
-  background: var(--white-1);
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-md);
-  padding: 24px 28px;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: var(--shadow-md);
-}
-
-.cert-header {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 10px;
-}
-
-.cert-seal {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: 50%;
-  background: var(--gray-4);
-  border: 2px solid var(--gray-3);
-}
-
-.cert-header-lines {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.cert-line {
-  height: 5px;
-  background: var(--gray-4);
-  border-radius: 3px;
-}
-
-/* TODO: replace mock certs with actual templates*/
-.cert-line.bold { background: var(--gray-2); height: 6px; }
-.cert-line.w-30 { width: 30%; }
-.cert-line.w-50 { width: 50%; }
-.cert-line.w-60 { width: 60%; }
-.cert-line.w-70 { width: 70%; }
-.cert-line.w-80 { width: 80%; }
-.cert-line.mt-4 { margin-top: 4px; }
-
-.cert-divider {
-  height: 3px;
-  background: var(--black);
-  margin: 10px 0;
-  border-radius: 1px;
-}
-
-.cert-body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cert-title {
-  font-size: 11px;
-  font-weight: 700;
-  text-align: center;
-  color: var(--blue-1);
-  letter-spacing: 0.5px;
-  margin-bottom: 6px;
-}
-
-.cert-salutation {
-  font-size: 10px;
-  color: var(--gray-2);
-  margin-bottom: 4px;
-}
-
-.cert-paragraph {
-  height: 4px;
-  background: var(--gray-4);
-  border-radius: 2px;
-}
-
-.cert-paragraph.short   { width: 80%; }
-.cert-paragraph.shorter { width: 60%; }
-
-.cert-signatory {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.cert-footer-note {
-  font-size: 8px;
-  color: var(--gray-3);
-  text-align: center;
-  margin-top: 16px;
-}
-
-/* ==== STICKY FOOTER NAV ====*/
+/* ==== STICKY FOOTER NAV ==== */
 .step-footer {
   position: fixed;
   bottom: 0;
   left: var(--sidebar-width);
   right: 0;
-  background: var(--white-1);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid var(--gray-4);
   padding: 14px 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   z-index: 40;
-  box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
   transition: left var(--transition-speed) ease-in-out;
 }
 
@@ -824,10 +955,8 @@
   color: var(--blue-1);
 }
 
-.footer-status {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--blue-1);
+.footer-status.error {
+  color: #dc2626;
 }
 
 .footer-actions {
@@ -878,7 +1007,6 @@
   cursor: not-allowed;
 }
 
-/* Step 4 Generate button is green */
 .btn-primary.generate {
   background: var(--green-1);
 }
@@ -886,7 +1014,8 @@
 .btn-primary.generate:hover {
   background: #52b83a;
 }
-/* ==== THUMBNAIL IMAGE (Step 1 template cards) ==== */
+
+/* ==== THUMBNAIL / PREVIEW IMAGES ==== */
 .thumbnail-image {
   width: 100%;
   height: 100%;
@@ -911,6 +1040,7 @@
   border-radius: var(--radius-md);
 }
 
+/* ==== FLOATING DROPDOWN PANELS ==== */
 .checkbox-dropdown-wrapper {
   position: relative;
   display: inline-block;
@@ -986,13 +1116,4 @@
 
 .checkbox-option-label:hover {
   background-color: var(--blue-4);
-}
-
-.checkbox-option-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--white-1);
-  cursor: pointer;
-  background-color: var(--blue-3);
-  border-color: var(--blue-3);
 }

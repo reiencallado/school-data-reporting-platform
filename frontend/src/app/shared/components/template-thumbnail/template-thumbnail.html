@@ -1,0 +1,17 @@
+<div class="thumb-wrapper">
+  <img *ngIf="thumbnailUrl" class="thumb-image" [src]="thumbnailUrl" [alt]="label + ' preview'" />
+
+  <svg *ngIf="!thumbnailUrl && hasLivePreview" class="thumb-svg"
+       [attr.viewBox]="'0 0 ' + basePdfWidth + ' ' + basePdfHeight"
+       preserveAspectRatio="xMidYMid meet">
+    <rect x="0" y="0" [attr.width]="basePdfWidth" [attr.height]="basePdfHeight" class="thumb-page-bg" />
+    <ng-container *ngFor="let b of blocks">
+      <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h"
+            [class]="'thumb-block thumb-block-' + b.kind" />
+    </ng-container>
+  </svg>
+
+  <div class="thumb-placeholder" *ngIf="!thumbnailUrl && !hasLivePreview">
+    <span>{{ label ? label.charAt(0) : '?' }}</span>
+  </div>
+</div>

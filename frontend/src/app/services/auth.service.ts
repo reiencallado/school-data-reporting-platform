@@ -1,6 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap, map } from 'rxjs';
+import { UserProfile } from '../services/user.model';
 import { UserRole } from './student.model';
 
 interface DecodedToken {
@@ -19,6 +20,9 @@ export class AuthService {
   // Define local Spring Boot URL home base
   private baseUrl = 'http://localhost:8080/api';
 
+  // Holds the current logged-in user's profile in memory
+  currentUser = signal<UserProfile | null>(null);
+
   // Inject the HttpClient into the constructor
   constructor(private http: HttpClient) {}
 
@@ -35,12 +39,34 @@ export class AuthService {
   }
 
   // Connects to: GET http://localhost:8080/api/users/me
-  getProfile(): Observable<any> {
+  //
+  // NOTE on the mapper below: UserProfile was a STOPGAP shape with just
+  // { username, role, tenantId } (see user.model.ts). layout.ts's
+  // loadFullProfile() also wants name/schoolName/logoUrl, so those are
+  // mapped through here too - but the exact backend field names
+  // (res.name / res.schoolName / res.logoUrl) are a best guess. Confirm
+  // against the real /api/users/me response shape and adjust if needed.
+  getProfile(): Observable<UserProfile> {
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${token}`
     });
-    return this.http.get(`${this.baseUrl}/users/me`, { headers });
+
+    return this.http.get<any>(`${this.baseUrl}/users/me`, { headers }).pipe(
+      map(res => ({
+        username: res.username,
+        role: res.role,
+        tenantId: res.tenantMetadata?.tenantId ?? '',
+        name: res.name,
+        schoolName: res.schoolName ?? res.tenantMetadata?.tenantId,
+        logoUrl: res.logoUrl ?? null,
+      } as UserProfile)),
+      tap(profile => this.currentUser.set(profile))
+    );
+  }
+
+  getCurrentUser(): UserProfile | null {
+    return this.currentUser();
   }
 
   // Connects to: POST http://localhost:8080/api/users/me/logo
@@ -50,7 +76,7 @@ export class AuthService {
 
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${token}` });
-    // No Content-Type header — the browser sets the correct multipart
+    // No Content-Type header - the browser sets the correct multipart
     // boundary automatically when using FormData.
 
     return this.http.post<{ logoUrl: string }>(
@@ -63,16 +89,17 @@ export class AuthService {
   logout() {
     // Clean up the token from the browser when user logs out
     localStorage.removeItem('token');
+    this.currentUser.set(null);   // clear stale data
     console.log('User logged out');
   }
 
   // --- ROLE / SCHOOL CONTEXT (read directly from the JWT) ---
   //
   // The backend already embeds role, schoolId, and the user's email (as
-  // the token subject) as claims — see JwtUtil.generateToken(). Rather
+  // the token subject) as claims - see JwtUtil.generateToken(). Rather
   // than a second network round-trip, this decodes those claims straight
   // out of the token already sitting in localStorage. This is purely for
-  // UI display/filtering — it is NOT a security boundary; the real
+  // UI display/filtering - it is NOT a security boundary; the real
   // enforcement happens server-side (AuthUtil + @PreAuthorize on each
   // controller). A user could edit this token's payload in devtools and
   // see a different role reflected in the UI, but every actual API call
@@ -115,10 +142,7 @@ export class AuthService {
   }
 
   /**
-   * Falls back to email if "name" isn't present in the token — this
-   * happens for any token issued before this claim was added, so
-   * existing logged-in sessions don't show a blank name until they
-   * re-login.
+   * Falls back to email if "name" isn't present in the token
    */
   getCurrentName(): string | null {
     const decoded = this.getDecodedToken();

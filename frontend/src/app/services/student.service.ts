@@ -17,20 +17,21 @@ export class StudentService {
 
   /**
    * Merges K12 + College students into one normalized list. There is no
-   * single backend endpoint for this — /api/k12-students and
+   * single backend endpoint for this - /api/k12-students and
    * /api/college-students are separate REST resources on two unrelated
    * tables, so the merge happens here on the client via forkJoin.
    *
    * IMPORTANT: only calls the endpoint(s) the current role is actually
    * authorized for. Both controllers now enforce @PreAuthorize
    * (ROLE_K12/ROLE_COLLEGE/ROLE_ADMIN), so unconditionally calling both
-   * via forkJoin would make forkJoin fail entirely for a non-admin user —
+   * via forkJoin would make forkJoin fail entirely for a non-admin user -
    * a single 403 from the endpoint they can't access would break the
    * whole merged list, including the data they DO have access to.
    *
    * AdmissionStudents doesn't have a StudentType/StudentSummary shape yet
    * (see student.model.ts), so ROLE_ADMISSIONS currently gets an empty
-   * list here rather than an error.
+   * list here rather than an error. Add a third call/mapper here once
+   * AdmissionStudents is merged into StudentSummary.
    */
   getAllStudents(): Observable<StudentSummary[]> {
     const role = this.authService.getCurrentRole();

@@ -175,11 +175,6 @@
     </div>
   </div>
 
- <app-resolution-modal 
-    [isOpen]="showConfigModal" 
-    (close)="showConfigModal = false">
-  </app-resolution-modal>
-
   <!-- ==== TABLES ROW ==== -->
   <div class="tables-grid">
 
@@ -250,7 +245,7 @@
   </div>
 
 
-  <!-- ==== SYSTEM OVERVIEW — Admin only ==== -->
+  <!-- ==== SYSTEM OVERVIEW - Admin only ==== -->
   <div class="dashboard-section" *ngIf="isAdmin">
     <div class="section-header">
       <h3 class="section-heading">System Overview</h3>
@@ -307,3 +302,8 @@
   </div>
 
 </div>
+
+<app-resolution-modal 
+    [isOpen]="showConfigModal" 
+    (close)="showConfigModal = false">
+  </app-resolution-modal>

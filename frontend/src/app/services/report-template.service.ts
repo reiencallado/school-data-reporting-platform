@@ -55,7 +55,7 @@ export class ReportTemplateService {
 
     const token = localStorage.getItem('token');
     const headers = new HttpHeaders({ 'Authorization': `Bearer ${token}` });
-    // Note: no Content-Type header here — the browser sets the correct
+    // Note: no Content-Type header here - the browser sets the correct
     // multipart/form-data boundary automatically when using FormData.
 
     return this.http.post<{ thumbnailUrl: string }>(

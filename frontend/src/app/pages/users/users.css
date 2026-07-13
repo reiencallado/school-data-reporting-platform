@@ -70,9 +70,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  height: 40px;
+  height: 34px;
   padding: 0 16px;
-  background: var(--blue-2);
+  background: var(--blue-3);
   color: var(--white-1);
   border-radius: var(--radius-md);
   border: none;
@@ -85,7 +85,7 @@
   min-width: 140px;
 }
 
-.dropdown-btn:hover { background: var(--blue-3); }
+.dropdown-btn:hover { background: var(--blue-2); }
 
 .checkbox-dropdown-wrapper {
   position: relative;
@@ -324,30 +324,9 @@
 }
 
 .role-admin { background: var(--green-1); color: var(--white-1); }
-.role-registrar { background: var(--orange-1); color: var(--white-1); }
-.role-designer { background: var(--orange-2); color: var(--white-1); }
-.role-viewer { background: var(--gray-2); color: var(--white-1); }
-
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 700;
-  min-width: 80px;
-}
-
-.status-badge.active {
-  background: var(--green-2);
-  color: var(--green-1);
-}
-
-.status-badge.inactive {
-  background: var(--gray-4);
-  color: var(--blue-1);
-}
+.role-k12 { background: var(--orange-1); color: var(--white-1); }
+.role-college { background: var(--orange-2); color: var(--white-1); }
+.role-admissions { background: var(--gray-2); color: var(--white-1); }
 
 .actions-col {
   display: flex;
