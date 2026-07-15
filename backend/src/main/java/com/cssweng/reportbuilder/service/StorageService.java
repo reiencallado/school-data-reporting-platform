@@ -43,13 +43,11 @@ public class StorageService {
         return "Uploaded: " + key;
     }
 
-    /**
-     * Uploads a file under a specific key prefix (e.g. "thumbnails/") and
-     * returns the actual retrievable URL, unlike uploadFile() which only
-     * returns a status string. A random suffix is appended to avoid
-     * collisions with the original-filename-as-key approach above.
-     */
     public String uploadFileAndGetUrl(MultipartFile file, String keyPrefix) throws IOException {
+        return uploadFileAndGetUrl(file, keyPrefix, file.getOriginalFilename());
+    }
+
+    public String uploadFileAndGetUrl(MultipartFile file, String keyPrefix, String downloadFilename) throws IOException {
         String extension = "";
         String originalName = file.getOriginalFilename();
         if (originalName != null && originalName.contains(".")) {
@@ -62,6 +60,7 @@ public class StorageService {
                         .bucket(bucketName)
                         .key(key)
                         .contentType(file.getContentType())
+                        .contentDisposition("attachment; filename=\"" + downloadFilename + "\"")
                         .build(),
                 RequestBody.fromBytes(file.getBytes())
         );

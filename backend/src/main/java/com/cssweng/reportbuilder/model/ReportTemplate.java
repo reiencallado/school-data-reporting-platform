@@ -29,6 +29,9 @@ public class ReportTemplate {
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
 
+    @Column(name = "student_type", length = 50)
+    private String studentType;
+    
     public ReportTemplate() {}
 
     public ReportTemplate(String name, String configuration, School school) {
@@ -55,4 +58,7 @@ public class ReportTemplate {
 
     public String getThumbnailUrl() { return thumbnailUrl; }
     public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+
+    public String getStudentType() { return studentType; }
+    public void setStudentType(String studentType) { this.studentType = studentType; }
 }

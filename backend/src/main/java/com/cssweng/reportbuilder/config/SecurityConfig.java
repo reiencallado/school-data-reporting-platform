@@ -78,7 +78,7 @@ public class SecurityConfig {
             //)
             // DEADASS COULDN'T UNDERSTAND WHY JWT KEPT BLOCKING MY AUTHENTICATION
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/login", "/api/localstack/**").permitAll()
+                .requestMatchers("/api/auth/login", "/api/localstack/**", "/api/report-jobs/stream").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/admin/users").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()   // ← add this
                 .anyRequest().authenticated()
