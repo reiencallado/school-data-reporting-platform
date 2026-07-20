@@ -1,4 +1,3 @@
-// templates.ts
 import { Component, HostListener, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -6,7 +5,8 @@ import { Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { ReportTemplateService } from '../../services/report-template.service';
 import { ReportTemplate as ApiReportTemplate } from '../../services/report-template.model';
-import { StudentType } from '../../services/student.model';
+import { StudentType, ROLE_STUDENT_TYPE_ACCESS } from '../../services/student.model';
+import { AuthService } from '../../services/auth.service';
 import { TemplateThumbnailComponent } from '../../shared/components/template-thumbnail/template-thumbnail';
 import { TemplateCreationWizard } from './template-creation-wizard/template-creation-wizard';
 
@@ -47,9 +47,25 @@ export class Templates implements OnInit, OnDestroy {
     private router: Router,
     private reportTemplateService: ReportTemplateService,
     private cdr: ChangeDetectorRef,
+    private authService: AuthService,
   ) {}
 
+  get isAdmin(): boolean {
+    return this.authService.isAdmin();
+  }
+
   ngOnInit(): void {
+    // Non-admins never see the K12/College/Admissions toggle at all (see
+    // templates.html), so their view is locked to their own type instead
+    // of defaulting to 'ALL' — matching what the backend would actually
+    // return/allow for them anyway (see student.service.ts's same
+    // reasoning for getAllStudents()).
+    if (!this.isAdmin) {
+      const role = this.authService.getCurrentRole();
+      const assigned = role ? ROLE_STUDENT_TYPE_ACCESS[role]?.[0] : undefined;
+      this.selectedType = assigned ?? 'ALL';
+    }
+
     this.fetchTemplates();
     this.navSubscription = this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
@@ -96,6 +112,10 @@ export class Templates implements OnInit, OnDestroy {
   }
 
   selectType(type: StudentTypeFilter): void {
+    // Only reachable via the toggle, which is admin-only in the template —
+    // guarded here too as defense-in-depth against a non-admin somehow
+    // triggering this directly.
+    if (!this.isAdmin) return;
     this.selectedType = type;
   }
 

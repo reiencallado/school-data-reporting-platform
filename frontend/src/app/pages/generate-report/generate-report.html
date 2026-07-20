@@ -39,7 +39,7 @@
                  [(ngModel)]="templateSearch" />
         </div>
 
-        <div class="type-toggle">
+        <div class="type-toggle" *ngIf="isAdmin">
           <button class="type-pill" [class.active]="selectedType === 'K12'" (click)="selectTemplateType('K12')">K12</button>
           <button class="type-pill" [class.active]="selectedType === 'COLLEGE'" (click)="selectTemplateType('COLLEGE')">College</button>
           <button class="type-pill" [class.active]="selectedType === 'ADMISSIONS'" (click)="selectTemplateType('ADMISSIONS')">Admissionss</button>

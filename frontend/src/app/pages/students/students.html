@@ -60,7 +60,7 @@
         </div>
       </div>
 
-      <div class="type-toggle">
+      <div class="type-toggle" *ngIf="isAdmin">
         <button class="type-pill" [class.active]="selectedType === 'K12'" (click)="selectType('K12')">K12</button>
         <button class="type-pill" [class.active]="selectedType === 'COLLEGE'" (click)="selectType('COLLEGE')">College</button>
         <button class="type-pill" [class.active]="selectedType === 'ADMISSIONS'" (click)="selectType('ADMISSIONS')">Admissionss</button>

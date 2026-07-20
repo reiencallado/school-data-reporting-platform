@@ -32,6 +32,14 @@ export class Students implements OnInit {
   // ── Type tabs ──
   selectedType: StudentType = 'K12';
 
+  // The type-toggle tabs (K12/College/Admissions) are only shown to
+  // ROLE_ADMIN — every other role only ever has access to exactly one
+  // type anyway (enforced both server-side and via canViewStudentType
+  // below), so showing a selector with only one real option is just
+  // noise. Non-admin users are silently locked to their one accessible
+  // type instead.
+  isAdmin = false;
+
   // Only offer tabs for types the current role can actually see - the data
   // itself is already restricted server-side/in StudentService, so showing
   // e.g. a "COLLEGE" tab to a ROLE_K12 user would just be a tab that always
@@ -74,6 +82,8 @@ export class Students implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.isAdmin = this.authService.isAdmin();
+
     this.typeOptions = (['K12', 'COLLEGE'] as StudentType[])
       .filter(t => canViewStudentType(this.authService.getCurrentRole(), t));
 

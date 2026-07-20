@@ -31,8 +31,8 @@ export type UserRole = 'ROLE_K12' | 'ROLE_COLLEGE' | 'ROLE_ADMISSIONS' | 'ROLE_A
 export const ROLE_STUDENT_TYPE_ACCESS: Record<UserRole, StudentType[]> = {
   ROLE_K12: ['K12'],
   ROLE_COLLEGE: ['COLLEGE'],
-  ROLE_ADMISSIONS: [],
-  ROLE_ADMIN: ['K12', 'COLLEGE'],
+  ROLE_ADMISSIONS: ['ADMISSIONS'],
+  ROLE_ADMIN: ['K12', 'COLLEGE', 'ADMISSIONS'],
 };
 
 export function canViewStudentType(role: UserRole | null | undefined, type: StudentType): boolean {
@@ -66,6 +66,24 @@ export interface CollegeStudentApi {
   createdAt?: string;
 }
 
+// Mirrors backend: com.cssweng.reportbuilder.model.AdmissionStudents.
+// Note: unlike K12/College, there's no separate "studentId"-style
+// reference field on this entity — applicants are only identified by
+// their generated UUID (id) until/unless the backend adds one.
+export interface AdmissionStudentApi {
+  id: string;
+  school?: { id: string; name?: string };
+  firstName: string;
+  lastName: string;
+  lastSchoolAttended: string;
+  highestGradeCompleted: string;
+  gpa: number;
+  gradeLevelApplied?: string;
+  courseApplied?: string;
+  status: string;
+  createdAt?: string;
+}
+
 export interface StudentSummary {
   id: string;
   studentType: StudentType;
@@ -83,6 +101,13 @@ export interface StudentSummary {
   section?: string;
   course?: string;
   yearLevel?: string;
+
+  // Admissions-only fields
+  lastSchoolAttended?: string;
+  highestGradeCompleted?: string;
+  gpa?: number;
+  gradeLevelApplied?: string;
+  courseApplied?: string;
 }
 
 // ── Field config - shared by search-field scope AND future template field picker ──
@@ -102,12 +127,18 @@ export const typeFilterFields: Record<StudentType, FilterFieldConfig[]> = {
     { key: 'yearLevel', label: 'Year Level', getValue: s => s.yearLevel },
     { key: 'course',    label: 'Program',    getValue: s => s.course },
   ],
-  ADMISSIONS: [], // no data source yet
+  ADMISSIONS: [
+    { key: 'lastSchoolAttended',     label: 'Last School Attended',     getValue: s => s.lastSchoolAttended },
+    { key: 'highestGradeCompleted',  label: 'Highest Grade Completed',  getValue: s => s.highestGradeCompleted },
+    { key: 'gradeLevelApplied',      label: 'Grade Level Applied',      getValue: s => s.gradeLevelApplied },
+    { key: 'courseApplied',          label: 'Course Applied',           getValue: s => s.courseApplied },
+  ],
 };
 
 export const allFilterFields: FilterFieldConfig[] = [
   ...typeFilterFields.K12,
   ...typeFilterFields.COLLEGE,
+  ...typeFilterFields.ADMISSIONS,
 ];
 
 // ── Column config - drives the dynamic table per type ──
@@ -147,5 +178,14 @@ export const typeColumns: Record<StudentType, ColumnConfig[]> = {
     { key: 'course',    label: 'Program',                   getValue: s => s.course || '-' },
     { key: 'status',    label: 'Status',    type: 'status', getValue: s => s.status },
   ],
-  ADMISSIONS: [], // no data source yet - table shows an empty-state row instead
+  ADMISSIONS: [
+    // No dedicated reference-number field exists on this entity yet, so
+    // the raw id is shown in its place — see AdmissionStudentApi's note.
+    { key: 'studentId',              label: 'Applicant ID', type: 'mono', getValue: s => s.studentId },
+    { key: 'name',                   label: 'Name',                      getValue: s => s.name },
+    { key: 'lastSchoolAttended',     label: 'Last School Attended',      getValue: s => s.lastSchoolAttended || '-' },
+    { key: 'gradeLevelApplied',      label: 'Applying For',              getValue: s => s.gradeLevelApplied || s.courseApplied || '-' },
+    { key: 'gpa',                    label: 'GPA',                       getValue: s => s.gpa != null ? s.gpa.toFixed(2) : '-' },
+    { key: 'status',                 label: 'Status',    type: 'status', getValue: s => s.status },
+  ],
 };

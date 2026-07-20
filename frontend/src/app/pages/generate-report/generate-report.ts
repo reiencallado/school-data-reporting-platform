@@ -37,7 +37,9 @@ import {
   FilterFieldConfig,
   ColumnConfig,
   getStatusBadgeClass,
+  ROLE_STUDENT_TYPE_ACCESS,
 } from '../../services/student.model';
+import { AuthService } from '../../services/auth.service';
 
 export type StudentTypeFilter = StudentType | 'ALL';
 import { PLUGINS } from '../../pdf-designer/pdf-designer';
@@ -134,6 +136,14 @@ export class GenerateReport implements OnInit {
   // Shared between Step 1 and Step 2 
   // A specific type must be chosen in Step 1 before proceeding
   selectedType: StudentTypeFilter = 'ALL';
+
+  // The type-toggle tabs (K12/College/Admissions/All) are only shown to
+  // ROLE_ADMIN — every other role only ever has access to exactly one
+  // type, so selectedType is locked to that instead of the 'ALL' default
+  // (which would otherwise leave Step 2's student list permanently empty
+  // for non-admins, since 'ALL' never strictly equals a real StudentType).
+  isAdmin = false;
+
   selectedStudents = new Set<string>();
 
   statusOptions = ['ACTIVE', 'ENROLLED', 'DROPPED', 'PENDING', 'INACTIVE'];
@@ -469,7 +479,17 @@ export class GenerateReport implements OnInit {
     private reportTemplateService: ReportTemplateService,
     private studentService: StudentService,
     private cdr: ChangeDetectorRef,
-  ) {}
+    private authService: AuthService,
+  ) {
+    this.isAdmin = this.authService.isAdmin();
+    if (!this.isAdmin) {
+      const role = this.authService.getCurrentRole();
+      const allowed = role ? ROLE_STUDENT_TYPE_ACCESS[role] : [];
+      if (allowed && allowed.length > 0) {
+        this.selectedType = allowed[0];
+      }
+    }
+  }
 
   ngOnInit(): void {
     this.fetchTemplates();

@@ -1,7 +1,9 @@
-import { Component, Input } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ResolutionModalComponent } from '../../shared/components/resolution-modal/resolution-modal';
+import { StudentService } from '../../services/student.service';
+import { StudentSummary } from '../../services/student.model';
 // import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -11,7 +13,7 @@ import { ResolutionModalComponent } from '../../shared/components/resolution-mod
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class Dashboard {
+export class Dashboard implements OnInit {
 
   // ── Role ─────────────────────────────────────────────────
   // TODO: replace with real value from AuthService
@@ -34,19 +36,12 @@ export class Dashboard {
   };
 
   // ── Recent Students ──────────────────────────────────────
-  // TODO: fetch from StudentService (limit 10, sort by createdAt desc)
-  students: StudentRow[] = [
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '3.8', status: 'Inactive' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '3.5', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '3.9', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-  ];
+  // Now fetched from StudentService (real K12/College/Admissions data,
+  // already role/school-scoped server-side), sorted newest-first, capped
+  // to 10. Everything else on this page is still mock data per request.
+  students: StudentRow[] = [];
+  studentsLoading = false;
+  studentsError: string | null = null;
 
   // ── Recent Reports ───────────────────────────────────────
   // TODO: fetch from ReportService (limit 10, sort by createdAt desc)
@@ -80,8 +75,56 @@ export class Dashboard {
     pendingPercent:    25,
   };
 
-
   showConfigModal = false;
+
+  constructor(private studentService: StudentService) {}
+
+  ngOnInit(): void {
+    this.fetchRecentStudents();
+  }
+
+  private fetchRecentStudents(): void {
+    this.studentsLoading = true;
+    this.studentsError = null;
+
+    this.studentService.getAllStudents().subscribe({
+      next: (data: StudentSummary[]) => {
+        this.students = data
+          .slice()
+          .sort((a, b) => {
+            // Newest first; students with no createdAt sort last rather
+            // than crashing the comparator or floating to the top.
+            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return bTime - aTime;
+          })
+          .slice(0, 10)
+          .map((s): StudentRow => ({
+            id: s.studentId,
+            name: s.name,
+            // Reuses the same descriptive string StudentService already
+            // builds per type (e.g. "Grade 10 • STEM • A" for K12,
+            // "BSCS • 3rd Year" for College) instead of re-deriving it here.
+            section: s.subtitle,
+            // No CGPA field exists on any of the real student entities —
+            // this was dummy-data-only. Shown as a placeholder rather
+            // than inventing a number.
+            cgpa: '—',
+            // Table's badge logic checks for the exact string 'Active',
+            // but real backend statuses are upper-case ('ACTIVE'/'INACTIVE') —
+            // normalized here so the existing badge styling still works
+            // correctly without touching the template.
+            status: s.status === 'ACTIVE' ? 'Active' : 'Inactive',
+          }));
+        this.studentsLoading = false;
+      },
+      error: (err) => {
+        console.error('Failed to fetch recent students:', err);
+        this.studentsError = 'Could not load recent students.';
+        this.studentsLoading = false;
+      },
+    });
+  }
 }
 
 // ── Interfaces ───────────────────────────────────────────────
