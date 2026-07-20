@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -9,6 +9,16 @@ const ROLE_LABELS: Record<string, string> = {
   ROLE_COLLEGE: 'College Staff',
   ROLE_ADMISSIONS: 'Admissions Staff',
 };
+
+const SCHOOL_ABBREVIATION_OVERRIDES: Record<string, string> = {
+  'university of santo tomas': 'UST',
+  'ateneo de manila university': 'ADMU',
+  'de la salle university': 'DLSU',
+  'university of the philippines diliman': 'UPD',
+  'mapua university': 'MU',
+};
+
+const ABBREVIATION_STOP_WORDS = new Set(['of', 'the', 'and', 'de', 'la', 'del']);
 
 @Component({
   selector: 'app-layout',
@@ -26,13 +36,14 @@ export class Layout implements OnInit {
   pageTitle = '';
 
   // ── User Profile ─────────────────────────────────────────
-  userName    = 'User';
-  userRole    = '';
+  userName = 'User';
+  userRole = '';
   userInitial = 'U';
-  isAdmin     = false;
+  isAdmin = false;
 
   // ── Branding (per-user logo + school name) ────────────────
-  schoolName = 'SCHOOL';
+  schoolName: string | null = null;
+  profileLoaded = false;
   logoUrl: string | null = null;
   logoUploadError: string | null = null;
   logoFailed = false;
@@ -46,7 +57,11 @@ export class Layout implements OnInit {
     return this.isAdmin;
   }
 
-  constructor(private router: Router, private authService: AuthService) {}
+  constructor(
+    private router: Router,
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   // ── Lifecycle ────────────────────────────────────────────
   ngOnInit(): void {
@@ -93,8 +108,29 @@ export class Layout implements OnInit {
     this.logoFailed = true;
   }
 
-  getInitialsPublic(name: string): string {
-    return this.getInitials(name);
+  getInitialsPublic(name: string | null): string {
+    return this.getInitials(name ?? '');
+  }
+
+  // ── Branding: school abbreviation for the logo placeholder ─
+  getSchoolAbbreviation(name: string): string {
+    if (!name) return '';
+
+    const override = SCHOOL_ABBREVIATION_OVERRIDES[name.trim().toLowerCase()];
+    if (override) return override;
+
+    const words = name.trim().split(/\s+/).filter(w => !ABBREVIATION_STOP_WORDS.has(w.toLowerCase()));
+    if (words.length === 0) return name.slice(0, 3).toUpperCase();
+    if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
+
+    return words.map(w => w.charAt(0).toUpperCase()).join('').slice(0, 5);
+  }
+
+  getAbbrFontSize(abbr: string): string {
+    if (abbr.length <= 2) return '17px';
+    if (abbr.length === 3) return '15px';
+    if (abbr.length === 4) return '13px';
+    return '11px';
   }
 
   // ── Private helpers ──────────────────────────────────────
@@ -102,10 +138,10 @@ export class Layout implements OnInit {
     const name = this.authService.getCurrentName();
     const role = this.authService.getCurrentRole();
 
-    this.userName    = name ?? 'User';
-    this.userRole    = role ? (ROLE_LABELS[role] ?? role) : '';
+    this.userName = name ?? 'User';
+    this.userRole = role ? (ROLE_LABELS[role] ?? role) : '';
     this.userInitial = this.getInitials(this.userName);
-    this.isAdmin     = this.authService.isAdmin();
+    this.isAdmin = this.authService.isAdmin();
   }
 
   private loadFullProfile(): void {
@@ -115,14 +151,17 @@ export class Layout implements OnInit {
           this.userName = profile.name;
           this.userInitial = this.getInitials(profile.name);
         }
-        if (profile.schoolName) {
-          this.schoolName = profile.schoolName;
-        }
+        this.schoolName = profile.schoolName ?? 'School';
         this.logoUrl = profile.logoUrl ?? null;
         this.logoFailed = false;
+        this.profileLoaded = true;
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Failed to load full profile:', err);
+        this.schoolName = 'School';
+        this.profileLoaded = true;
+        this.cdr.detectChanges();
       },
     });
   }
