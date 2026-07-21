@@ -2,29 +2,8 @@ import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { generate } from '@pdfme/generator';
 import { Template } from '@pdfme/common';
-
-// ════════════════════════════════════════════════════════════════════
-// ⚠️  THIRD-PARTY DEPENDENCY: JSZip (npm install jszip)
-// ────────────────────────────────────────────────────────────────────
-// Used ONLY to bundle multiple generated PDFs into a single .zip for
-// client-side download in generate() below. This is a temporary,
-// synchronous, client-side implementation - see the TODO on generate()
-// for the planned move to an async backend job.
-//
-// When report generation moves server-side, the zipping will very
-// likely move with it (e.g. java.util.zip / a Spring service), and
-// this import + the `new JSZip()` usage inside generate() become
-// dead code that can be deleted along with the `jszip` package.
-//
-// If you rip this out before that migration happens, just delete:
-//   1. This import line
-//   2. `npm uninstall jszip`
-//   3. The `const zip = new JSZip();` block inside generate() below
-//      (replace with whatever new bundling/upload strategy is used)
-// ════════════════════════════════════════════════════════════════════
-import JSZip from 'jszip';
+import { HttpClient } from '@angular/common/http';
 
 import { ReportTemplateService } from '../../services/report-template.service';
 import { ReportTemplate as ApiReportTemplate } from '../../services/report-template.model';
@@ -42,7 +21,6 @@ import {
 import { AuthService } from '../../services/auth.service';
 
 export type StudentTypeFilter = StudentType | 'ALL';
-import { PLUGINS } from '../../pdf-designer/pdf-designer';
 
 export interface ReportTemplate {
   id:            string;
@@ -479,6 +457,7 @@ export class GenerateReport implements OnInit {
     private reportTemplateService: ReportTemplateService,
     private studentService: StudentService,
     private cdr: ChangeDetectorRef,
+    private http: HttpClient,
     private authService: AuthService,
   ) {
     this.isAdmin = this.authService.isAdmin();
@@ -589,19 +568,7 @@ export class GenerateReport implements OnInit {
     return page;
   }
 
-  /**
-   * Synchronous, client-side, one-shot generation: builds one PDF per
-   * selected student and bundles them into a single zip for download.
-   *
-   * TODO (future): move this to a backend job - POST the template id,
-   * student ids, and report details to a /api/reports/generate endpoint,
-   * get back a job id immediately, and let the job show up as a
-   * "PROCESSING" row in Report Archives that flips to "DONE" with a
-   * downloadUrl once the backend finishes. This synchronous version will
-   * freeze the tab and hold everything in memory for large batches, which
-   * is fine for now but won't scale to e.g. a few hundred students.
-   */
-  async generate(): Promise<void> {
+  generate(): void {
     if (!this.selectedTemplate) return;
 
     this.generating = true;
@@ -618,34 +585,41 @@ export class GenerateReport implements OnInit {
         throw new Error('This template\u2019s layout data is corrupted and can\u2019t be used to generate reports.');
       }
 
-      // JSZip usage - see the large comment at the top of this file if
-      // this dependency is being removed/replaced.
-      const zip = new JSZip();
+      const inputs = selected.map(student => this.buildInputsForStudent(parsedTemplate, student));
 
-      for (const student of selected) {
-        const inputs = [this.buildInputsForStudent(parsedTemplate, student)];
-        const pdfBytes = await generate({ template: parsedTemplate, inputs, plugins: PLUGINS });
-
-        const safeName = student.name.replace(/[^a-z0-9]+/gi, '_');
-        zip.file(`${safeName}_${student.studentId}.pdf`, pdfBytes);
-
-        this.generateProgress.done++;
+      // Details
+      let detailString = '';
+      const topCategories = this.selectionBreakdown.slice(0, 2).map(b => b.label);
+      if (topCategories.length > 0) {
+        detailString += topCategories.join(', ');
+        if (this.selectionBreakdown.length > 2) detailString += '...';
+        detailString += ' • ';
       }
+      detailString += `${selected.length} student(s)`;
 
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const safeTemplateName = this.selectedTemplate.name.replace(/[^a-z0-9]+/gi, '_');
+      const payload = {
+        templateId: this.selectedTemplate.id,
+        details: detailString,
+        inputs: inputs
+      };
 
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${safeTemplateName}_reports.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
+      // Send to backend queue
+      this.http.post('http://localhost:8080/api/report-jobs', payload).subscribe({
+        next: () => {
+          this.generating = false;
+          this.router.navigate(['/archives']); // Redirect to archives page
+        },
+        error: (err) => {
+          console.error('Failed to queue report:', err);
+          this.generateError = 'Failed to communicate with the server. Please try again.';
+          this.generating = false;
+          this.cdr.detectChanges();
+        }
+      });
 
     } catch (e: any) {
-      console.error('Failed to generate reports:', e);
-      this.generateError = e?.message ?? 'Something went wrong generating the reports. Please try again.';
-    } finally {
+      console.error('Data preparation failed:', e);
+      this.generateError = e?.message ?? 'Something went wrong. Please try again.';
       this.generating = false;
     }
   }

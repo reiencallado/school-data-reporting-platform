@@ -1,7 +1,9 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { ReportStreamService } from '../../services/report-stream.service';
+import { Subscription } from 'rxjs';
 
 const ROLE_LABELS: Record<string, string> = {
   ROLE_ADMIN: 'Admin',
@@ -27,7 +29,7 @@ const ABBREVIATION_STOP_WORDS = new Set(['of', 'the', 'and', 'de', 'la', 'del'])
   templateUrl: './layout.html',
   styleUrl: './layout.css',
 })
-export class Layout implements OnInit {
+export class Layout implements OnInit, OnDestroy {
 
   // ── Sidebar ──────────────────────────────────────────────
   sidebarCollapsed = false;
@@ -48,6 +50,12 @@ export class Layout implements OnInit {
   logoUploadError: string | null = null;
   logoFailed = false;
 
+  toastVisible = false;
+  toastHiding = false; // Slide out
+  toastMessage = '';
+  toastStatus: 'DONE' | 'FAILED' = 'DONE';
+  private toastSub?: Subscription;
+
   // ── Role checks ──────────────────────────────────────────
   get currentRole(): string | null {
     return this.authService.getCurrentRole();
@@ -64,13 +72,54 @@ export class Layout implements OnInit {
   ) {}
 
   // ── Lifecycle ────────────────────────────────────────────
+  constructor(
+    private router: Router, 
+    private authService: AuthService,
+    private reportStream: ReportStreamService,
+    private cdr: ChangeDetectorRef
+  ) {}
+
   ngOnInit(): void {
     this.loadUserProfileFromToken();
     this.loadFullProfile();
     this.restoreSidebarPreference();
+
+    this.toastSub = this.reportStream.toastUpdates$.subscribe(update => {
+      this.toastMessage = update.message || '';
+      this.toastStatus = update.status as 'DONE' | 'FAILED';
+      
+      // Reset states
+      this.toastHiding = false;
+      this.toastVisible = true;
+      this.cdr.detectChanges();
+
+      // Auto-hide after 5 seconds
+      setTimeout(() => this.closeToast(), 5000);
+    });
   }
 
-  // ── Sidebar ──────────────────────────────────────────────
+  ngOnDestroy(): void {
+    if (this.toastSub) this.toastSub.unsubscribe();
+  }
+
+  closeToast(event?: Event): void {
+    if (event) event.stopPropagation();
+    
+    this.toastHiding = true; // Slide out
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      this.toastVisible = false;
+      this.toastHiding = false;
+      this.cdr.detectChanges();
+    }, 300);
+  }
+
+  onToastClick(): void {
+    this.router.navigate(['/archives']);
+    this.closeToast();
+  }
+
   toggleSidebar(): void {
     this.sidebarCollapsed = !this.sidebarCollapsed;
     localStorage.setItem('sidebarCollapsed', String(this.sidebarCollapsed));

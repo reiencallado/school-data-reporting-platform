@@ -4,6 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { StudentService } from '../../services/student.service';
 import { StudentSummary } from '../../services/student.model';
+import { Subscription } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { ReportStreamService } from '../../services/report-stream.service';
 // import { ReportService } from '../../services/report.service';
 
 export interface ArchiveReport {
@@ -13,7 +16,7 @@ export interface ArchiveReport {
   type:           string;
   generatedBy:    string;
   date:           string;
-  status:         'DONE' | 'PROCESSING' | 'FAILED';
+  status:         'PENDING' | 'DONE' | 'PROCESSING' | 'FAILED';
   downloadUrl?:   string;
   failureReason?: string;
   lastDownloadedAt?: string;
@@ -27,10 +30,12 @@ export interface ReportBatch {
   generatedBy:    string;
   date:           string;
   details:        string;
-  status:         'DONE' | 'PROCESSING' | 'FAILED';
+  status:         'PENDING' | 'DONE' | 'PROCESSING' | 'FAILED';
   generatedCount: number;
   totalCount:     number;
   lastDownloadedAt?: string;
+  downloadUrl?:   string;
+  studentType?: string;
   reports:        ArchiveReport[];
 }
 
@@ -84,19 +89,66 @@ export class Archives implements OnInit {
     DONE: 'status-badge-done',
     PROCESSING: 'status-badge-processing',
     FAILED: 'status-badge-failed',
+    PENDING: 'status-badge-processing'
   };
 
   batches: ReportBatch[] = [];
 
-  constructor(private authService: AuthService, private studentService: StudentService, private cdr: ChangeDetectorRef) {}
+  private streamSub?: Subscription;
+
+  constructor(
+    private authService: AuthService, 
+    private studentService: StudentService, 
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient,
+    private reportStream: ReportStreamService
+  ) {}
 
   ngOnInit(): void {
-    this.studentService.getAllStudents().subscribe({
-      next: (students) => {
-        this.batches = this.buildMockBatches(students);
+    this.fetchArchives();
+
+    // Listen to SSE Stream
+    this.streamSub = this.reportStream.jobUpdates$.subscribe((updatedJob: any) => {
+      const index = this.batches.findIndex(b => b.id === updatedJob.id);
+      
+      if (index !== -1) {
+        this.batches[index].status = updatedJob.status;
+        this.batches[index].downloadUrl = updatedJob.fileUrl;
+        this.batches[index].totalCount = updatedJob.totalCount;
+        this.batches[index].generatedCount = updatedJob.status === 'DONE' ? updatedJob.totalCount : 0;
+      } else {
+        this.fetchArchives();
+      }
+      this.cdr.detectChanges();
+    });
+  }
+  
+  ngOnDestroy(): void {
+    if (this.streamSub) {
+      this.streamSub.unsubscribe();
+    }
+  }
+
+  fetchArchives(): void {
+    this.http.get<any[]>('http://localhost:8080/api/report-jobs').subscribe({
+      next: (data: any[]) => {
+        this.batches = data.map((job: any) => ({
+          id: job.id,
+          name: job.reportName || job.template?.name || 'Untitled Batch',
+          template: job.template?.name || 'Unknown Template',
+          generatedBy: job.requestedBy?.name || 'Admin',
+          date: job.createdAt ? job.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+          details: job.details || 'Background Job',
+          status: job.status as 'DONE' | 'PROCESSING' | 'FAILED',
+          totalCount: job.totalCount || 0,
+          generatedCount: job.status === 'DONE' ? (job.totalCount || 0) : 0,
+          downloadUrl: job.fileUrl,
+          studentType: job.template?.studentType, // <-- ADD THIS LINE
+          reports: []
+        }));
         this.cdr.detectChanges();
       },
-      error: (err) => console.error('Failed to load students for archives:', err),
+      error: (err: any) => console.error('Failed to fetch archives:', err)
     });
   }
 
@@ -169,9 +221,17 @@ export class Archives implements OnInit {
     return ['DONE', 'FAILED', 'PROCESSING'];
   }
 
-  // Highlights the student population a batch belongs to (K12 vs College)
-  batchStudentType(batch: ReportBatch): 'K12' | 'College' {
-    return batch.reports[0]?.student.studentType === 'COLLEGE' ? 'College' : 'K12';
+  batchStudentType(batch: ReportBatch): string {
+    if (batch.studentType === 'COLLEGE') return 'College';
+    if (batch.studentType === 'ADMISSIONS') return 'Admissions';
+    if (batch.studentType === 'K12') return 'K12';
+
+    if (batch.reports && batch.reports.length > 0) {
+      return batch.reports[0]?.student.studentType === 'COLLEGE' ? 'College' : 'K12';
+    }
+
+    // Default
+    return 'K12';
   }
 
   selectStudentType(type: StudentTypeFilter): void {
@@ -414,8 +474,10 @@ export class Archives implements OnInit {
   }
 
   downloadBatch(batch: ReportBatch): void {
-    console.log('Downloading entire batch', batch.id);
-    batch.lastDownloadedAt = new Date().toISOString().slice(0, 10);
+    if (batch.status === 'DONE' && batch.downloadUrl) {
+      window.open(batch.downloadUrl, '_blank');
+      batch.lastDownloadedAt = new Date().toISOString().slice(0, 10);
+    }
   }
 
   retryBatch(batch: ReportBatch): void { console.log('Retrying batch generation for', batch.id); }

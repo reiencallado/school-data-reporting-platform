@@ -15,4 +15,6 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
 
     // ADDED: Crucial for backend JWT authentication/login verification
     Optional<AppUser> findByNameOrEmail(String name, String email);
+
+    Optional<AppUser> findByEmail(String username);
 }

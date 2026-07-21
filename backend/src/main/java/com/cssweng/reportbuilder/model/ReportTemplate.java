@@ -37,6 +37,14 @@ public class ReportTemplate {
     @Column(name = "student_type", length = 20)
     private String studentType;
 
+    // Which student roster this template is meant for — K12, COLLEGE, or
+    // ADMISSIONS (mirrors StudentType on the frontend). Nullable since
+    // templates created before this field existed have no value here;
+    // they simply won't match any type filter in Generate Report until
+    // someone edits and sets one.
+    @Column(name = "student_type", length = 20)
+    private String studentType;
+    
     public ReportTemplate() {}
 
     public ReportTemplate(String name, String configuration, School school) {
