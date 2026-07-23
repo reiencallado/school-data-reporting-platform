@@ -1,5 +1,6 @@
 package com.cssweng.reportbuilder.controller;
 
+import com.cssweng.reportbuilder.model.ReportItem;
 import com.cssweng.reportbuilder.model.AppUser;
 import com.cssweng.reportbuilder.model.ReportJob;
 import com.cssweng.reportbuilder.model.ReportJobRequest;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/report-jobs")
@@ -46,5 +48,11 @@ public class ReportJobController {
     @GetMapping("/stream")
     public SseEmitter streamUpdates() {
         return reportJobService.createNewEmitter();
+    }
+
+    // Fetch individual student report rows for one batch
+    @GetMapping("/{jobId}/items")
+    public ResponseEntity<List<ReportItem>> getJobItems(@PathVariable UUID jobId) {
+        return ResponseEntity.ok(reportJobService.getItemsForJob(jobId));
     }
 }

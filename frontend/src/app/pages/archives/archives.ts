@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { StudentService } from '../../services/student.service';
-import { StudentSummary } from '../../services/student.model';
+import { StudentSummary, StudentType } from '../../services/student.model';
 import { Subscription } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ReportStreamService } from '../../services/report-stream.service';
@@ -400,11 +400,49 @@ export class Archives implements OnInit {
     return true;
   }
 
+  fetchReportItems(batchId: string): void {
+    this.http.get<any[]>(`http://localhost:8080/api/report-jobs/${batchId}/items`).subscribe({
+      next: (items: any[]) => {
+        const batch = this.selectedBatch;
+        if (!batch || batch.id !== batchId) return;
+
+        batch.reports = items.map((item: any) => ({
+          id: item.id,
+          name: item.studentName,
+          template: batch.template,
+          type: 'REPORT',
+          generatedBy: batch.generatedBy,
+          date: batch.date,
+          status: item.status,
+          downloadUrl: item.fileUrl,
+          failureReason: item.failureReason,
+          student: {
+            id: item.studentId,
+            studentType: (batch.studentType === 'COLLEGE' ? 'COLLEGE' : 'K12') as StudentType,
+            studentId: item.studentId,
+            firstName: item.studentName,
+            lastName: '',
+            name: item.studentName,
+            subtitle: '',
+            status: 'ACTIVE',
+            grade: item.grade,
+            section: item.section,
+            strand: item.strand
+          }
+        }));
+
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => console.error('Failed to fetch report items:', err)
+    });
+  }
+
   openBatch(batch: ReportBatch): void {
     this.selectedBatch = batch;
     this.viewMode = 'detail';
     this.selectedIds.clear();
     this.detailPage = 1;
+    this.fetchReportItems(batch.id);
   }
 
   backToBatches(): void {
@@ -484,8 +522,10 @@ export class Archives implements OnInit {
   retryReport(report: ArchiveReport): void { console.log('Retry report generation for', report.id); }
 
   downloadReport(report: ArchiveReport): void {
-    console.log('Downloading', report.id, report.downloadUrl);
-    report.lastDownloadedAt = new Date().toISOString().slice(0, 10);
+    if (report.status === 'DONE' && report.downloadUrl) {
+      window.open(report.downloadUrl, '_blank');
+      report.lastDownloadedAt = new Date().toISOString().slice(0, 10);
+    }
   }
 
   // ── Selection logic for batch detail view ──

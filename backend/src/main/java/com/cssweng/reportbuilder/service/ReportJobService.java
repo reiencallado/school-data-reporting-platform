@@ -1,11 +1,15 @@
 package com.cssweng.reportbuilder.service;
 
 import com.cssweng.reportbuilder.model.AppUser;
+import com.cssweng.reportbuilder.model.ReportItem;
 import com.cssweng.reportbuilder.model.ReportJob;
 import com.cssweng.reportbuilder.model.ReportJobRequest;
 import com.cssweng.reportbuilder.model.ReportTemplate;
+import com.cssweng.reportbuilder.repository.ReportItemRepository;
 import com.cssweng.reportbuilder.repository.ReportJobRepository;
 import com.cssweng.reportbuilder.repository.ReportTemplateRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -18,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,16 +33,20 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class ReportJobService {
 
     private final ReportJobRepository reportJobRepository;
+    private final ReportItemRepository reportItemRepository;
     private final ReportTemplateRepository templateRepository;
     private final StorageService storageService; 
     private final RestTemplate restTemplate;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     public ReportJobService(ReportJobRepository reportJobRepository, 
+                            ReportItemRepository reportItemRepository,
                             ReportTemplateRepository templateRepository,
                             StorageService storageService) {
         this.reportJobRepository = reportJobRepository;
+        this.reportItemRepository = reportItemRepository;
         this.templateRepository = templateRepository;
         this.storageService = storageService;
         this.restTemplate = new RestTemplate();
@@ -45,6 +54,10 @@ public class ReportJobService {
 
     public List<ReportJob> getJobsForUser(UUID userId) {
         return reportJobRepository.findByRequestedById(userId);
+    }
+
+    public List<ReportItem> getItemsForJob(UUID jobId) {
+        return reportItemRepository.findByJobId(jobId);
     }
 
     public ReportJob createAndQueueJob(ReportJobRequest request, AppUser user) {
@@ -81,13 +94,52 @@ public class ReportJobService {
                 payload.put("configuration", configuration);
                 payload.put("inputs", inputs);
 
-                ResponseEntity<byte[]> response = restTemplate.postForEntity(nodeUrl, payload, byte[].class);
-                byte[] zipBytes = response.getBody();
+                ResponseEntity<String> response = restTemplate.postForEntity(nodeUrl, payload, String.class);
 
-                if (zipBytes != null && response.getStatusCode().is2xxSuccessful()) {
-                    
+                if (response.getBody() != null && response.getStatusCode().is2xxSuccessful()) {
+                    JsonNode root = objectMapper.readTree(response.getBody());
+
+                    // Save one ReportItem row per student
+                    ReportJob job = reportJobRepository.findById(jobId).orElseThrow();
+                    JsonNode resultsNode = root.get("results");
+                    for (JsonNode itemNode : resultsNode) {
+                        ReportItem item = new ReportItem(
+                                job,
+                                itemNode.get("studentId").asText(),
+                                itemNode.get("studentName").asText()
+                        );
+                        item.setStatus(itemNode.get("status").asText());
+                        if (itemNode.hasNonNull("failureReason")) {
+                            item.setFailureReason(itemNode.get("failureReason").asText());
+                        }
+                        if (itemNode.hasNonNull("grade")) {
+                            item.setGrade(itemNode.get("grade").asText());
+                        }
+                        if (itemNode.hasNonNull("section")) {
+                            item.setSection(itemNode.get("section").asText());
+                        }
+                        if (itemNode.hasNonNull("strand")) {
+                            item.setStrand(itemNode.get("strand").asText());
+                        }
+
+                        // Upload this student's individual PDF, if generation succeeded
+                        if (itemNode.hasNonNull("pdfBase64")) {
+                            byte[] pdfBytes = Base64.getDecoder().decode(itemNode.get("pdfBase64").asText());
+                            String pdfFilename = "item_" + item.getId() + "_" + itemNode.get("studentId").asText() + ".pdf";
+                            MultipartFile pdfFile = createMultipartFileAdapter(pdfBytes, pdfFilename, "application/pdf");
+                            String itemFileUrl = storageService.uploadFileAndGetUrl(pdfFile, "reports/items/", pdfFilename);
+                            item.setFileUrl(itemFileUrl);
+                        }
+
+                        reportItemRepository.save(item);
+                    }
+
+                    // Decode and upload the zip as before
+                    String zipBase64 = root.get("zipBase64").asText();
+                    byte[] zipBytes = Base64.getDecoder().decode(zipBase64);
+
                     String filename = "batch_" + jobId + ".zip";
-                    MultipartFile multipartFile = createMultipartFileAdapter(zipBytes, filename);
+                    MultipartFile multipartFile = createMultipartFileAdapter(zipBytes, filename, "application/zip");
 
                     String safeName = reportName.replaceAll("[^a-zA-Z0-9\\s-]", "").trim();
                     String downloadFilename = safeName + ".zip";
@@ -119,11 +171,11 @@ public class ReportJobService {
     }
 
     // Converts raw bytes into a MultipartFile
-    private MultipartFile createMultipartFileAdapter(byte[] content, String filename) {
+    private MultipartFile createMultipartFileAdapter(byte[] content, String filename, String contentType) {
         return new MultipartFile() {
             @Override public String getName() { return "file"; }
             @Override public String getOriginalFilename() { return filename; }
-            @Override public String getContentType() { return "application/zip"; }
+            @Override public String getContentType() { return contentType; }
             @Override public boolean isEmpty() { return content == null || content.length == 0; }
             @Override public long getSize() { return content.length; }
             @Override public byte[] getBytes() { return content; }
@@ -134,7 +186,7 @@ public class ReportJobService {
 
     // SSE Streaming
     public SseEmitter createNewEmitter() {
-        SseEmitter emitter = new SseEmitter(1800000L); // 30 min timeout
+        SseEmitter emitter = new SseEmitter(1800000L);
         this.emitters.add(emitter);
 
         emitter.onCompletion(() -> this.emitters.remove(emitter));

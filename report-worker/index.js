@@ -22,13 +22,10 @@ const plugins = {
 app.post('/api/generate', async (req, res) => {
     try {
         const { jobId, configuration, inputs } = req.body;
-        
-        // Validation
+
         if (!inputs || !Array.isArray(inputs)) {
             return res.status(400).send('Inputs must be a valid array.');
         }
-
-        await new Promise(resolve => setTimeout(resolve, 5000)); // For testing, delete later
 
         console.log(`[Worker - Job ${jobId}] Received batch for ${inputs.length} student(s)...`);
 
@@ -36,20 +33,34 @@ app.post('/api/generate', async (req, res) => {
         const templateConfig = JSON.parse(configuration);
         const zip = new JSZip();
 
-        // 20 students at a time
         const CHUNK_SIZE = 20;
-        let successCount = 0;
-        let failCount = 0;
+        const results = [];
 
         for (let i = 0; i < inputs.length; i += CHUNK_SIZE) {
             const chunk = inputs.slice(i, i + CHUNK_SIZE);
-            
-            // Parallel processing
+
             await Promise.all(chunk.map(async (studentInput, index) => {
                 const globalIndex = i + index;
-                const rawName = studentInput.studentname || studentInput.name || `student_${globalIndex}`;
+                function extractValue(field) {
+                    if (!field) return '';
+                    if (typeof field === 'string' && field.trim().startsWith('{')) {
+                        try {
+                            const parsed = JSON.parse(field);
+                            const firstKey = Object.keys(parsed)[0];
+                            return parsed[firstKey] ?? '';
+                        } catch {
+                            return field;
+                        }
+                    }
+                    return field;
+                }
+
+                const rawName = extractValue(studentInput.studentName || studentInput.studentname || studentInput.name) || `student_${globalIndex}`;
                 const safeName = rawName.replace(/[^a-z0-9]+/gi, '_');
-                const studentId = studentInput.studentid || globalIndex;
+                const studentId = extractValue(studentInput.studentId || studentInput.studentid) || String(globalIndex);
+                const grade = extractValue(studentInput.gradeLevel || studentInput.gradelevel) || '';
+                const section = extractValue(studentInput.section) || '';
+                const strand = extractValue(studentInput.strand) || '';
                 const fileName = `${safeName}_${studentId}.pdf`;
 
                 try {
@@ -58,34 +69,61 @@ app.post('/api/generate', async (req, res) => {
                         inputs: [studentInput], 
                         plugins 
                     });
-                    
+
                     zip.file(fileName, pdfBytes);
-                    successCount++;
+
+                    results.push({
+                        studentId,
+                        studentName: rawName,
+                        grade,
+                        section,
+                        strand,
+                        status: 'DONE',
+                        fileName,
+                        pdfBase64: Buffer.from(pdfBytes).toString('base64'),
+                        failureReason: null
+                    });
                 } catch (innerErr) {
                     console.error(`[Worker - Job ${jobId}] Failed to generate PDF for ${fileName}:`, innerErr.message);
-                    failCount++;
                     zip.file(`_FAILED_${fileName}.txt`, `Failed to generate: ${innerErr.message}`);
+
+                    results.push({
+                        studentId,
+                        studentName: rawName,
+                        grade,
+                        section,
+                        strand,
+                        status: 'FAILED',
+                        fileName: null,
+                        pdfBase64: null,
+                        failureReason: innerErr.message
+                    });
                 }
             }));
         }
 
+        const successCount = results.filter(r => r.status === 'DONE').length;
+        const failCount = results.filter(r => r.status === 'FAILED').length;
+
         console.log(`[Worker - Job ${jobId}] Zipping ${successCount} files (${failCount} failed)...`);
-        
-        const zipBuffer = await zip.generateAsync({ 
-            type: 'nodebuffer',
-            streamFiles: true,
+
+        const zipBase64 = await zip.generateAsync({ 
+            type: 'base64',
             compression: "DEFLATE",
             compressionOptions: { level: 6 }
         });
-        
-        res.setHeader('Content-Type', 'application/zip');
-        res.send(zipBuffer);
-        
-        console.log(`[Worker - Job ${jobId}] Job complete! ZIP sent back to Java.`);
+
+        res.json({
+            jobId,
+            results,
+            zipBase64
+        });
+
+        console.log(`[Worker - Job ${jobId}] Job complete! Response sent back to Java.`);
 
     } catch (err) {
         console.error("[Worker] Fatal error generating batch:", err);
-        res.status(500).send('Generation failed');
+        res.status(500).json({ error: err.message });
     }
 });
 
