@@ -65,12 +65,6 @@ export class Layout implements OnInit, OnDestroy {
     return this.isAdmin;
   }
 
-  constructor(
-    private router: Router,
-    private authService: AuthService,
-    private cdr: ChangeDetectorRef,
-  ) {}
-
   // ── Lifecycle ────────────────────────────────────────────
   constructor(
     private router: Router, 
