@@ -28,6 +28,9 @@ const ABBREVIATION_STOP_WORDS = new Set(['of', 'the', 'and', 'de', 'la', 'del'])
   imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet],
   templateUrl: './layout.html',
   styleUrl: './layout.css',
+  host: {
+    '[class.sidebar-collapsed]': 'sidebarCollapsed'
+  }
 })
 export class Layout implements OnInit, OnDestroy {
 

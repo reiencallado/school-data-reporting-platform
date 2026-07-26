@@ -1,0 +1,138 @@
+{
+  "basePdf": {
+    "width": 85.6,
+    "height": 54,
+    "padding": [3, 3, 3, 3]
+  },
+  "schemas": [
+    [
+      {
+        "name": "cardBg",
+        "type": "line",
+        "position": { "x": 0, "y": 0 },
+        "width": 85.6,
+        "height": 12,
+        "color": "#013157"
+      },
+      {
+        "name": "schoolLogo",
+        "type": "image",
+        "content": "",
+        "position": { "x": 2, "y": 2 },
+        "width": 8,
+        "height": 8
+      },
+      {
+        "name": "schoolName",
+        "type": "multiVariableText",
+        "content": "{\"schoolName\":\"School Name\"}",
+        "text": "{schoolName}",
+        "variables": ["schoolName"],
+        "position": { "x": 12, "y": 2.5 },
+        "width": 71.6,
+        "height": 4,
+        "fontSize": 6.5,
+        "fontColor": "#ffffff",
+        "alignment": "left"
+      },
+      {
+        "name": "idCardLabel",
+        "type": "text",
+        "content": "College Student ID",
+        "position": { "x": 12, "y": 6.5 },
+        "width": 71.6,
+        "height": 4,
+        "fontSize": 5,
+        "fontColor": "#c9d6e2",
+        "alignment": "left"
+      },
+
+      {
+        "name": "studentPhoto",
+        "type": "image",
+        "content": "",
+        "position": { "x": 3, "y": 15 },
+        "width": 22,
+        "height": 27
+      },
+
+      {
+        "name": "studentName",
+        "type": "multiVariableText",
+        "content": "{\"studentName\":\"Student Name\"}",
+        "text": "{studentName}",
+        "variables": ["studentName"],
+        "position": { "x": 28, "y": 16 },
+        "width": 54.6,
+        "height": 6,
+        "fontSize": 8,
+        "fontColor": "#013157",
+        "alignment": "left"
+      },
+      {
+        "name": "studentId",
+        "type": "multiVariableText",
+        "content": "{\"studentId\":\"Student ID\"}",
+        "text": "ID No: {studentId}",
+        "variables": ["studentId"],
+        "position": { "x": 28, "y": 22.5 },
+        "width": 54.6,
+        "height": 5,
+        "fontSize": 6.5,
+        "fontColor": "#555555",
+        "alignment": "left"
+      },
+      {
+        "name": "course",
+        "type": "multiVariableText",
+        "content": "{\"course\":\"Program\"}",
+        "text": "{course}",
+        "variables": ["course"],
+        "position": { "x": 28, "y": 27.5 },
+        "width": 54.6,
+        "height": 5,
+        "fontSize": 6.5,
+        "fontColor": "#555555",
+        "alignment": "left"
+      },
+      {
+        "name": "yearLevel",
+        "type": "multiVariableText",
+        "content": "{\"yearLevel\":\"Year Level\"}",
+        "text": "Year Level: {yearLevel}",
+        "variables": ["yearLevel"],
+        "position": { "x": 28, "y": 32.5 },
+        "width": 54.6,
+        "height": 5,
+        "fontSize": 6.5,
+        "fontColor": "#555555",
+        "alignment": "left"
+      },
+
+      {
+        "name": "validity",
+        "type": "multiVariableText",
+        "content": "{\"schoolYear\":\"School Year\"}",
+        "text": "A.Y. {schoolYear}",
+        "variables": ["schoolYear"],
+        "position": { "x": 3, "y": 43 },
+        "width": 22,
+        "height": 6,
+        "fontSize": 5,
+        "fontColor": "#888888",
+        "alignment": "center"
+      },
+      {
+        "name": "footerNote",
+        "type": "text",
+        "content": "This ID is non-transferable and must be presented upon request.",
+        "position": { "x": 3, "y": 49 },
+        "width": 79.6,
+        "height": 4,
+        "fontSize": 4.5,
+        "fontColor": "#aaaaaa",
+        "alignment": "center"
+      }
+    ]
+  ]
+}

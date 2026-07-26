@@ -77,11 +77,9 @@ export class Archives implements OnInit {
   currentPage = 1;
   pageSize = 8;
 
-  // ── Pagination for the roster inside a batch's detail view ──
   detailPage = 1;
   detailPageSize = 10;
 
-  // ── Sorting state for batch roster ──
   sortField: string = 'student.studentId';
   sortAsc: boolean = true;
 
@@ -143,7 +141,7 @@ export class Archives implements OnInit {
           totalCount: job.totalCount || 0,
           generatedCount: job.status === 'DONE' ? (job.totalCount || 0) : 0,
           downloadUrl: job.fileUrl,
-          studentType: job.template?.studentType, // <-- ADD THIS LINE
+          studentType: job.template?.studentType,
           reports: []
         }));
         this.cdr.detectChanges();
@@ -530,7 +528,7 @@ export class Archives implements OnInit {
 
   // ── Selection logic for batch detail view ──
 
-  // Helper to get only reports that are allowed to be downloaded
+  // Get only reports that are allowed to be downloaded
   get selectableReports(): ArchiveReport[] {
     return (this.selectedBatch?.reports ?? []).filter(r => r.status !== 'PROCESSING');
   }

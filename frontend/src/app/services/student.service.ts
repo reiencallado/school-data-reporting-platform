@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, forkJoin, of, map } from 'rxjs';
+import { Observable, forkJoin, of, map, catchError } from 'rxjs';
 import {
   K12StudentApi, CollegeStudentApi, AdmissionStudentApi,
   StudentSummary, canViewStudentType,
@@ -31,6 +31,15 @@ export class StudentService {
    * any non-admin role — a single 403 from an endpoint they can't access
    * would break the whole merged list, including data they DO have
    * access to.
+   *
+   * ALSO IMPORTANT: ROLE_ADMIN is the only role that ever calls all three
+   * endpoints at once (see ROLE_STUDENT_TYPE_ACCESS in student.model.ts).
+   * forkJoin fails its entire result if ANY one inner observable errors,
+   * so without the catchError below, a single failing/unimplemented
+   * endpoint (e.g. admission-students) would wipe out K12 + College data
+   * too, even though those two calls succeeded. Each call is caught
+   * individually and falls back to an empty array so one bad endpoint
+   * can't take down the other two for admin.
    */
   getAllStudents(): Observable<StudentSummary[]> {
     const role = this.authService.getCurrentRole();
@@ -39,21 +48,39 @@ export class StudentService {
     if (canViewStudentType(role, 'K12')) {
       calls.push(
         this.http.get<K12StudentApi[]>(`${this.baseUrl}/k12-students`, { headers: this.authHeaders() })
-          .pipe(map(list => list.map(this.mapK12)))
+          .pipe(
+            map(list => list.map(this.mapK12)),
+            catchError(err => {
+              console.error('Failed to load K12 students:', err);
+              return of([] as StudentSummary[]);
+            })
+          )
       );
     }
 
     if (canViewStudentType(role, 'COLLEGE')) {
       calls.push(
         this.http.get<CollegeStudentApi[]>(`${this.baseUrl}/college-students`, { headers: this.authHeaders() })
-          .pipe(map(list => list.map(this.mapCollege)))
+          .pipe(
+            map(list => list.map(this.mapCollege)),
+            catchError(err => {
+              console.error('Failed to load College students:', err);
+              return of([] as StudentSummary[]);
+            })
+          )
       );
     }
 
     if (canViewStudentType(role, 'ADMISSIONS')) {
       calls.push(
         this.http.get<AdmissionStudentApi[]>(`${this.baseUrl}/admission-students`, { headers: this.authHeaders() })
-          .pipe(map(list => list.map(this.mapAdmission)))
+          .pipe(
+            map(list => list.map(this.mapAdmission)),
+            catchError(err => {
+              console.error('Failed to load Admissions students:', err);
+              return of([] as StudentSummary[]);
+            })
+          )
       );
     }
 
@@ -73,6 +100,7 @@ export class StudentService {
       id: s.id,
       studentType: 'K12',
       schoolId: s.school?.id,
+      schoolName: s.school?.name,
       studentId: s.studentId,
       firstName: s.firstName,
       lastName: s.lastName,
@@ -91,6 +119,7 @@ export class StudentService {
       id: s.id,
       studentType: 'COLLEGE',
       schoolId: s.school?.id,
+      schoolName: s.school?.name,
       studentId: s.studentId,
       firstName: s.firstName,
       lastName: s.lastName,
@@ -116,6 +145,7 @@ export class StudentService {
       id: s.id,
       studentType: 'ADMISSIONS',
       schoolId: s.school?.id,
+      schoolName: s.school?.name,
       studentId: s.id,
       firstName: s.firstName,
       lastName: s.lastName,

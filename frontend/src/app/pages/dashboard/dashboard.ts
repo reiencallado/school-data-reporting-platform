@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ResolutionModalComponent } from '../../shared/components/resolution-modal/resolution-modal';
@@ -39,9 +39,11 @@ export class Dashboard implements OnInit {
   // Now fetched from StudentService (real K12/College/Admissions data,
   // already role/school-scoped server-side), sorted newest-first, capped
   // to 10. Everything else on this page is still mock data per request.
-  students: StudentRow[] = [];
-  studentsLoading = false;
-  studentsError: string | null = null;
+  // Using signals: this app is zoneless, so plain property assignment
+  // inside the HTTP subscribe callback won't trigger a repaint on its own.
+  students = signal<StudentRow[]>([]);
+  studentsLoading = signal(false);
+  studentsError = signal<string | null>(null);
 
   // ── Recent Reports ───────────────────────────────────────
   // TODO: fetch from ReportService (limit 10, sort by createdAt desc)
@@ -84,12 +86,12 @@ export class Dashboard implements OnInit {
   }
 
   private fetchRecentStudents(): void {
-    this.studentsLoading = true;
-    this.studentsError = null;
+    this.studentsLoading.set(true);
+    this.studentsError.set(null);
 
     this.studentService.getAllStudents().subscribe({
       next: (data: StudentSummary[]) => {
-        this.students = data
+        const mapped = data
           .slice()
           .sort((a, b) => {
             // Newest first; students with no createdAt sort last rather
@@ -102,26 +104,17 @@ export class Dashboard implements OnInit {
           .map((s): StudentRow => ({
             id: s.studentId,
             name: s.name,
-            // Reuses the same descriptive string StudentService already
-            // builds per type (e.g. "Grade 10 • STEM • A" for K12,
-            // "BSCS • 3rd Year" for College) instead of re-deriving it here.
             section: s.subtitle,
-            // No CGPA field exists on any of the real student entities —
-            // this was dummy-data-only. Shown as a placeholder rather
-            // than inventing a number.
-            cgpa: '—',
-            // Table's badge logic checks for the exact string 'Active',
-            // but real backend statuses are upper-case ('ACTIVE'/'INACTIVE') —
-            // normalized here so the existing badge styling still works
-            // correctly without touching the template.
+            cgpa: '—', // not sure if needed?
             status: s.status === 'ACTIVE' ? 'Active' : 'Inactive',
           }));
-        this.studentsLoading = false;
+        this.students.set(mapped);
+        this.studentsLoading.set(false);
       },
       error: (err) => {
         console.error('Failed to fetch recent students:', err);
-        this.studentsError = 'Could not load recent students.';
-        this.studentsLoading = false;
+        this.studentsError.set('Could not load recent students.');
+        this.studentsLoading.set(false);
       },
     });
   }

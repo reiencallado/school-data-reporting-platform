@@ -88,6 +88,12 @@ export interface StudentSummary {
   id: string;
   studentType: StudentType;
   schoolId?: string;
+  // Display name of the student's school. Populated from the API's
+  // nested `school.name` in student.service.ts's mappers. Mainly
+  // relevant for ROLE_ADMIN, who is the only role that sees students
+  // across more than one school - see students.ts's admin-only School
+  // column/filter.
+  schoolName?: string;
   studentId: string;
   firstName: string;
   lastName: string;

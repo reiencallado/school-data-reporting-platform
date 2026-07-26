@@ -1,4 +1,9 @@
-/* REPORT TEMPLATES */
+/* REPORT TEMPLATES — page-specific only. Search/filter/dropdown/pill
+   patterns and the kebab menu live in styles.css's shared-components
+   section. Both "All Templates" and "School" dropdowns use the shared
+   .checkbox-dropdown-wrapper / .dropdown-btn / .dropdown-checkbox-panel
+   classes (not the old .type-dropdown-* names, which styles.css no
+   longer styles). */
 
 .templates-container {
   display: flex;
@@ -6,105 +11,7 @@
   gap: 20px;
 }
 
-.section-card {
-  background: var(--white-1);
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-xl);
-  padding: 20px 24px;
-  box-shadow: var(--shadow-sm);
-}
-
-.section-label {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--blue-1);
-  margin: 0 0 16px;
-}
-
-/* ── Filter row ── */
-.filter-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-@media (max-width: 900px) {
-  .search-bar-wrapper {
-    flex: 1 1 100%;
-    order: -1;
-  }
-}
-
-.search-bar-wrapper {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  min-width: 220px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  color: var(--gray-3);
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  height: 40px;
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-md);
-  padding: 0 14px;
-  font-family: var(--font-base);
-  font-size: 13px;
-  color: var(--blue-1);
-  background: var(--white-1);
-  outline: none;
-  transition: border-color 0.15s ease;
-}
-
-.search-input-icon { padding-left: 38px; }
-.search-input::placeholder { color: var(--gray-3); }
-.search-input:focus { border-color: var(--blue-3); }
-
-.type-toggle {
-  display: flex;
-  background: var(--white-2);
-  border-radius: 999px;
-  padding: 3px;
-  gap: 2px;
-}
-
-.type-pill {
-  border: none;
-  background: transparent;
-  padding: 8px 16px;
-  border-radius: 999px;
-  font-family: var(--font-base);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--gray-2);
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-  white-space: nowrap;
-}
-
-.type-pill:hover { color: var(--blue-1); }
-
-.type-pill.active {
-  background: var(--blue-3);
-  color: var(--white-1);
-}
-
-.type-pill.pill-all.active {
-  background: var(--orange-1);
-  color: var(--white-1);
-}
-
 /* ==== TEMPLATE GRID ==== */
-/* ── CREATE card ── */
 .template-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -127,10 +34,7 @@
   flex-direction: column;
 }
 
-.template-card:hover {
-  border-color: var(--blue-3);
-  box-shadow: var(--shadow-md);
-}
+.template-card:hover { border-color: var(--blue-3); box-shadow: var(--shadow-md); }
 
 /* ── CREATE card ── */
 .create-card {
@@ -144,10 +48,7 @@
   gap: 0;
 }
 
-.create-card:hover {
-  border-color: var(--blue-3);
-  background: var(--blue-4);
-}
+.create-card:hover { border-color: var(--blue-3); background: var(--blue-4); }
 
 .create-badge {
   background: var(--orange-1);
@@ -160,15 +61,8 @@
   margin-bottom: 20px;
 }
 
-.create-icon {
-  color: var(--blue-1);
-  opacity: 0.5;
-}
-
-.create-card:hover .create-icon {
-  opacity: 0.8;
-  color: var(--blue-2);
-}
+.create-icon { color: var(--blue-1); opacity: 0.5; }
+.create-card:hover .create-icon { opacity: 0.8; color: var(--blue-2); }
 
 .create-text {
   margin-top: 12px;
@@ -179,121 +73,7 @@
   transition: opacity 0.15s ease, color 0.15s ease;
 }
 
-.create-card:hover .create-text {
-  opacity: 0.9;
-  color: var(--blue-2);
-}
-
-/* ==== KEBAB MENU ==== */
-.kebab-wrapper {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 300;
-}
-
-.kebab-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-md);
-  background: var(--white-1);
-  border: 1px solid var(--gray-4);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3.5px;
-  cursor: pointer;
-  padding: 0;
-  opacity: 0;
-  transition: opacity 0.15s ease, background 0.15s ease;
-}
-
-.template-card:hover .kebab-btn,
-.kebab-btn.open {
-  opacity: 1;
-}
-
-.kebab-btn span {
-  display: block;
-  width: 4px;
-  height: 4px;
-  background: var(--gray-2);
-  border-radius: 50%;
-  transition: background 0.15s ease;
-}
-
-.kebab-btn:hover,
-.kebab-btn.open {
-  background: var(--blue-4);
-  border-color: var(--blue-3);
-}
-
-.kebab-btn:hover span,
-.kebab-btn.open span {
-  background: var(--blue-1);
-}
-
-.kebab-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  background: var(--white-1);
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  min-width: 140px;
-  padding: 4px;
-  z-index: 200;
-  animation: dropdown-in 0.1s ease;
-}
-
-@keyframes dropdown-in {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.kebab-item {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 8px 12px;
-  border: none;
-  background: none;
-  border-radius: var(--radius-md);
-  font-family: var(--font-base);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--blue-1);
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.12s ease, color 0.12s ease;
-}
-
-.kebab-item:hover {
-  background: var(--blue-4);
-  color: var(--blue-2);
-}
-
-.kebab-item svg { flex-shrink: 0; color: var(--gray-2); }
-.kebab-item:hover svg { color: var(--blue-2); }
-
-.kebab-item.danger { color: var(--color-danger); }
-.kebab-item.danger svg { color: var(--color-danger); }
-.kebab-item.danger:hover { background: #fef2f2; color: var(--color-danger); }
-
-.kebab-divider {
-  height: 1px;
-  background: var(--gray-4);
-  margin: 4px 0;
-}
-
-.menu-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 199;
-}
+.create-card:hover .create-text { opacity: 0.9; color: var(--blue-2); }
 
 /* ==== THUMBNAIL AREA ====
    Actual rendering (real image or live schema preview) is owned by
@@ -322,26 +102,5 @@
   gap: 3px;
 }
 
-.template-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--blue-1);
-  display: block;
-}
-
-.template-meta {
-  font-size: 11px;
-  color: var(--gray-2);
-  display: block;
-}
-
-.template-state-msg {
-  font-size: 13px;
-  color: var(--gray-2);
-  padding: 24px;
-  text-align: center;
-}
-
-.template-state-msg.error {
-  color: var(--color-danger, #dc2626);
-}
+.template-name { font-size: 14px; font-weight: 700; color: var(--blue-1); display: block; }
+.template-meta { font-size: 11px; color: var(--gray-2); display: block; }

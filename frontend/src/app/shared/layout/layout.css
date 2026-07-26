@@ -119,6 +119,7 @@
   line-height: 1.25;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   cursor: default;
@@ -370,6 +371,10 @@
   height: 1px;
   background-color: var(--sidebar-border);
   margin: 0 auto 10px;
+}
+
+:host(.sidebar-collapsed) {
+  --sidebar-width: var(--sidebar-collapsed-width);
 }
 
 /* ==== MAIN CONTENT WRAPPER ==== */

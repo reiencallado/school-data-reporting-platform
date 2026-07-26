@@ -6,7 +6,7 @@ import { Template } from '@pdfme/common';
 import { HttpClient } from '@angular/common/http';
 
 import { ReportTemplateService } from '../../services/report-template.service';
-import { ReportTemplate as ApiReportTemplate } from '../../services/report-template.model';
+import { ReportTemplate as ApiReportTemplate, TemplateReportKind } from '../../services/report-template.model';
 import { StudentService } from '../../services/student.service';
 import {
   StudentSummary,
@@ -21,14 +21,18 @@ import {
 import { AuthService } from '../../services/auth.service';
 
 export type StudentTypeFilter = StudentType | 'ALL';
+export type ReportKindFilter = TemplateReportKind | 'ALL';
 
 export interface ReportTemplate {
   id:            string;
   name:          string;
   lastUsed:      string;
   thumbnailUrl?: string;
-  configuration: string;   // raw pdfme JSON - needed to actually generate PDFs
-  studentType?:  StudentType;   // ⚠️ mirror of templates.ts - not yet returned by backend for all rows
+  configuration: string;   // raw pdfme JSON to actually generate PDFs
+  studentType?:  StudentType;
+  reportKind:    TemplateReportKind;
+  schoolId?:     string;
+  schoolName?:   string;    // for DATA-kind templates
 }
 
 export interface ReportDetails {
@@ -40,6 +44,13 @@ export interface ReportDetails {
   remarks:        string;
 }
 
+interface TemplateField {
+  key: string;
+  label: string;
+  required: boolean;
+  kind: 'text' | 'date' | 'image';
+}
+
 @Component({
   selector: 'app-generate-report',
   standalone: true,
@@ -48,8 +59,21 @@ export interface ReportDetails {
   styleUrl: './generate-report.css',
 })
 export class GenerateReport implements OnInit {
+  get steps(): string[] {
+    if (this.selectedTemplate?.reportKind === 'DATA') {
+      return ['Select template', 'Fill details & generate'];
+    }
+    return ['Select template', 'Select students', 'Review & generate'];
+  }
 
-  steps = ['Select template', 'Select students', 'Review & generate'];
+  get isStudentSelectionStep(): boolean {
+    return this.selectedTemplate?.reportKind !== 'DATA' && this.currentStep === 2;
+  }
+
+  get isReviewStep(): boolean {
+    return this.currentStep === this.steps.length;
+  }
+
   currentStep = 1;
 
   // ── Step 1: Template ─────────────────────────────────────
@@ -58,19 +82,81 @@ export class GenerateReport implements OnInit {
   templates: ReportTemplate[] = [];
   templatesLoading = false;
   templatesError: string | null = null;
+  filterReportKind: ReportKindFilter = 'ALL';
+  filterStudentType: StudentTypeFilter = 'ALL';
+  filterReportKindDropdownOpen = false;
+
+  readonly reportKindFilterOptions: { value: ReportKindFilter; label: string }[] = [
+    { value: 'ALL', label: 'All Templates' },
+    { value: 'STUDENT', label: 'Student Records' },
+    { value: 'DATA', label: 'School Data' },
+  ];
+
+  get filterReportKindLabel(): string {
+    return this.reportKindFilterOptions.find(o => o.value === this.filterReportKind)?.label ?? 'All Templates';
+  }
+
+  toggleFilterReportKindDropdown(event: Event): void {
+    event.stopPropagation();
+    this.filterReportKindDropdownOpen = !this.filterReportKindDropdownOpen;
+  }
+
+  selectFilterReportKind(kind: ReportKindFilter): void {
+    this.filterReportKind = kind;
+    this.filterReportKindDropdownOpen = false;
+    if (kind === 'DATA') this.filterStudentType = 'ALL';
+  }
+
+  selectFilterStudentType(type: StudentTypeFilter): void {
+    if (!this.isAdmin) return;
+    this.filterStudentType = type;
+  }
+
+  // ── School filter (Step 1, browse-only) ──
+  selectedFilterSchools = new Set<string>();
+  filterSchoolDropdownOpen = false;
+
+  get availableFilterSchools(): { id: string; name: string }[] {
+    const byId = new Map<string, string>();
+    for (const t of this.templates) {
+      if (t.schoolId && t.schoolName) byId.set(t.schoolId, t.schoolName);
+    }
+    return Array.from(byId.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  get filterSchoolLabel(): string {
+    if (this.selectedFilterSchools.size === 0) return 'All Schools';
+    if (this.selectedFilterSchools.size === 1) {
+      const match = this.availableFilterSchools.find(s => s.id === Array.from(this.selectedFilterSchools)[0]);
+      return match?.name ?? '1 selected';
+    }
+    return `${this.selectedFilterSchools.size} selected`;
+  }
+
+  toggleFilterSchoolDropdown(event: Event): void {
+    event.stopPropagation();
+    this.filterSchoolDropdownOpen = !this.filterSchoolDropdownOpen;
+  }
+
+  onFilterSchoolToggle(id: string): void {
+    if (this.selectedFilterSchools.has(id)) this.selectedFilterSchools.delete(id);
+    else this.selectedFilterSchools.add(id);
+  }
+
+  clearFilterSchools(): void {
+    this.selectedFilterSchools.clear();
+  }
 
   get filteredTemplates(): ReportTemplate[] {
     const q = this.templateSearch.toLowerCase();
     return this.templates.filter(t => {
       const matchesSearch = !q || t.name.toLowerCase().includes(q);
-      // TEMP: template studentType tagging is still being rolled out
-      // (backend migration + pdf-designer UI) — until that's fully in
-      // place and existing templates are retagged, show every template
-      // regardless of the selected K12/COLLEGE/ADMISSIONS filter instead
-      // of hiding untagged ones. Restore the real check
-      // (t.studentType === this.selectedType) once that's done.
-      const matchesType = true;
-      return matchesSearch && matchesType;
+      const matchesReportKind = this.filterReportKind === 'ALL' || t.reportKind === this.filterReportKind;
+      const matchesType = this.filterStudentType === 'ALL' || t.studentType === this.filterStudentType;
+      const matchesSchool = this.selectedFilterSchools.size === 0 || (!!t.schoolId && this.selectedFilterSchools.has(t.schoolId));
+      return matchesSearch && matchesReportKind && matchesType && matchesSchool;
     });
   }
 
@@ -92,6 +178,12 @@ export class GenerateReport implements OnInit {
           thumbnailUrl: t.thumbnailUrl,
           configuration: t.configuration,
           studentType: t.studentType,
+          schoolId: t.school?.id,
+          schoolName: t.school?.name,
+          // Backend does not persist reportKind on older records yet so
+          // fall back to inferring it from studentType presence, same as
+          // templates.ts.
+          reportKind: t.reportKind ?? (t.studentType ? 'STUDENT' : 'DATA'),
         }));
         this.templatesLoading = false;
         this.cdr.detectChanges();
@@ -107,24 +199,60 @@ export class GenerateReport implements OnInit {
 
   selectTemplate(t: ReportTemplate): void {
     this.selectedTemplate = this.selectedTemplate?.id === t.id ? null : t;
+    this.selectedStudents.clear();
+    this.currentPage = 1;
+    this.sortColumn = null;
+    this.resetSearchFieldsForType();
+    this._templateFieldsCache = this.computeTemplateFields();
+    this.customImageValues = {};
+    if (this.resolvedSchoolLogo && this._templateFieldsCache.some(f => f.kind === 'image' && f.key === 'schoollogo')) {
+      this.customImageValues['schoollogo'] = this.resolvedSchoolLogo;
+    }
+
+    if (!this.reportDetails.academicYear) {
+      this.reportDetails.academicYear = this.currentAcademicYear;
+    }
+    if (!this.termOptions.includes(this.reportDetails.term)) {
+      this.reportDetails.term = this.termOptions[0];
+    }
   }
 
-  // ── Step 2: Students ─────────────────────────────────────
-  studentSearch = '';
-  // Shared between Step 1 and Step 2 
-  // A specific type must be chosen in Step 1 before proceeding
-  selectedType: StudentTypeFilter = 'ALL';
+  // The template's own school, resolved automatically
+  get resolvedSchoolName(): string {
+    return this.selectedTemplate?.schoolName ?? '';
+  }
 
-  // The type-toggle tabs (K12/College/Admissions/All) are only shown to
-  // ROLE_ADMIN — every other role only ever has access to exactly one
-  // type, so selectedType is locked to that instead of the 'ALL' default
-  // (which would otherwise leave Step 2's student list permanently empty
-  // for non-admins, since 'ALL' never strictly equals a real StudentType).
+  // Best-effort logo resolution: School doesn't carry its own logoUrl in
+  // the current data model (see report-template.model.ts's School
+  // interface), so the only reliable source right now is the logged-in
+  // user's OWN school logo (from their profile) - which only applies
+  // when they're viewing a template that belongs to their own school.
+  // An admin browsing another school's template has no client-side way
+  // to know that school's logo yet - falls back to the manual upload
+  // field in that case, same as before this change.
+  //
+  // SEAM: once School gets its own logoUrl (returned alongside
+  // name/id on ReportTemplate.school), this can resolve unconditionally
+  // for every template, not just the user's own school.
+  get resolvedSchoolLogo(): string | null {
+    if (!this.selectedTemplate?.schoolId) return null;
+    if (this.authService.getCurrentSchoolId() !== this.selectedTemplate.schoolId) return null;
+    return this.authService.getCurrentUser()?.logoUrl ?? null;
+  }
+
+  // ── Step 2: Students (STUDENT-kind templates only) ───────
+  studentSearch = '';
+
+  // The student type Step 2's roster comes directly from the chosen template
+  get selectedStudentType(): StudentType | null {
+    return this.selectedTemplate?.studentType ?? null;
+  }
+
   isAdmin = false;
 
   selectedStudents = new Set<string>();
 
-  statusOptions = ['ACTIVE', 'ENROLLED', 'DROPPED', 'PENDING', 'INACTIVE'];
+  statusOptions = ['ACTIVE', 'INACTIVE', 'ENROLLED', 'DROPPED', 'PENDING'];
   selectedStatuses = new Set<string>();
   statusDropdownOpen = false;
 
@@ -143,24 +271,15 @@ export class GenerateReport implements OnInit {
   getStatusBadgeClass = getStatusBadgeClass;
 
   get columns(): ColumnConfig[] {
-    return typeColumns[this.selectedType as StudentType];
+    return this.selectedStudentType ? typeColumns[this.selectedStudentType] : [];
   }
 
   get searchFieldOptions(): FilterFieldConfig[] {
-    return typeFilterFields[this.selectedType as StudentType];
+    return this.selectedStudentType ? typeFilterFields[this.selectedStudentType] : [];
   }
 
   private resetSearchFieldsForType(): void {
     this.enabledSearchFields = new Set(this.searchFieldOptions.map(f => f.key));
-  }
-
-  selectTemplateType(type: StudentTypeFilter): void {
-    if (this.selectedType === type) return;
-    this.selectedType = type;
-    this.selectedTemplate = null;   // previously selected template may not match the new type
-    this.currentPage = 1;
-    this.sortColumn = null;
-    this.resetSearchFieldsForType();
   }
 
   toggleStatusDropdown(event: Event): void {
@@ -220,6 +339,8 @@ export class GenerateReport implements OnInit {
   @HostListener('document:click')
   onDocumentClick(): void {
     this.closeAllDropdowns();
+    this.filterReportKindDropdownOpen = false;
+    this.filterSchoolDropdownOpen = false;
   }
 
   // 3-state cycle per column: ascending -> descending -> back to default order
@@ -255,9 +376,12 @@ export class GenerateReport implements OnInit {
 
   get filteredStudents(): StudentSummary[] {
     const q = this.studentSearch;
+    const type = this.selectedStudentType;
+    if (!type) return [];
 
     const filtered = this.allStudents.filter(s => {
-      const matchesType = s.studentType === this.selectedType;
+      const matchesType = s.studentType === type;
+      const matchesSchool = !this.selectedTemplate?.schoolId || s.schoolId === this.selectedTemplate.schoolId;
 
       const matchesCore = !q ||
         s.name.toLowerCase().includes(q) ||
@@ -271,7 +395,7 @@ export class GenerateReport implements OnInit {
       const matchesSearch = !q || matchesCore || matchesExtraField;
       const matchesStatus = this.selectedStatuses.size === 0 || this.selectedStatuses.has(s.status);
 
-      return matchesType && matchesSearch && matchesStatus;
+      return matchesType && matchesSchool && matchesSearch && matchesStatus;
     });
 
     return this.applySort(filtered);
@@ -300,7 +424,6 @@ export class GenerateReport implements OnInit {
     return Array.from({ length: this.totalPages }, (_, i) => i + 1);
   }
 
-  // Scoped to the currently filtered list, not the entire dataset
   get allSelected(): boolean {
     const list = this.filteredStudents;
     return list.length > 0 && list.every(s => this.selectedStudents.has(s.id));
@@ -315,7 +438,6 @@ export class GenerateReport implements OnInit {
     this.selectedStudents = new Set(this.selectedStudents);
   }
 
-  // Single toggle used by both the row click and the checkbox itself
   toggleStudent(id: string): void {
     if (this.selectedStudents.has(id)) this.selectedStudents.delete(id);
     else this.selectedStudents.add(id);
@@ -327,23 +449,106 @@ export class GenerateReport implements OnInit {
     this.currentPage = page;
   }
 
-  // ── Step 3: Review & Generate ──
+  // ── Step 3 (or Step 2 for DATA templates): Review & Generate ──
   reportDetails: ReportDetails = {
     // TODO: pull academicYear/term from a school-settings endpoint once
-    // one exists, instead of a hardcoded default that goes stale yearly.
-    academicYear:   '2025 - 2026',
-    term:           'Term 1',
+    // one exists, instead of defaulting to whatever academicYearOptions
+    // computes as "current."
+    academicYear:   '',
+    term:           '',
     signatoryName:  '',
     signatoryTitle: '',
     purpose:        '',
     remarks:        '',
   };
 
-  customFieldValues: Record<string, string> = {};
+  get academicYearOptions(): string[] {
+    const today = new Date();
+    const startYear = today.getMonth() >= 5 ? today.getFullYear() : today.getFullYear() - 1;
+    const years: string[] = [];
+    for (let offset = -1; offset <= 2; offset++) {
+      years.push(`${startYear + offset} - ${startYear + offset + 1}`);
+    }
+    return years;
+  }
 
-  private readonly STUDENT_AUTO_KEYS = new Set([
-    'studentname', 'studentid', 'gradelevel', 'strand', 'section', 'course', 'yearlevel',
-  ]);
+  private get currentAcademicYear(): string {
+    const today = new Date();
+    const startYear = today.getMonth() >= 5 ? today.getFullYear() : today.getFullYear() - 1;
+    return `${startYear} - ${startYear + 1}`;
+  }
+
+  get termOptions(): string[] {
+    switch (this.selectedTemplate?.studentType) {
+      case 'K12':
+        return ['Term 1', 'Term 2', 'Term 3', 'Term 4', 'Summer'];
+      case 'COLLEGE':
+        return ['1st Semester', '2nd Semester', 'Summer Term'];
+      default:
+        return ['Term 1', 'Term 2', 'Term 3', 'Term 4', '1st Semester', '2nd Semester', 'Summer'];
+    }
+  }
+
+  customFieldValues: Record<string, string> = {};
+  customImageValues: Record<string, string> = {};
+  customDateFieldValues: Record<string, string> = {};
+
+  onDateFieldChange(key: string, value: string): void {
+    this.customDateFieldValues[key] = value;
+    this.customFieldValues[key] = this.formatDisplayDate(value);
+  }
+
+  private formatDisplayDate(iso: string): string {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return '';
+    return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+  }
+
+  // Single source of truth for every field a student record can auto-fill
+  private readonly AUTO_LABEL_MAP: Record<string, string> = {
+    studentname: 'Student name', studentid: 'Student ID',
+    firstname: 'First name', lastname: 'Last name',
+    schoolname: 'School name', status: 'Status',
+    grade: 'Grade level', gradelevel: 'Grade level',
+    strand: 'Strand', section: 'Section',
+    strandsection: 'Strand / Section', gradesection: 'Grade & Section',
+    course: 'Course', program: 'Course', yearlevel: 'Year level',
+    schoolyear: 'School year',
+    issuancedate: "Today's date",
+    generateddate: 'Generation date',
+  };
+
+  private readonly AUTO_DATE_KEYS = new Set(['issuancedate', 'generateddate']);
+
+  private readonly STUDENT_AUTO_KEYS = new Set(
+    Object.keys(this.AUTO_LABEL_MAP).filter(k => !this.AUTO_DATE_KEYS.has(k))
+  );
+
+  private studentAutoFields(student: StudentSummary): Record<string, string> {
+    const strandSection = [student.strand, student.section].filter(Boolean).join(' - ');
+    const gradeSection = [student.grade, student.section].filter(Boolean).join(' - ');
+
+    return {
+      studentname: student.name,
+      studentid: student.studentId,
+      firstname: student.firstName,
+      lastname: student.lastName,
+      schoolname: student.schoolName || this.resolvedSchoolName || '',
+      status: student.status,
+      grade: student.grade ?? '',
+      gradelevel: student.grade ?? '',
+      strand: student.strand ?? '',
+      section: student.section ?? '',
+      strandsection: strandSection,
+      gradesection: gradeSection,
+      course: student.course ?? '',
+      program: student.course ?? '',
+      yearlevel: student.yearLevel ?? '',
+    };
+  }
 
   private readonly REPORT_DETAIL_FIELDS: { key: string; label: string }[] = [
     { key: 'academicyear',   label: 'Academic year' },
@@ -354,50 +559,141 @@ export class GenerateReport implements OnInit {
     { key: 'remarks',        label: 'Special notes / remarks' },
   ];
 
-  get templateFieldKeys(): string[] {
+  private _templateFieldsCache: TemplateField[] = [];
+
+  get templateFields(): TemplateField[] {
+    return this._templateFieldsCache;
+  }
+
+  // Extracts every genuinely fillable field from the template's saved pdfme JSON
+  private computeTemplateFields(): TemplateField[] {
     if (!this.selectedTemplate) return [];
     try {
       const parsed = JSON.parse(this.selectedTemplate.configuration);
-      const keys = new Set<string>();
+      const fields: TemplateField[] = [];
+      const seen = new Set<string>();
+
       for (const row of parsed.schemas ?? []) {
         for (const schema of row as any[]) {
           if (!schema?.name) continue;
+
           if (schema.type === 'multiVariableText' && Array.isArray(schema.variables)) {
-            schema.variables.forEach((v: string) => keys.add(v.toLowerCase().replace(/[\s_-]/g, '')));
-          } else {
-            keys.add((schema.name as string).toLowerCase().replace(/[\s_-]/g, ''));
+            for (const variable of schema.variables) {
+              const key = String(variable).toLowerCase().replace(/[\s_-]/g, '');
+              if (seen.has(key)) continue;
+              seen.add(key);
+              const isDateField = key.includes('date')
+                && !this.STUDENT_AUTO_KEYS.has(key)
+                && !this.AUTO_DATE_KEYS.has(key);
+              fields.push({
+                key,
+                label: this.extractSavedLabel(schema, variable) ?? this.humanizeKey(variable),
+                required: !!schema.required,
+                kind: isDateField ? 'date' : 'text',
+              });
+            }
+          } else if (schema.type === 'image') {
+            const key = (schema.name as string).toLowerCase().replace(/[\s_-]/g, '');
+            if (seen.has(key)) continue;
+            seen.add(key);
+            fields.push({
+              key,
+              label: this.humanizeKey(schema.name),
+              required: !!schema.required,
+              kind: 'image',
+            });
           }
         }
       }
-      return Array.from(keys);
+      return fields;
     } catch {
       return [];
     }
   }
 
+  private extractSavedLabel(schema: any, variable: string): string | null {
+    try {
+      const parsed = JSON.parse(schema.content ?? '{}');
+      return typeof parsed[variable] === 'string' && parsed[variable].trim() ? parsed[variable] : null;
+    } catch {
+      return null;
+    }
+  }
+
   get autoFilledFieldLabels(): string[] {
-    const labelMap: Record<string, string> = {
-      studentname: 'Student name', studentid: 'Student ID',
-      gradelevel: 'Grade level', strand: 'Strand', section: 'Section',
-      course: 'Course', yearlevel: 'Year level',
-      issuancedate: "Today's date",
-    };
-    const autoKeys = new Set([...this.STUDENT_AUTO_KEYS, 'issuancedate']);
+    const autoKeys = new Set([...this.STUDENT_AUTO_KEYS, ...this.AUTO_DATE_KEYS]);
     const seen = new Set<string>();
-    return this.templateFieldKeys
-      .filter(k => autoKeys.has(k))
-      .map(k => labelMap[k] ?? k)
+    const labels = this.templateFields
+      .filter(f => f.kind === 'text' && autoKeys.has(f.key))
+      .map(f => this.AUTO_LABEL_MAP[f.key] ?? f.label)
       .filter(label => (seen.has(label) ? false : (seen.add(label), true)));
+
+    const hasAutoLogo = this.resolvedSchoolLogo
+      && this.templateFields.some(f => f.kind === 'image' && f.key === 'schoollogo');
+    if (hasAutoLogo) labels.push('School logo');
+
+    return labels;
   }
 
-  get manualReportFields(): { key: string; label: string }[] {
-    const keys = this.templateFieldKeys;
-    return this.REPORT_DETAIL_FIELDS.filter(f => keys.includes(f.key));
+  get manualReportFields(): { key: string; label: string; required: boolean }[] {
+    const byKey = new Map(this.templateFields.map(f => [f.key, f]));
+    return this.REPORT_DETAIL_FIELDS
+      .filter(f => byKey.has(f.key))
+      .map(f => ({ ...f, required: byKey.get(f.key)!.required }));
   }
 
-  get customFieldKeys(): string[] {
-    const known = new Set([...this.STUDENT_AUTO_KEYS, 'issuancedate', ...this.REPORT_DETAIL_FIELDS.map(f => f.key)]);
-    return this.templateFieldKeys.filter(k => !known.has(k));
+  private readonly PERIOD_FIELD_KEYS = new Set(['academicyear', 'term']);
+
+  // For DATA-kind templates, academicYear/term aren't just two more form
+  // fields alongside signatory/purpose - they're the closest thing a Data
+  // report has to a "selection" (a Student Record template has you pick
+  // students; a Data report has you pick a period). Broken out separately
+  // so Step 3 can frame them as "what period is this report for?" instead
+  // of burying them in the generic details list.
+  //
+  // SEAM for later: once a backend aggregation endpoint exists (e.g.
+  // GET /api/reports/financial-summary?schoolId=&academicYear=&term=),
+  // this becomes a real period picker that, on change, calls that
+  // endpoint and auto-fills the stat fields below (customTextFields) from
+  // real numbers - the same way student records auto-fill studentName/
+  // grade for Student Record templates today. Until that endpoint exists,
+  // the stat fields stay manually typed.
+  get periodFields(): { key: string; label: string; required: boolean }[] {
+    return this.manualReportFields.filter(f => this.PERIOD_FIELD_KEYS.has(f.key));
+  }
+
+  get showPeriodSection(): boolean {
+    return this.selectedTemplate?.reportKind === 'DATA' && this.periodFields.length > 0;
+  }
+
+  get otherReportFields(): { key: string; label: string; required: boolean }[] {
+    if (!this.showPeriodSection) return this.manualReportFields;
+    return this.manualReportFields.filter(f => !this.PERIOD_FIELD_KEYS.has(f.key));
+  }
+
+  get hasOtherFillableFields(): boolean {
+    return this.otherReportFields.length > 0 || this.customTextFields.length > 0
+      || this.dateFields.length > 0 || this.imageFields.length > 0;
+  }
+
+  get customTextFields(): TemplateField[] {
+    const known = new Set([...this.STUDENT_AUTO_KEYS, ...this.AUTO_DATE_KEYS, ...this.REPORT_DETAIL_FIELDS.map(f => f.key)]);
+    return this.templateFields.filter(f => f.kind === 'text' && !known.has(f.key));
+  }
+
+  get dateFields(): TemplateField[] {
+    return this.templateFields.filter(f => f.kind === 'date');
+  }
+
+  get imageFields(): TemplateField[] {
+    return this.templateFields.filter(f =>
+      f.kind === 'image' && !(f.key === 'schoollogo' && !!this.resolvedSchoolLogo)
+    );
+  }
+
+  get hasAnyFillableFields(): boolean {
+    return this.manualReportFields.length > 0 || this.customTextFields.length > 0
+      || this.dateFields.length > 0 || this.imageFields.length > 0;
   }
 
   humanizeKey(key: string): string {
@@ -411,6 +707,24 @@ export class GenerateReport implements OnInit {
       purpose: 'purpose', remarks: 'remarks',
     };
     return map[key] ?? null;
+  }
+
+  onImageFieldUpload(key: string, event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.customImageValues[key] = reader.result as string;
+      this.cdr.detectChanges();
+    };
+    reader.readAsDataURL(file);
+    input.value = ''; // allow re-selecting the same file if the user wants to replace it
+  }
+
+  clearImageField(key: string): void {
+    delete this.customImageValues[key];
   }
 
   get todayFormatted(): string {
@@ -428,12 +742,21 @@ export class GenerateReport implements OnInit {
     if (this.reportDetails.signatoryName) rows.push({ key: 'Issued by', val: this.reportDetails.signatoryName });
     if (this.reportDetails.signatoryTitle) rows.push({ key: 'Signatory Title', val: this.reportDetails.signatoryTitle });
     if (this.reportDetails.purpose) rows.push({ key: 'Purpose', val: this.reportDetails.purpose });
-    rows.push({ key: 'Students', val: `${this.selectedStudents.size} student(s)`, accent: true });
+
+    if (this.selectedTemplate?.reportKind === 'DATA') {
+      const scopeLabel = this.resolvedSchoolName
+        ? `School-wide data report — ${this.resolvedSchoolName}`
+        : 'School-wide data report';
+      rows.push({ key: 'Scope', val: scopeLabel, accent: true });
+    } else {
+      rows.push({ key: 'Students', val: `${this.selectedStudents.size} student(s)`, accent: true });
+    }
     return rows;
   }
 
-  // Composition breakdown of the selected batch
   get selectionBreakdown(): { label: string; count: number }[] {
+    if (this.selectedTemplate?.reportKind === 'DATA') return [];
+
     const selected = this.allStudents.filter(s => this.selectedStudents.has(s.id));
     const counts = new Map<string, number>();
     for (const s of selected) {
@@ -465,7 +788,7 @@ export class GenerateReport implements OnInit {
       const role = this.authService.getCurrentRole();
       const allowed = role ? ROLE_STUDENT_TYPE_ACCESS[role] : [];
       if (allowed && allowed.length > 0) {
-        this.selectedType = allowed[0];
+        this.filterStudentType = allowed[0];
       }
     }
   }
@@ -481,31 +804,35 @@ export class GenerateReport implements OnInit {
   }
 
   canProceed(): boolean {
-    switch (this.currentStep) {
-      case 1: return !!this.selectedTemplate && this.selectedType !== 'ALL';
-      case 2: return this.selectedStudents.size > 0;
-      case 3: {
-        const reportFieldsOk = this.manualReportFields.every(f => {
-          const formKey = this.reportDetailFormKey(f.key);
-          return formKey ? !!this.reportDetails[formKey] : true;
-        });
-        const customFieldsOk = this.customFieldKeys.every(k => !!this.customFieldValues[k]?.trim());
-        return reportFieldsOk && customFieldsOk && !this.generating;
-      }
-      default: return false;
+    if (this.currentStep === 1) {
+      return !!this.selectedTemplate;
     }
+    if (this.isStudentSelectionStep) {
+      return this.selectedStudents.size > 0;
+    }
+    if (this.isReviewStep) {
+      const reportFieldsOk = this.manualReportFields.every(f => {
+        if (!f.required) return true;
+        const formKey = this.reportDetailFormKey(f.key);
+        return formKey ? !!this.reportDetails[formKey] : true;
+      });
+      const customTextOk = this.customTextFields.every(f =>
+        !f.required || !!this.customFieldValues[f.key]?.trim()
+      );
+      const dateFieldsOk = this.dateFields.every(f =>
+        !f.required || !!this.customDateFieldValues[f.key]
+      );
+      const imagesOk = this.imageFields.every(f =>
+        !f.required || !!this.customImageValues[f.key]
+      );
+      return reportFieldsOk && customTextOk && dateFieldsOk && imagesOk && !this.generating;
+    }
+    return false;
   }
 
   onNext(): void {
-    // TEMP: canProceed() gate disabled per request while debugging why
-    // Step 1 wasn't advancing (it required selectedType !== 'ALL' in
-    // addition to a selected template — selecting a template via
-    // selectTemplate() alone doesn't set selectedType; that only happens
-    // through selectTemplateType()). Re-enable this guard once that flow
-    // is sorted out, otherwise users can skip required fields on later
-    // steps (e.g. Step 3's manualReportFields/customFieldKeys checks).
-    // if (!this.canProceed()) return;
-    if (this.currentStep < 3) this.currentStep++;
+    if (!this.canProceed()) return;
+    if (this.currentStep < this.steps.length) this.currentStep++;
     else this.generate();
   }
 
@@ -515,28 +842,51 @@ export class GenerateReport implements OnInit {
     else this.currentStep--;
   }
 
+  // Builds pdfme inputs for one student
   private buildInputsForStudent(template: Template, student: StudentSummary): Record<string, string> {
     const today = new Date();
     const issuanceDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
 
     const known: Record<string, string> = {
       academicyear:   this.reportDetails.academicYear,
+      schoolyear:     this.reportDetails.academicYear,
       term:           this.reportDetails.term,
       issuancedate:   issuanceDate,
       signatoryname:  this.reportDetails.signatoryName,
       signatorytitle: this.reportDetails.signatoryTitle,
       purpose:        this.reportDetails.purpose,
       remarks:        this.reportDetails.remarks,
-      studentname:    student.name,
-      studentid:      student.studentId,
-      gradelevel:     student.grade ?? student.yearLevel ?? '',
-      strand:         student.strand ?? student.course ?? '',
-      section:        student.section ?? '',
-      course:         student.course ?? '',
-      yearlevel:      student.yearLevel ?? '',
+      ...this.studentAutoFields(student),
       ...this.customFieldValues,
     };
 
+    return this.buildPageInputs(template, known);
+  }
+
+  // Builds pdfme inputs for a DATA-kind template
+  private buildInputsForReport(template: Template): Record<string, string> {
+    const today = new Date();
+    const generatedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+    const known: Record<string, string> = {
+      academicyear:   this.reportDetails.academicYear,
+      schoolyear:     this.reportDetails.academicYear,
+      term:           this.reportDetails.term,
+      issuancedate:   generatedDate,
+      generateddate:  generatedDate,
+      signatoryname:  this.reportDetails.signatoryName,
+      signatorytitle: this.reportDetails.signatoryTitle,
+      purpose:        this.reportDetails.purpose,
+      remarks:        this.reportDetails.remarks,
+      schoolname:     this.resolvedSchoolName,
+      ...this.customFieldValues,
+    };
+
+
+    return this.buildPageInputs(template, known);
+  }
+
+  private buildPageInputs(template: Template, known: Record<string, string>): Record<string, string> {
     const page: Record<string, string> = {};
 
     for (const row of template.schemas ?? []) {
@@ -558,9 +908,12 @@ export class GenerateReport implements OnInit {
           }
           page[schema.name] = JSON.stringify(varMap);
 
-        } else {
+        } else if (schema.type === 'image') {
           const key = (schema.name as string).toLowerCase().replace(/[\s_-]/g, '');
-          page[schema.name] = known[key] !== undefined ? known[key] : (schema.content ?? '');
+          page[schema.name] = this.customImageValues[key] ?? schema.content ?? '';
+
+        } else {
+          page[schema.name] = schema.content ?? '';
         }
       }
     }
@@ -574,9 +927,6 @@ export class GenerateReport implements OnInit {
     this.generating = true;
     this.generateError = null;
 
-    const selected = this.allStudents.filter(s => this.selectedStudents.has(s.id));
-    this.generateProgress = { done: 0, total: selected.length };
-
     try {
       let parsedTemplate: Template;
       try {
@@ -585,29 +935,39 @@ export class GenerateReport implements OnInit {
         throw new Error('This template\u2019s layout data is corrupted and can\u2019t be used to generate reports.');
       }
 
-      const inputs = selected.map(student => this.buildInputsForStudent(parsedTemplate, student));
+      let inputs: Record<string, string>[];
+      let detailString: string;
 
-      // Details
-      let detailString = '';
-      const topCategories = this.selectionBreakdown.slice(0, 2).map(b => b.label);
-      if (topCategories.length > 0) {
-        detailString += topCategories.join(', ');
-        if (this.selectionBreakdown.length > 2) detailString += '...';
-        detailString += ' • ';
+      if (this.selectedTemplate.reportKind === 'DATA') {
+        // One generated document, not tied to any student batch.
+        inputs = [this.buildInputsForReport(parsedTemplate)];
+        detailString = 'School data report';
+        this.generateProgress = { done: 0, total: 1 };
+      } else {
+        const selected = this.allStudents.filter(s => this.selectedStudents.has(s.id));
+        this.generateProgress = { done: 0, total: selected.length };
+        inputs = selected.map(student => this.buildInputsForStudent(parsedTemplate, student));
+
+        const topCategories = this.selectionBreakdown.slice(0, 2).map(b => b.label);
+        detailString = '';
+        if (topCategories.length > 0) {
+          detailString += topCategories.join(', ');
+          if (this.selectionBreakdown.length > 2) detailString += '...';
+          detailString += ' • ';
+        }
+        detailString += `${selected.length} student(s)`;
       }
-      detailString += `${selected.length} student(s)`;
 
       const payload = {
         templateId: this.selectedTemplate.id,
         details: detailString,
-        inputs: inputs
+        inputs,
       };
 
-      // Send to backend queue
       this.http.post('http://localhost:8080/api/report-jobs', payload).subscribe({
         next: () => {
           this.generating = false;
-          this.router.navigate(['/archives']); // Redirect to archives page
+          this.router.navigate(['/archives']);
         },
         error: (err) => {
           console.error('Failed to queue report:', err);

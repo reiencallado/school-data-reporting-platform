@@ -15,7 +15,47 @@
           (input)="onSearchChange($event)" />
       </div>
 
-      <div class="type-toggle" *ngIf="isAdmin">
+      <div class="checkbox-dropdown-wrapper" (click)="$event.stopPropagation()">
+        <div class="dropdown-btn" (click)="toggleReportKindDropdown($event)">
+          {{ reportKindLabel }}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        <div class="dropdown-checkbox-panel" *ngIf="reportKindDropdownOpen">
+          <button
+            *ngFor="let option of reportKindOptions"
+            class="panel-option"
+            [class.active]="selectedReportKind === option.value"
+            (click)="selectReportKind(option.value)">
+            {{ option.label }}
+          </button>
+        </div>
+      </div>
+
+      <div class="checkbox-dropdown-wrapper" *ngIf="isAdmin" (click)="$event.stopPropagation()">
+        <div class="dropdown-btn" (click)="toggleSchoolDropdown($event)">
+          {{ getSchoolLabel() }}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+        <div class="dropdown-checkbox-panel" *ngIf="schoolDropdownOpen">
+          <div class="dropdown-panel-header">
+            <span>School</span>
+            <button class="dropdown-clear-btn" (click)="clearSchoolFilter()">Clear</button>
+          </div>
+          <label *ngFor="let school of schoolOptions" class="checkbox-option-label">
+            <input type="checkbox" [checked]="selectedSchools.has(school.id)" (change)="onSchoolToggle(school.id)">
+            <span>{{ school.name }}</span>
+          </label>
+          <p class="no-options-msg" *ngIf="schoolOptions.length === 0">No schools found</p>
+        </div>
+      </div>
+
+      <div class="type-toggle" *ngIf="isAdmin && selectedReportKind !== 'DATA'">
         <button class="type-pill" [class.active]="selectedType === 'K12'" (click)="selectType('K12')">K12</button>
         <button class="type-pill" [class.active]="selectedType === 'COLLEGE'" (click)="selectType('COLLEGE')">College</button>
         <button class="type-pill" [class.active]="selectedType === 'ADMISSIONS'" (click)="selectType('ADMISSIONS')">Admissionss</button>
@@ -23,10 +63,6 @@
       </div>
     </div>
   </div>
-
-  <p class="filter-note" *ngIf="showUntaggedNote">
-    {{ untaggedCount }} template{{ untaggedCount === 1 ? '' : 's' }} without a student type set (only shown under "All"; needs to be fixed and connected with BE).
-  </p>
 
   <p *ngIf="loading" class="template-state-msg">Loading templates…</p>
   <p *ngIf="error" class="template-state-msg error">{{ error }}</p>
@@ -42,7 +78,6 @@
         <line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
     </div>
-    <!-- New conditional text -->
     <span class="create-text" *ngIf="filteredTemplates.length === 0">
       Create your first template
     </span>

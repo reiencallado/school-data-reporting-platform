@@ -2,12 +2,13 @@
 
 <div class="wizard-modal" *ngIf="isOpen">
   <div class="wizard-header">
-    <button class="wizard-back" *ngIf="step !== 'type' && isAdmin" (click)="back()">
+    <button class="wizard-back" *ngIf="step !== 'kind'" (click)="back()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
       Back
     </button>
     <h3 class="wizard-title">
       <ng-container [ngSwitch]="step">
+        <ng-container *ngSwitchCase="'kind'">What are you creating?</ng-container>
         <ng-container *ngSwitchCase="'type'">Who is this template for?</ng-container>
         <ng-container *ngSwitchCase="'pick'">Choose a starting point</ng-container>
       </ng-container>
@@ -15,7 +16,17 @@
     <button class="wizard-close" (click)="reset()" aria-label="Close">&times;</button>
   </div>
 
-  <!-- STEP 1: Student type -->
+  <!-- STEP 0: Report kind -->
+  <div class="wizard-body" *ngIf="step === 'kind'">
+    <div class="wizard-kind-grid">
+      <button class="wizard-type-card" *ngFor="let k of reportKindOptions" (click)="chooseReportKind(k.key)">
+        <span class="wizard-type-label">{{ k.label }}</span>
+        <span class="wizard-type-sub">{{ k.sub }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- STEP 1: Student type (STUDENT path only) -->
   <div class="wizard-body" *ngIf="step === 'type'">
     <div class="wizard-type-grid">
       <button class="wizard-type-card" *ngFor="let t of studentTypeOptions" (click)="chooseStudentType(t.key)">
@@ -25,7 +36,7 @@
     </div>
   </div>
 
-  <!-- STEP 2: Start from scratch, or pick a default for this type -->
+  <!-- STEP 2: Start from scratch, or pick a default for this type/kind -->
   <div class="wizard-body" *ngIf="step === 'pick'">
     <div class="wizard-pick-grid">
 
@@ -54,7 +65,9 @@
     </div>
 
     <p class="wizard-empty-note" *ngIf="matchingStarters.length === 0">
-      No default templates yet for this student type.
+      {{ selectedReportKind === 'DATA'
+        ? 'No default templates yet for data reports — start from scratch below.'
+        : 'No default templates yet for this student type.' }}
     </p>
   </div>
 
@@ -63,6 +76,6 @@
 <app-resolution-modal
   [isOpen]="showResolutionModal"
   mode="create"
-  [extraState]="{ studentType: selectedStudentType }"
+  [extraState]="customExtraState"
   (close)="closeResolutionModal()">
 </app-resolution-modal>

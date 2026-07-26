@@ -54,27 +54,6 @@
 /* ── Base reset ── */
 *, *::before, *::after { box-sizing: border-box; }
 
-@font-face {
-  font-family: 'Maven Pro';
-  src: url('./assets/fonts/MavenPro-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Maven Pro';
-  src: url('./assets/fonts/MavenPro-Medium.ttf') format('truetype');
-  font-weight: 500;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Maven Pro';
-  src: url('./assets/fonts/MavenPro-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-}
-
 body {
   margin: 0;
   font-family: var(--font-base);
@@ -90,3 +69,836 @@ input, select, button, textarea {
 }
 
 a { text-decoration: none; }
+/* ============================================================
+   SHARED COMPONENTS
+   (merged in below — see comments per section)
+   ============================================================ */
+
+/* ============================================================
+   SHARED COMPONENTS
+   Reusable UI patterns pulled out of dashboard / students / users /
+   templates / archives / generate-report. Load this ONCE globally
+   (alongside styles.css), then each page's own .css file only needs
+   to contain what's actually unique to that page.
+
+   Naming note: some pages had grown two parallel implementations of
+   the same widget (e.g. two dropdown-panel systems, two "type pill
+   active" class names, duplicate @keyframes). Those have been merged
+   into one canonical version here — see the comments below if a
+   page's markup used the old alternate class name.
+   ============================================================ */
+
+/* ---- Section card (the base white card used on every list page) ----
+   .dashboard-section is the dashboard page's own name for this same
+   pattern — kept as an alias so the dashboard's cards render correctly. */
+.section-card,
+.dashboard-section {
+  background: var(--white-1);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-xl);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+}
+
+.section-card.no-pad {
+  padding: 0 24px;
+  overflow: hidden;
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--blue-1);
+  margin: 0 0 16px;
+  letter-spacing: 0.1px;
+}
+
+/* ---- Filter / toolbar row ---- */
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dropdown-btn { width: 100%; }
+  .search-bar-wrapper { flex: 1 1 100%; order: -1; }
+}
+
+/* ---- Search bar ---- */
+.search-bar-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 220px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--gray-3);
+  pointer-events: none;
+}
+
+.search-input {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-md);
+  padding: 0 14px;
+  font-family: var(--font-base);
+  font-size: 13px;
+  color: var(--blue-1);
+  background: var(--white-1);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.search-input-icon {
+  padding-left: 38px;
+  padding-right: 40px;
+}
+
+.search-input::placeholder { color: var(--gray-3); }
+.search-input:focus { border-color: var(--blue-3); }
+
+.search-fields-btn {
+  position: absolute;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--gray-2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.search-fields-btn:hover:not(:disabled) {
+  background: var(--blue-4);
+  color: var(--blue-1);
+}
+
+.search-fields-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.search-fields-panel {
+  left: auto;
+  right: 0;
+  min-width: 200px;
+}
+
+.no-options-msg {
+  font-size: 12px;
+  color: var(--gray-3);
+  padding: 8px 12px;
+  text-align: center;
+}
+
+/* ---- Standard pill button (opens a dropdown, filter trigger, etc.) ---- */
+.dropdown-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 34px;
+  padding: 0 16px;
+  background: var(--blue-3);
+  color: var(--white-1);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: background 0.15s ease;
+  min-width: 140px;
+  font-family: var(--font-base);
+}
+
+.dropdown-btn:hover { background: var(--blue-2); }
+
+/* ---- Floating dropdown panel (single canonical version) ----
+   Old names this replaces: .type-dropdown-btn/.type-dropdown-panel/
+   .type-dropdown-option (templates/generate-report) and the
+   .dropdown-checkbox-panel variant (students/users/archives) — both
+   did the same job. Use .dropdown-btn above to open it, and either
+   .checkbox-option-label rows (for multi-select) or .panel-option
+   rows (for single-select) inside. */
+.checkbox-dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-checkbox-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  background: var(--white-1);
+  border: 1px solid var(--gray-4);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 1010;
+  max-height: 320px;
+  overflow-y: auto;
+  animation: dropdown-panel-in 0.15s ease-out;
+}
+
+.dropdown-checkbox-panel.wide { min-width: 300px; }
+
+@keyframes dropdown-panel-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--gray-4);
+}
+
+.dropdown-panel-header span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--blue-1);
+}
+
+.dropdown-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--blue-3);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.dropdown-clear-btn:hover { background: var(--blue-4); }
+
+/* Single-select row (was .type-dropdown-option) */
+.panel-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--blue-1);
+  cursor: pointer;
+  font-family: var(--font-base);
+  transition: background-color 0.15s ease;
+}
+
+.panel-option:hover { background-color: var(--blue-4); }
+
+.panel-option.active {
+  color: var(--blue-2);
+  font-weight: 700;
+}
+
+.panel-apply {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 8px 16px;
+  background: var(--blue-1);
+  color: var(--white-1);
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.panel-apply:hover { background: var(--blue-2); }
+
+.panel-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Multi-select row (checkbox list) */
+.checkbox-option-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: var(--blue-1);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.checkbox-option-label:hover { background-color: var(--blue-4); }
+
+.custom-date-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.custom-date-row label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gray-2);
+}
+
+.custom-date-row input {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-md);
+  background: var(--white-1);
+}
+
+/* ---- Custom checkbox appearance (used inside tables + dropdown panels) ---- */
+.checkbox-label input[type="checkbox"],
+.col-check input[type="checkbox"],
+.checkbox-option-label input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border: 1.5px solid var(--gray-4);
+  border-radius: 4px;
+  background: var(--white-1);
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.checkbox-label input[type="checkbox"]:hover,
+.col-check input[type="checkbox"]:hover,
+.checkbox-option-label input[type="checkbox"]:hover {
+  border-color: var(--blue-3);
+}
+
+.checkbox-label input[type="checkbox"]:checked,
+.col-check input[type="checkbox"]:checked,
+.checkbox-option-label input[type="checkbox"]:checked {
+  background: var(--blue-3);
+  border-color: var(--blue-3);
+}
+
+.checkbox-label input[type="checkbox"]:checked::after,
+.col-check input[type="checkbox"]:checked::after,
+.checkbox-option-label input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--white-1);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkbox-label input[type="checkbox"]:disabled {
+  background: var(--gray-4) !important;
+  border-color: var(--gray-4) !important;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue-1);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ---- Type toggle (pill switch) ----
+   Note: had two active-class conventions for the "All" pill
+   (.type-pill-all.active vs .type-pill.pill-all.active) — pick one
+   in markup going forward; both selectors kept here so nothing breaks. */
+.type-toggle {
+  display: flex;
+  background: var(--white-2);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.type-pill {
+  border: none;
+  background: transparent;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.type-pill:hover { color: var(--blue-1); }
+
+.type-pill.active {
+  background: var(--blue-3);
+  color: var(--white-1);
+}
+
+.type-pill-all.active,
+.type-pill.pill-all.active {
+  background: var(--orange-1);
+  color: var(--white-1);
+}
+
+/* ---- Data table base ---- */
+.table-responsive,
+.table-responsive-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.dashboard-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--blue-1);
+  border-bottom: 1px solid var(--gray-4);
+  background: var(--white-1);
+}
+
+.dashboard-table td {
+  padding: 11px 12px;
+  color: var(--blue-1);
+  border-bottom: 1px solid var(--white-2);
+  vertical-align: middle;
+}
+
+.dashboard-table tbody tr:last-child td { border-bottom: none; }
+.dashboard-table tbody tr:hover td { background: var(--blue-4); }
+.dashboard-table tbody tr.row-selected td { background: var(--blue-4); }
+.dashboard-table tbody tr.row-disabled { cursor: not-allowed; }
+.dashboard-table tbody tr.row-disabled:hover td { background: inherit; }
+
+/* Sticky/pinned first column(s) */
+.dashboard-table th.col-pinned,
+.dashboard-table td.col-pinned,
+.col-pinned-check,
+.col-pinned-id {
+  position: sticky;
+  z-index: 1;
+  background: var(--white-1);
+}
+.col-pinned-check { left: 0; z-index: 2; }
+.col-pinned-id { left: 56px; }
+
+.dashboard-table tbody tr:hover td.col-pinned,
+.dashboard-table tbody tr:hover td.col-pinned-check,
+.dashboard-table tbody tr:hover td.col-pinned-id,
+.dashboard-table tbody tr.row-selected td.col-pinned-check,
+.dashboard-table tbody tr.row-selected td.col-pinned-id {
+  background: var(--blue-4);
+}
+
+.col-check {
+  width: 56px;
+  text-align: center !important;
+  padding: 11px 12px !important;
+}
+
+/* Sortable column header button */
+.col-sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  font-family: var(--font-base);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--blue-1);
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s ease;
+}
+
+.col-sort-btn:hover { color: var(--blue-2); }
+.col-sort-btn span:first-child { overflow: hidden; text-overflow: ellipsis; }
+
+.sort-carets {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.caret { color: var(--gray-4); transition: color 0.15s ease; }
+.caret.active { color: var(--blue-3); }
+
+.mono { font-family: monospace; font-size: 12px; }
+.muted { color: var(--gray-2); }
+
+/* ---- Status badges ----
+   Two families both used the ".status-badge" base: a rounded pill for
+   record status (badge-active/inactive/enrolled/dropped/pending) and
+   a batch-progress variant (status-badge-done/processing/failed).
+   Both kept, sharing the same base rule. */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-active,
+.badge-enrolled { background: var(--green-2); color: var(--green-1); }
+.badge-dropped { background: #ffe3d1; color: var(--orange-2); }
+.badge-pending { background: #fff1e0; color: var(--orange-1); }
+.badge-inactive { background: var(--white-2); color: var(--gray-2); }
+
+.status-badge-done { background: var(--green-2); color: var(--green-1); }
+.status-badge-processing { background: #dbf0ff; color: var(--blue-2); }
+.status-badge-failed { background: #ffe8d9; color: #d97706; }
+
+.type-pill-tag,
+.type-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background-color: var(--blue-4);
+  color: var(--blue-2);
+  white-space: nowrap;
+}
+
+/* ---- Pagination ---- */
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px;
+  border-top: 1px solid var(--gray-4);
+  margin-top: 8px;
+}
+
+.page-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gray-2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.page-btn:hover:not(:disabled) { background: var(--blue-4); color: var(--blue-1); }
+.page-btn.active { background: var(--blue-3); color: var(--white-1); font-weight: 700; }
+.page-btn:disabled { opacity: 0.35; cursor: default; }
+
+.page-step-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--gray-2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.page-step-btn:hover:not(:disabled) { background: var(--blue-4); color: var(--blue-1); }
+.page-step-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ---- Empty / loading / error state message ---- */
+.template-state-msg {
+  font-size: 13px;
+  color: var(--gray-2);
+  padding: 24px;
+  text-align: center;
+}
+
+.template-state-msg.error { color: var(--color-danger, #dc2626); }
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--gray-2);
+  font-size: 14px;
+}
+
+/* ---- Buttons ---- */
+.btn-primary {
+  height: 40px;
+  padding: 0 22px;
+  background: var(--blue-3);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--white-1);
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-primary:hover:not(:disabled) { background: var(--blue-2); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* users.css used a taller, differently-colored primary button; kept as
+   a modifier so nothing on that page needs to change visually */
+.btn-primary.solid-dark {
+  background: var(--blue-1);
+  min-width: 140px;
+  padding: 10px 24px;
+  height: auto;
+}
+.btn-primary.solid-dark:hover { background: var(--blue-2); }
+
+.btn-secondary {
+  height: 40px;
+  padding: 0 22px;
+  background: var(--white-1);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-md);
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue-1);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-secondary:hover { background: var(--white-2); border-color: var(--gray-3); }
+
+.btn-action {
+  padding: 8px 14px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  background: var(--blue-1);
+  color: var(--white-1);
+}
+.btn-action:hover { background: var(--blue-2); }
+
+.btn-danger {
+  background: transparent;
+  color: var(--blue-1);
+  border: 1px solid var(--blue-1);
+}
+.btn-danger:hover { background: var(--blue-4); }
+
+/* ---- Kebab (⋮) context menu ---- */
+.kebab-wrapper {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 300;
+}
+
+.kebab-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-md);
+  background: var(--white-1);
+  border: 1px solid var(--gray-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3.5px;
+  cursor: pointer;
+  padding: 0;
+  opacity: 1;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.kebab-btn span {
+  display: block;
+  width: 4px;
+  height: 4px;
+  background: var(--gray-2);
+  border-radius: 50%;
+  transition: background 0.15s ease;
+}
+
+.kebab-btn:hover,
+.kebab-btn.open { background: var(--blue-4); border-color: var(--blue-3); opacity: 1; }
+.kebab-btn:hover span,
+.kebab-btn.open span { background: var(--blue-1); }
+
+.kebab-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--white-1);
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  min-width: 140px;
+  padding: 4px;
+  z-index: 200;
+  animation: dropdown-panel-in 0.1s ease;
+}
+
+.kebab-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-base);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--blue-1);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.kebab-item:hover { background: var(--blue-4); color: var(--blue-2); }
+.kebab-item svg { flex-shrink: 0; color: var(--gray-2); }
+.kebab-item:hover svg { color: var(--blue-2); }
+.kebab-item.danger { color: var(--color-danger); }
+.kebab-item.danger svg { color: var(--color-danger); }
+.kebab-item.danger:hover { background: #fef2f2; color: var(--color-danger); }
+
+.kebab-divider { height: 1px; background: var(--gray-4); margin: 4px 0; }
+.menu-backdrop { position: fixed; inset: 0; z-index: 199; }
+
+/* ---- Modal ---- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 50;
+}
+
+.modal-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(500px, calc(100% - 32px));
+  background: var(--white-1);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+  padding: 24px;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.modal-header h4 { margin: 0; font-size: 18px; font-weight: 700; color: var(--blue-1); }
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--gray-2);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-body { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 12px; }
+
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-group label { font-size: 13px; font-weight: 600; color: var(--blue-1); }
+
+.form-group input,
+.form-group select {
+  padding: 10px 12px;
+  border: 1px solid var(--gray-4);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--blue-1);
+  font-family: var(--font-base);
+  outline: none;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: var(--blue-3);
+  background: var(--blue-4);
+}
+
+.text-muted { font-size: 12px; color: var(--gray-2); margin: 0; }
+
+@media (max-width: 768px) {
+  .modal-dialog { width: calc(100% - 32px); }
+}

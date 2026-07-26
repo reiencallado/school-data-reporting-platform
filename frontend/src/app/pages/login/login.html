@@ -1,37 +1,91 @@
-<div class="login-fullscreen-container">
-  <div class="login-card-panel">
-    
-    <div class="login-header">
-      <div class="login-logo-placeholder">Logo</div>
-      <h2 class="login-title">School Admin Portal</h2>
-      <p class="login-subtitle">Reporting Service</p>
-    </div>
+<div class="login-page">
 
-    <div class="login-form">
-      <div class="input-group">
-        <label class="input-label">Email Address</label>
-        <input 
-          type="email" 
-          placeholder="name@school.edu.ph" 
-          [(ngModel)]="email" 
-          class="login-input" 
-        />
+  <!-- ==== LEFT: BRAND SIDE ==== -->
+  <div class="brand-side">
+    <div class="brand-side-inner">
+      <div class="login-brand">
+        <span class="login-brand-name"><span class="brand-edu">edu</span><span class="brand-suite">suite</span></span>
       </div>
 
-      <div class="input-group">
-        <label class="input-label">Password</label>
-        <input 
-          type="password" 
-          placeholder="••••••••" 
-          [(ngModel)]="password" 
-          class="login-input" 
-        />
+      <div class="brand-copy">
+        <h1>Manage your school's documents in one place.</h1>
+        <p>Build templates, generate reports, and issue diplomas.</p>
       </div>
-
-      <button class="login-submit-btn" (click)="onLogin()">
-        Sign In
-      </button>
     </div>
-
   </div>
+
+  <!-- ==== RIGHT: FORM SIDE ==== -->
+  <div class="form-side">
+    <div class="form-side-inner">
+
+      <div class="login-card-header">
+        <h2>Welcome back</h2>
+        <p>Sign in to your school's admin portal.</p>
+      </div>
+
+      <form class="login-form" (ngSubmit)="onLogin()" #loginForm="ngForm" novalidate>
+
+        <div class="login-error" *ngIf="errorMessage()" role="alert">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>{{ errorMessage() }}</span>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="email">Email address</label>
+          <input
+            id="email"
+            type="email"
+            name="email"
+            placeholder="name@school.edu.ph"
+            [(ngModel)]="email"
+            [disabled]="isSubmitting()"
+            autocomplete="username"
+            required
+            class="login-input" />
+        </div>
+
+        <div class="input-group">
+          <label class="input-label" for="password">Password</label>
+          <div class="password-field-wrapper">
+            <input
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              name="password"
+              placeholder="••••••••"
+              [(ngModel)]="password"
+              [disabled]="isSubmitting()"
+              autocomplete="current-password"
+              required
+              class="login-input password-input" />
+            <button
+              type="button"
+              class="password-toggle-btn"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+              tabindex="-1">
+              <svg *ngIf="!showPassword()" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg *ngIf="showPassword()" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 4.22-5.94M9.9 4.24A10.5 10.5 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="login-submit-btn" [disabled]="isSubmitting() || !email || !password">
+          <svg *ngIf="isSubmitting()" class="btn-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.25"/>
+            <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <span>{{ isSubmitting() ? 'Signing in…' : 'Sign in' }}</span>
+        </button>
+      </form>
+
+    </div>
+  </div>
+
 </div>
