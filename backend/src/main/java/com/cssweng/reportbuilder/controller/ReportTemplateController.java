@@ -27,14 +27,13 @@ public class ReportTemplateController {
     }
 
     // GET http://localhost:8080/api/report-templates
+    // Only returns active (non-deleted) templates
     @GetMapping
     public ResponseEntity<List<ReportTemplate>> getAllTemplates() {
-        return ResponseEntity.ok(reportTemplateRepository.findAll());
+        return ResponseEntity.ok(reportTemplateRepository.findByActiveTrue());
     }
 
     // GET http://localhost:8080/api/report-templates/{id}
-    // Also stamps last_opened_at, since this is what fires when a user
-    // actually opens a template (preview or edit).
     @GetMapping("/{id}")
     public ResponseEntity<ReportTemplate> getTemplateById(@PathVariable UUID id) {
         return reportTemplateRepository.findById(id)
@@ -76,19 +75,21 @@ public class ReportTemplateController {
     }
 
     // DEL http://localhost:8080/api/report-templates/{id}
+    // Soft delete: marks the template inactive instead of removing the row.
+    // This keeps report_jobs (and any other historical references) intact,
+    // and sidesteps the FK constraint entirely since the row is never removed.
     @DeleteMapping("/{id}")
     public ResponseEntity<ReportTemplate> deleteTemplate(@PathVariable UUID id) {
         return reportTemplateRepository.findById(id)
                 .map(existing -> {
-                    reportTemplateRepository.delete(existing);
-                    return ResponseEntity.ok(existing);
+                    existing.setActive(false);
+                    ReportTemplate updated = reportTemplateRepository.save(existing);
+                    return ResponseEntity.ok(updated);
                 })
                 .orElse(ResponseEntity.notFound().build());
     }
 
     // POST http://localhost:8080/api/report-templates/{id}/thumbnail
-    // Accepts a multipart image (e.g. PNG from a client-side canvas capture),
-    // uploads it via StorageService, and stores the resulting URL on the template.
     @PostMapping("/{id}/thumbnail")
     public ResponseEntity<?> uploadThumbnail(@PathVariable UUID id, @RequestParam("file") MultipartFile file) {
         return reportTemplateRepository.findById(id)

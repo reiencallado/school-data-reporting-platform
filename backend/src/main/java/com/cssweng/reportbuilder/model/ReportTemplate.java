@@ -36,7 +36,10 @@ public class ReportTemplate {
     // someone edits and sets one.
     @Column(name = "student_type", length = 20)
     private String studentType;
-    
+
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
+
     public ReportTemplate() {}
 
     public ReportTemplate(String name, String configuration, School school) {
@@ -66,4 +69,7 @@ public class ReportTemplate {
 
     public String getStudentType() { return studentType; }
     public void setStudentType(String studentType) { this.studentType = studentType; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 }

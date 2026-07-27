@@ -13,4 +13,6 @@ public interface ReportTemplateRepository extends JpaRepository<ReportTemplate, 
     
     // Instantly retrieve all WYSIWYG layouts belonging to a specific school
     List<ReportTemplate> findBySchoolId(UUID schoolId);
+
+    List<ReportTemplate> findByActiveTrue();
 }
