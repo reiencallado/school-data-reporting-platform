@@ -4,6 +4,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Represents the request payload for creating a report generation job.
+ * Contains the selected report template, job details, and the input
+ * records used to generate reports.
+ */
 public class ReportJobRequest {
     private UUID templateId;
     private String details;

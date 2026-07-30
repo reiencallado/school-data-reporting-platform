@@ -11,6 +11,11 @@ import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 import java.io.IOException;
 import java.util.UUID;
 
+/**
+ * Provides file storage and message queue operations for the report generation
+ * system. This service uploads generated files to Amazon S3 and sends job
+ * messages to Amazon SQS for asynchronous processing.
+ */
 @Service
 public class StorageService {
 
@@ -26,11 +31,19 @@ public class StorageService {
     @Value("${aws.endpoint}")
     private String endpoint;
 
+    
     public StorageService(S3Client s3Client, SqsClient sqsClient) {
         this.s3Client = s3Client;
         this.sqsClient = sqsClient;
     }
 
+    /**
+     * Uploads a file to the configured S3 bucket.
+     *
+     * @param file the file to upload
+     * @return a confirmation message containing the uploaded file name
+     * @throws IOException if the file cannot be read
+     */
     public String uploadFile(MultipartFile file) throws IOException {
         String key = file.getOriginalFilename();
         s3Client.putObject(
@@ -43,10 +56,27 @@ public class StorageService {
         return "Uploaded: " + key;
     }
 
+    /**
+     * Uploads a file to S3 and returns its accessible URL.
+     *
+     * @param file the file to upload
+     * @param keyPrefix the S3 key prefix for the uploaded file
+     * @return the URL of the uploaded file
+     * @throws IOException if the file cannot be read
+     */
     public String uploadFileAndGetUrl(MultipartFile file, String keyPrefix) throws IOException {
         return uploadFileAndGetUrl(file, keyPrefix, file.getOriginalFilename());
     }
 
+    /**
+     * Uploads a file to S3 with a custom download filename and returns its URL.
+     *
+     * @param file the file to upload
+     * @param keyPrefix the S3 key prefix for the uploaded file
+     * @param downloadFilename the filename presented when the file is downloaded
+     * @return the URL of the uploaded file
+     * @throws IOException if the file cannot be read
+     */
     public String uploadFileAndGetUrl(MultipartFile file, String keyPrefix, String downloadFilename) throws IOException {
         String extension = "";
         String originalName = file.getOriginalFilename();
@@ -69,6 +99,12 @@ public class StorageService {
         return endpoint + "/" + bucketName + "/" + key;
     }
 
+    /**
+     * Sends a message to the configured SQS queue.
+     *
+     * @param messageBody the message content to send
+     * @return a confirmation message
+     */
     public String sendMessage(String messageBody) {
         String queueUrl = endpoint + "/000000000000/" + queueName;
         sqsClient.sendMessage(

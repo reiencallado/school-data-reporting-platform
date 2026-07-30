@@ -4,6 +4,11 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Represents a report template used to generate student reports.
+ * Stores the template configuration, associated school, supported
+ * student type, and related metadata.
+ */
 @Entity
 @Table(name = "report_templates")
 public class ReportTemplate {

@@ -4,6 +4,11 @@ import jakarta.persistence.*;
 import java.util.UUID;
 import java.time.LocalDateTime;
 
+/**
+ * Represents a report generation job submitted by a user.
+ * Stores the job's status, associated report template,
+ * requesting user, generated file, and processing metadata.
+ */
 @Entity
 @Table(name = "report_jobs")
 public class ReportJob {

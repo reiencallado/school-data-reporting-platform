@@ -5,6 +5,11 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import org.hibernate.annotations.UuidGenerator; // TODO: change uuid_generator to what ever fits
 
+/**
+ * Represents a school within the report generation system.
+ * Stores basic school information used to associate users,
+ * students, and report templates.
+ */
 @Entity
 @Table(name = "schools")
 public class School {

@@ -3,6 +3,11 @@ package com.cssweng.reportbuilder.model;
 import jakarta.persistence.*;
 import java.util.UUID;
 
+/**
+ * Represents an individual report generated as part of a report job.
+ * Stores the generation status, student information, generated file,
+ * and any processing failure details.
+ */
 @Entity
 @Table(name = "report_items")
 public class ReportItem {
