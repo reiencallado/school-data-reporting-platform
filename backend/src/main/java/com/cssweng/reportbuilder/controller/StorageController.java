@@ -21,7 +21,6 @@ public class StorageController {
     }
 
     // POST http://localhost:8080/api/storage/upload
-    // Uploads a file to the configured S3 storage.
     /**
      * Uploads a file to the storage service.
      *

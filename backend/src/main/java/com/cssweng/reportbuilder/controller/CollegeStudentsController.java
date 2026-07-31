@@ -12,13 +12,18 @@ import com.cssweng.reportbuilder.util.AuthUtil;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Handles HTTP requests related to college student records.
+ * Provides endpoints for creating, retrieving, updating, and deleting
+ * students while enforcing role-based and school-level access control.
+ * 
+ * Only ROLE_COLLEGE and ROLE_ADMIN may touch college data at all. Within
+ * that, ROLE_COLLEGE users are further restricted to their own school
+ * below - this annotation only gates the data *type*, not the school boundary
+ */
 @RestController
 @RequestMapping("/api/college-students")
 @CrossOrigin(origins = "*")
-// Only ROLE_COLLEGE and ROLE_ADMIN may touch college data at all. Within
-// that, ROLE_COLLEGE users are further restricted to their own school
-// below — this annotation only gates the data *type*, not the school
-// boundary.
 @PreAuthorize("hasRole('COLLEGE') or hasRole('ADMIN')")
 public class CollegeStudentsController {
 
@@ -30,6 +35,14 @@ public class CollegeStudentsController {
 
     // GET http://localhost:8080/api/college-students
     // ROLE_ADMIN sees all schools; ROLE_COLLEGE only sees their own school's students.
+    /**
+     * Retrieves all college students.
+     * 
+     * ROLE_ADMIN sees all schools; ROLE_COLLEGE only sees their own school's students.
+     *
+     * @return a list of accessible college students, or 403 if the user's school
+     *         cannot be determined
+     */
     @GetMapping
     public ResponseEntity<List<CollegeStudents>> getAllStudents() {
         if (AuthUtil.isAdmin()) {
@@ -43,6 +56,16 @@ public class CollegeStudentsController {
     }
 
     // GET http://localhost:8080/api/college-students/{id}
+    /**
+     * Retrieves a college student by ID.
+     * 
+     * ROLE_ADMIN users can access students from any school, while ROLE_COLLEGE
+     * users can only access students belonging to their own school.
+     *
+     * @param id the ID of the student
+     * @return the student if found and authorized, 403 if unauthorized,
+     *         or 404 if not found
+     */
     @GetMapping("/{id}")
     public ResponseEntity<CollegeStudents> getStudentById(@PathVariable UUID id) {
         return collegeStudentsRepository.findById(id)
@@ -56,6 +79,14 @@ public class CollegeStudentsController {
     }
 
     // GET http://localhost:8080/api/college-students/school/{schoolId}
+    /**
+     * Retrieves all college students belonging to a specific school.
+     * 
+     * ROLE_ADMIN sees all schools; ROLE_COLLEGE only sees their own school's students.
+     *
+     * @param schoolId the ID of the school
+     * @return a list of students belonging to the school, or 403 if unauthorized
+     */
     @GetMapping("/school/{schoolId}")
     public ResponseEntity<List<CollegeStudents>> getStudentsBySchool(@PathVariable UUID schoolId) {
         if (!isAuthorizedForSchool(schoolId)) {
@@ -65,10 +96,17 @@ public class CollegeStudentsController {
     }
 
     // POST http://localhost:8080/api/college-students
-    // Non-admins can only ever create students under their own school —
-    // whatever school is passed in the request body is ignored/overridden
-    // for them, so a ROLE_COLLEGE user can't write into another school's
-    // data just by changing the payload.
+    /**
+     * Creates a new college student.
+     * 
+     * Non-admins can only ever create students under their own school -
+     * whatever school is passed in the request body is ignored/overridden
+     * for them, so a ROLE_COLLEGE user can't write into another school's
+     * data just by changing the payload.
+     *
+     * @param collegeStudent the college student to create
+     * @return the saved college student, or 403 if the user's school cannot be determined
+     */
     @PostMapping
     public ResponseEntity<CollegeStudents> createStudent(@RequestBody CollegeStudents collegeStudent) {
         if (!AuthUtil.isAdmin()) {
@@ -85,7 +123,19 @@ public class CollegeStudentsController {
     }
 
     // POST http://localhost:8080/api/college-students/bulk
-    // ONLY FOR TESTING PURPOSES TO SEED DATA FAST IN POSTMANT
+    /**
+     * Creates multiple college students in a single request.
+     * 
+     * ROLE_ADMIN users can create students for any school, while ROLE_COLLEGE
+     * users can only create students under their own school.
+     * For ROLE_COLLEGE users, the school provided in each request is ignored
+     * and replaced with their own school.
+     *
+     * This endpoint is primarily intended for testing and quickly seeding data.
+     *
+     * @param students the list of college students to create
+     * @return the saved college students, or 403 if the user's school cannot be determined
+     */
     @PostMapping("/bulk")
     public ResponseEntity<List<CollegeStudents>> createStudents(@RequestBody List<CollegeStudents> students) {
         if (!AuthUtil.isAdmin()) {
@@ -104,6 +154,17 @@ public class CollegeStudentsController {
     }
 
     // PUT http://localhost:8080/api/college-students/{id}
+    /**
+     * Updates an existing college student.
+     * 
+     * ROLE_ADMIN users can update students from any school and change their
+     * school assignment. ROLE_COLLEGE users can only update students from their
+     * own school and cannot change the student's school assignment.
+     *
+     * @param id the ID of the student to update
+     * @param collegeStudent the updated student information
+     * @return the updated student, 403 if unauthorized, or 404 if not found
+     */
     @PutMapping("/{id}")
     public ResponseEntity<CollegeStudents> updateStudent(@PathVariable UUID id, @RequestBody CollegeStudents collegeStudent) {
         return collegeStudentsRepository.findById(id)
@@ -132,6 +193,15 @@ public class CollegeStudentsController {
     }
 
     // DEL http://localhost:8080/api/college-students/{id}
+    /**
+     * Deletes an existing college student.
+     * 
+     * ROLE_ADMIN users can delete students from any school, while ROLE_COLLEGE
+     * users can only delete students belonging to their own school.
+     *
+     * @param id the ID of the student to delete
+     * @return the deleted student, 403 if unauthorized, or 404 if not found
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<CollegeStudents> deleteStudent(@PathVariable UUID id) {
         return collegeStudentsRepository.findById(id)
@@ -148,6 +218,9 @@ public class CollegeStudentsController {
     /**
      * ROLE_ADMIN is authorized for any school. Everyone else is only
      * authorized for their own school, per the JWT's schoolId claim.
+     * 
+     * @param targetSchoolId the ID of the school being accessed
+     * @return true if the current user is authorized for the school, otherwise false
      */
     private boolean isAuthorizedForSchool(UUID targetSchoolId) {
         if (AuthUtil.isAdmin()) return true;

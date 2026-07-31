@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Handles HTTP requests related to report templates.
+ * Provides endpoints for creating, retrieving, updating, deleting, and managing report template assets.
+ */
 @RestController
 @RequestMapping("/api/report-templates")
 @CrossOrigin(origins = "*")
@@ -20,20 +24,29 @@ public class ReportTemplateController {
 
     private final ReportTemplateRepository reportTemplateRepository;
     private final StorageService storageService;
-
     public ReportTemplateController(ReportTemplateRepository reportTemplateRepository, StorageService storageService) {
         this.reportTemplateRepository = reportTemplateRepository;
         this.storageService = storageService;
     }
 
     // GET http://localhost:8080/api/report-templates
-    // Only returns active (non-deleted) templates
+    /**
+     * Retrieves all active report templates.
+     *
+     * @return a list of active report templates
+    */
     @GetMapping
     public ResponseEntity<List<ReportTemplate>> getAllTemplates() {
         return ResponseEntity.ok(reportTemplateRepository.findByActiveTrue());
     }
 
     // GET http://localhost:8080/api/report-templates/{id}
+    /**
+     * Retrieves a report template by its ID and updates its last opened timestamp.
+     *
+     * @param id the ID of the report template
+     * @return the report template if found, or 404 if not found
+    */
     @GetMapping("/{id}")
     public ResponseEntity<ReportTemplate> getTemplateById(@PathVariable UUID id) {
         return reportTemplateRepository.findById(id)
@@ -46,12 +59,24 @@ public class ReportTemplateController {
     }
 
     // GET http://localhost:8080/api/report-templates/school/{schoolId}
+    /**
+     * Retrieves all report templates associated with a school.
+     *
+     * @param schoolId the ID of the school
+     * @return a list of report templates belonging to the school
+    */
     @GetMapping("/school/{schoolId}")
     public ResponseEntity<List<ReportTemplate>> getTemplatesBySchool(@PathVariable UUID schoolId) {
         return ResponseEntity.ok(reportTemplateRepository.findBySchoolId(schoolId));
     }
 
     // POST http://localhost:8080/api/report-templates
+    /**
+     * Creates and saves a new report template.
+     *
+     * @param reportTemplate the report template to create
+     * @return the saved report template
+    */
     @PostMapping
     public ResponseEntity<ReportTemplate> createTemplate(@RequestBody ReportTemplate reportTemplate) {
         ReportTemplate saved = reportTemplateRepository.save(reportTemplate);
@@ -59,6 +84,13 @@ public class ReportTemplateController {
     }
 
     // PUT http://localhost:8080/api/report-templates/{id}
+    /**
+     * Updates an existing report template with the provided information.
+     *
+     * @param id the ID of the report template to update
+     * @param reportTemplate the updated report template data
+     * @return the updated report template, or 404 if not found
+    */
     @PutMapping("/{id}")
     public ResponseEntity<ReportTemplate> updateTemplate(@PathVariable UUID id, @RequestBody ReportTemplate reportTemplate) {
         return reportTemplateRepository.findById(id)
@@ -75,9 +107,14 @@ public class ReportTemplateController {
     }
 
     // DEL http://localhost:8080/api/report-templates/{id}
-    // Soft delete: marks the template inactive instead of removing the row.
-    // This keeps report_jobs (and any other historical references) intact,
-    // and sidesteps the FK constraint entirely since the row is never removed.
+    /**
+     * Soft deletes a report template by marking it as inactive.
+     * This keeps report_jobs (and any other historical references) intact,
+     * and sidesteps the FK constraint entirely since the row is never removed.
+     *
+     * @param id the ID of the report template to delete
+     * @return the updated report template, or 404 if not found
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<ReportTemplate> deleteTemplate(@PathVariable UUID id) {
         return reportTemplateRepository.findById(id)
@@ -90,6 +127,13 @@ public class ReportTemplateController {
     }
 
     // POST http://localhost:8080/api/report-templates/{id}/thumbnail
+    /**
+     * Uploads a thumbnail image for a report template and updates its thumbnail URL.
+     *
+     * @param id the ID of the report template
+     * @param file the thumbnail image to upload
+     * @return the uploaded thumbnail URL, or 404 if the template is not found
+     */
     @PostMapping("/{id}/thumbnail")
     public ResponseEntity<?> uploadThumbnail(@PathVariable UUID id, @RequestParam("file") MultipartFile file) {
         return reportTemplateRepository.findById(id)
