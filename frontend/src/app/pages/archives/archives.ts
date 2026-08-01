@@ -424,8 +424,8 @@ export class Archives implements OnInit {
             subtitle: '',
             status: 'ACTIVE',
             grade: item.grade,
-            section: item.section,
-            strand: item.strand
+            yearLevel: item.section,
+            course: item.strand
           }
         }));
 
@@ -558,8 +558,39 @@ export class Archives implements OnInit {
     this.selectedIds = new Set(this.selectedIds);
   }
 
-  downloadSelected(): void {
-    console.log('Batch download of selected reports', Array.from(this.selectedIds));
+  downloadSelected() {
+    const selectedIdsArray = Array.from(this.selectedIds);
+
+    if (selectedIdsArray.length === 0) {
+        alert("Please select at least one student.");
+        return;
+    }
+
+    this.http.post('http://localhost:8080/api/report-jobs/download-selected', selectedIdsArray, {
+        responseType: 'blob' 
+    }).subscribe({
+        next: (blob: Blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            let baseName = 'Selected_Reports';
+            if (this.selectedBatch && this.selectedBatch.template) {
+                baseName = this.selectedBatch.template.replace(/[^a-zA-Z0-9_-]/g, '_');
+            }
+            a.download = `${baseName}_Selected.zip`;
+            
+            document.body.appendChild(a);
+            a.click();
+            
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        },
+        error: (err) => {
+            console.error("Failed to download selected items", err);
+            alert("An error occurred while generating the zip.");
+        }
+    });
   }
 
   changePage(page: number): void {

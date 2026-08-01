@@ -6,11 +6,15 @@ import com.cssweng.reportbuilder.model.ReportJob;
 import com.cssweng.reportbuilder.model.ReportJobRequest;
 import com.cssweng.reportbuilder.repository.AppUserRepository;
 import com.cssweng.reportbuilder.service.ReportJobService;
+
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -58,6 +62,15 @@ public class ReportJobController {
         
         ReportJob job = reportJobService.createAndQueueJob(request, currentUser);
         return ResponseEntity.ok(job);
+    }
+
+    @PostMapping("/download-selected")
+    public void downloadSelectedItems(@RequestBody List<UUID> selectedItemIds, HttpServletResponse response) {
+        try {
+            reportJobService.generateSelectedZip(selectedItemIds, response);
+        } catch (IOException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**

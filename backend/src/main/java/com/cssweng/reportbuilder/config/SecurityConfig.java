@@ -81,6 +81,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login", "/api/localstack/**", "/api/report-jobs/stream").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/admin/users").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()   // ← add this
+                .requestMatchers("/api/reports/webhook/**").permitAll()
                 .anyRequest().authenticated()
             )
             // Register the custom JWT filter to run before the standard authentication filter

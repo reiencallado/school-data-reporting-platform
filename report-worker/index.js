@@ -1,40 +1,47 @@
 import express from 'express';
+import { SQSClient, ReceiveMessageCommand, DeleteMessageCommand } from '@aws-sdk/client-sqs';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { generate } from '@pdfme/generator';
 import { text, barcodes, image, multiVariableText, table, line, rectangle, ellipse } from '@pdfme/schemas';
 import JSZip from 'jszip';
+import axios from 'axios';
 
 const app = express();
 
-app.use(express.json({ limit: '50mb' }));
+// LocalStack AWS Clients
+const s3 = new S3Client({
+    endpoint: 'http://localhost:4566',
+    region: 'us-east-1',
+    credentials: { accessKeyId: 'test', secretAccessKey: 'test' },
+    forcePathStyle: true,
+});
+
+const sqs = new SQSClient({
+    endpoint: 'http://localhost:4566',
+    region: 'us-east-1',
+    credentials: { accessKeyId: 'test', secretAccessKey: 'test' }
+});
+
+// LocalStack configurations
+const QUEUE_URL = 'http://localhost:4566/000000000000/my-queue.fifo';
+const BUCKET_NAME = 'document-maker-bucket';
+const WEBHOOK_URL = 'http://localhost:8080/api/reports/webhook/completion'; 
 
 const plugins = { 
-    Text: text, 
-    'Multi-var Text': multiVariableText, 
-    'QR Code': barcodes.qrcode, 
-    'Barcode': barcodes.code128, 
-    Image: image, 
-    Table: table, 
-    Line: line, 
-    Rectangle: rectangle, 
-    Ellipse: ellipse 
+    Text: text, 'Multi-var Text': multiVariableText, 'QR Code': barcodes.qrcode, 
+    'Barcode': barcodes.code128, Image: image, Table: table, Line: line, 
+    Rectangle: rectangle, Ellipse: ellipse 
 };
 
-app.post('/api/generate', async (req, res) => {
+async function processJob(jobData, receiptHandle) {
+    const { jobId, reportName, configuration, inputs } = jobData;
+    console.log(`[Worker - Job ${jobId}] Processing ${inputs.length} student(s)...`);
+
     try {
-        const { jobId, configuration, inputs } = req.body;
-
-        if (!inputs || !Array.isArray(inputs)) {
-            return res.status(400).send('Inputs must be a valid array.');
-        }
-
-        console.log(`[Worker - Job ${jobId}] Received batch for ${inputs.length} student(s)...`);
-
-        // Parse template
         const templateConfig = JSON.parse(configuration);
         const zip = new JSZip();
-
-        const CHUNK_SIZE = 20;
         const results = [];
+        const CHUNK_SIZE = 20;
 
         for (let i = 0; i < inputs.length; i += CHUNK_SIZE) {
             const chunk = inputs.slice(i, i + CHUNK_SIZE);
@@ -46,87 +53,104 @@ app.post('/api/generate', async (req, res) => {
                     if (typeof field === 'string' && field.trim().startsWith('{')) {
                         try {
                             const parsed = JSON.parse(field);
-                            const firstKey = Object.keys(parsed)[0];
-                            return parsed[firstKey] ?? '';
-                        } catch {
-                            return field;
-                        }
+                            return parsed[Object.keys(parsed)[0]] ?? '';
+                        } catch { return field; }
                     }
                     return field;
                 }
 
-                const rawName = extractValue(studentInput.studentName || studentInput.studentname || studentInput.name) || `student_${globalIndex}`;
-                const safeName = rawName.replace(/[^a-z0-9]+/gi, '_');
-                const studentId = extractValue(studentInput.studentId || studentInput.studentid) || String(globalIndex);
-                const grade = extractValue(studentInput.gradeLevel || studentInput.gradelevel) || '';
-                const section = extractValue(studentInput.section) || '';
-                const strand = extractValue(studentInput.strand) || '';
-                const fileName = `${safeName}_${studentId}.pdf`;
+                const rawName = extractValue(studentInput.studentName || studentInput.name) || `student_${globalIndex}`;
+                const nameParts = rawName.trim().split(/\s+/);
+                let formattedName = rawName;
+                
+                if (nameParts.length > 1) {
+                    const lastName = nameParts.pop(); 
+                    const firstNames = nameParts.join('_');
+                    formattedName = `${lastName}_${firstNames}`;
+                }
+
+                const safeName = formattedName.replace(/[^a-zA-Z0-9_-]/g, '');
+                const fileName = `${safeName}.pdf`; 
+                const studentId = extractValue(studentInput.studentId) || String(globalIndex);
 
                 try {
-                    const pdfBytes = await generate({ 
-                        template: templateConfig, 
-                        inputs: [studentInput], 
-                        plugins 
-                    });
-
+                    const pdfBytes = await generate({ template: templateConfig, inputs: [studentInput], plugins });
                     zip.file(fileName, pdfBytes);
 
-                    results.push({
-                        studentId,
-                        studentName: rawName,
-                        grade,
-                        section,
-                        strand,
-                        status: 'DONE',
-                        fileName,
-                        pdfBase64: Buffer.from(pdfBytes).toString('base64'),
-                        failureReason: null
-                    });
-                } catch (innerErr) {
-                    console.error(`[Worker - Job ${jobId}] Failed to generate PDF for ${fileName}:`, innerErr.message);
-                    zip.file(`_FAILED_${fileName}.txt`, `Failed to generate: ${innerErr.message}`);
+                    const pdfKey = `reports/items/${jobId}_${fileName}`;
+                    
+                    await s3.send(new PutObjectCommand({
+                        Bucket: BUCKET_NAME,
+                        Key: pdfKey,
+                        Body: Buffer.from(pdfBytes),
+                        ContentType: 'application/pdf',
+                        ContentDisposition: `attachment; filename="${fileName}"`
+                    }));
 
                     results.push({
-                        studentId,
-                        studentName: rawName,
-                        grade,
-                        section,
-                        strand,
-                        status: 'FAILED',
-                        fileName: null,
-                        pdfBase64: null,
+                        studentId, studentName: rawName,
+                        grade: extractValue(studentInput.gradeLevel),
+                        section: extractValue(studentInput.section),
+                        strand: extractValue(studentInput.strand),
+                        status: 'DONE', fileName,
+                        fileUrl: `http://localhost:4566/${BUCKET_NAME}/${pdfKey}`
+                    });
+                } catch (innerErr) {
+                    results.push({
+                        studentId, studentName: rawName, status: 'FAILED',
                         failureReason: innerErr.message
                     });
                 }
             }));
         }
 
-        const successCount = results.filter(r => r.status === 'DONE').length;
-        const failCount = results.filter(r => r.status === 'FAILED').length;
+        console.log(`[Worker - Job ${jobId}] Uploading ZIP to S3...`);
+        const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: "DEFLATE" });
+        
+        const safeTemplateName = (reportName || 'Batch_Report').replace(/[^a-zA-Z0-9_-]/g, '_');
+        const zipKey = `reports/${safeTemplateName}_${jobId}.zip`;
+        const downloadZipName = `${safeTemplateName}.zip`;
+        
+        await s3.send(new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: zipKey,
+            Body: zipBuffer,
+            ContentType: 'application/zip',
+            ContentDisposition: `attachment; filename="${downloadZipName}"`
+        }));
+        
+        const zipUrl = `http://localhost:4566/${BUCKET_NAME}/${zipKey}`;
 
-        console.log(`[Worker - Job ${jobId}] Zipping ${successCount} files (${failCount} failed)...`);
-
-        const zipBase64 = await zip.generateAsync({ 
-            type: 'base64',
-            compression: "DEFLATE",
-            compressionOptions: { level: 6 }
-        });
-
-        res.json({
-            jobId,
-            results,
-            zipBase64
-        });
-
-        console.log(`[Worker - Job ${jobId}] Job complete! Response sent back to Java.`);
+        await axios.post(WEBHOOK_URL, { jobId, status: 'DONE', fileUrl: zipUrl, results });
+        await sqs.send(new DeleteMessageCommand({ QueueUrl: QUEUE_URL, ReceiptHandle: receiptHandle }));
+        console.log(`[Worker - Job ${jobId}] Job complete & removed from queue!`);
 
     } catch (err) {
-        console.error("[Worker] Fatal error generating batch:", err);
-        res.status(500).json({ error: err.message });
+        console.error(`[Worker - Job ${jobId}] Fatal error:`, err);
+        await axios.post(WEBHOOK_URL, { jobId, status: 'FAILED', results: [] }).catch(() => {});
     }
-});
+}
 
-// Temporary
+async function pollQueue() {
+    try {
+        const response = await sqs.send(new ReceiveMessageCommand({
+            QueueUrl: QUEUE_URL,
+            MaxNumberOfMessages: 1,
+            WaitTimeSeconds: 5
+        }));
+
+        if (response.Messages && response.Messages.length > 0) {
+            const msg = response.Messages[0];
+            await processJob(JSON.parse(msg.Body), msg.ReceiptHandle);
+        }
+    } catch (error) {
+        console.error("[Worker] SQS Polling Error:", error.message);
+    }
+    setImmediate(pollQueue);
+}
+
+pollQueue(); // polling
+
 const PORT = process.env.PORT || 3000;
+app.get('/health', (req, res) => res.send('Worker is polling SQS!'));
 app.listen(PORT, () => console.log(`Worker running on port ${PORT}`));

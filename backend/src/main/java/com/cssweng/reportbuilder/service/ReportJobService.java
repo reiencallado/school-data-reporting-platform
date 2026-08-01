@@ -8,26 +8,25 @@ import com.cssweng.reportbuilder.model.ReportTemplate;
 import com.cssweng.reportbuilder.repository.ReportItemRepository;
 import com.cssweng.reportbuilder.repository.ReportJobRepository;
 import com.cssweng.reportbuilder.repository.ReportTemplateRepository;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.http.ResponseEntity;
+
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * Manages the lifecycle of report generation jobs, including job creation,
@@ -40,20 +39,22 @@ public class ReportJobService {
     private final ReportJobRepository reportJobRepository;
     private final ReportItemRepository reportItemRepository;
     private final ReportTemplateRepository templateRepository;
-    private final StorageService storageService; 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SqsClient sqsClient;
+    private final String QUEUE_URL = "http://localhost:4566/000000000000/my-queue.fifo";
     
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
     public ReportJobService(ReportJobRepository reportJobRepository, 
                             ReportItemRepository reportItemRepository,
                             ReportTemplateRepository templateRepository,
-                            StorageService storageService) {
+                            StorageService storageService,
+                            SqsClient sqsClient) {
         this.reportJobRepository = reportJobRepository;
         this.reportItemRepository = reportItemRepository;
         this.templateRepository = templateRepository;
-        this.storageService = storageService;
+        this.sqsClient = sqsClient;
         this.restTemplate = new RestTemplate();
     }
 
@@ -117,97 +118,97 @@ public class ReportJobService {
         return savedJob;
     }
 
-    /**
-     * Processes a report generation job asynchronously.
-     *
-     * This method runs in a separate thread to avoid blocking the main application.
-     * It updates the job status to PROCESSING, sends the report generation request
-     * to the Node.js service, processes the returned results, saves individual
-     * report items, uploads generated PDF and ZIP files to storage, and updates
-     * the final job status. If an error occurs during processing, the job is
-     * marked as FAILED.
-     *
-     * @param jobId the unique identifier of the report job
-     * @param reportName the name of the report used for the generated ZIP file
-     * @param configuration the report template configuration sent to the generation service
-     * @param inputs the collection of input records used to generate the reports
-     */
     private void processJobInBackground(UUID jobId, String reportName, String configuration, List<Map<String, String>> inputs) {
-        new Thread(() -> {
-            try {
-                Thread.sleep(5000); // For testing, delete later
-                
-                markJobStatus(jobId, "PROCESSING", null);
+        try {
+            markJobStatus(jobId, "PROCESSING", null);
 
-                String nodeUrl = "http://localhost:3000/api/generate";
-                
-                Map<String, Object> payload = new HashMap<>();
-                payload.put("jobId", jobId.toString());
-                payload.put("configuration", configuration);
-                payload.put("inputs", inputs);
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("jobId", jobId.toString());
+            payload.put("reportName", reportName);
+            payload.put("configuration", configuration);
+            payload.put("inputs", inputs);
 
-                ResponseEntity<String> response = restTemplate.postForEntity(nodeUrl, payload, String.class);
+            String messageBody = objectMapper.writeValueAsString(payload);
 
-                if (response.getBody() != null && response.getStatusCode().is2xxSuccessful()) {
-                    JsonNode root = objectMapper.readTree(response.getBody());
+            // Push to queue
+            SendMessageRequest sendMsgRequest = SendMessageRequest.builder()
+                    .queueUrl(QUEUE_URL)
+                    .messageGroupId("report-jobs")
+                    .messageBody(messageBody)
+                    .build();
 
-                    // Save one ReportItem row per student
-                    ReportJob job = reportJobRepository.findById(jobId).orElseThrow();
-                    JsonNode resultsNode = root.get("results");
-                    for (JsonNode itemNode : resultsNode) {
-                        ReportItem item = new ReportItem(
-                                job,
-                                itemNode.get("studentId").asText(),
-                                itemNode.get("studentName").asText()
-                        );
-                        item.setStatus(itemNode.get("status").asText());
-                        if (itemNode.hasNonNull("failureReason")) {
-                            item.setFailureReason(itemNode.get("failureReason").asText());
-                        }
-                        if (itemNode.hasNonNull("grade")) {
-                            item.setGrade(itemNode.get("grade").asText());
-                        }
-                        if (itemNode.hasNonNull("section")) {
-                            item.setSection(itemNode.get("section").asText());
-                        }
-                        if (itemNode.hasNonNull("strand")) {
-                            item.setStrand(itemNode.get("strand").asText());
-                        }
+            sqsClient.sendMessage(sendMsgRequest);
+            System.out.println("Successfully pushed Job " + jobId + " to SQS.");
 
-                        // Upload this student's individual PDF, if generation succeeded
-                        if (itemNode.hasNonNull("pdfBase64")) {
-                            byte[] pdfBytes = Base64.getDecoder().decode(itemNode.get("pdfBase64").asText());
-                            String pdfFilename = "item_" + item.getId() + "_" + itemNode.get("studentId").asText() + ".pdf";
-                            MultipartFile pdfFile = createMultipartFileAdapter(pdfBytes, pdfFilename, "application/pdf");
-                            String itemFileUrl = storageService.uploadFileAndGetUrl(pdfFile, "reports/items/", pdfFilename);
-                            item.setFileUrl(itemFileUrl);
-                        }
+        } catch (Exception e) {
+            System.err.println("Failed to queue Job " + jobId + " to SQS: " + e.getMessage());
+            markJobStatus(jobId, "FAILED", null);
+        }
+    }
 
-                        reportItemRepository.save(item);
-                    }
-
-                    // Decode and upload the zip as before
-                    String zipBase64 = root.get("zipBase64").asText();
-                    byte[] zipBytes = Base64.getDecoder().decode(zipBase64);
-
-                    String filename = "batch_" + jobId + ".zip";
-                    MultipartFile multipartFile = createMultipartFileAdapter(zipBytes, filename, "application/zip");
-
-                    String safeName = reportName.replaceAll("[^a-zA-Z0-9\\s-]", "").trim();
-                    String downloadFilename = safeName + ".zip";
+    public void handleJobCompletion(Map<String, Object> webhookPayload) {
+        UUID jobId = UUID.fromString((String) webhookPayload.get("jobId"));
+        String status = (String) webhookPayload.get("status");
+        String fileUrl = (String) webhookPayload.get("fileUrl");
+        
+        ReportJob job = reportJobRepository.findById(jobId).orElseThrow();
+        
+        if ("DONE".equals(status)) {
+            List<Map<String, Object>> results = (List<Map<String, Object>>) webhookPayload.get("results");
+            if (results != null) {
+                for (Map<String, Object> itemData : results) {
+                    ReportItem item = new ReportItem(
+                            job,
+                            (String) itemData.get("studentId"),
+                            (String) itemData.get("studentName")
+                    );
+                    item.setStatus((String) itemData.get("status"));
                     
-                    String fileUrl = storageService.uploadFileAndGetUrl(multipartFile, "reports/", downloadFilename);
-
-                    markJobStatus(jobId, "DONE", fileUrl);
-                } else {
-                    markJobStatus(jobId, "FAILED", null);
+                    if (itemData.containsKey("failureReason")) item.setFailureReason((String) itemData.get("failureReason"));
+                    if (itemData.containsKey("grade")) item.setGrade((String) itemData.get("grade"));
+                    if (itemData.containsKey("section")) item.setSection((String) itemData.get("section"));
+                    if (itemData.containsKey("strand")) item.setStrand((String) itemData.get("strand"));
+                    if (itemData.containsKey("fileUrl")) item.setFileUrl((String) itemData.get("fileUrl"));
+                    
+                    reportItemRepository.save(item);
                 }
-
-            } catch (Exception e) {
-                System.err.println("Background processing failed for Job " + jobId + ": " + e.getMessage());
-                markJobStatus(jobId, "FAILED", null);
             }
-        }).start();
+        }
+        
+        markJobStatus(jobId, status, fileUrl);
+    }
+
+    public void generateSelectedZip(List<UUID> selectedItemIds, HttpServletResponse response) throws IOException {
+        List<ReportItem> items = reportItemRepository.findAllById(selectedItemIds);
+        
+        response.setContentType("application/zip");
+        response.setHeader("Content-Disposition", "attachment; filename=\"Selected_Reports.zip\"");
+
+        try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
+            for (ReportItem item : items) {
+                if (item.getFileUrl() != null && "DONE".equals(item.getStatus())) {
+                    try {
+                        // Fetch from LocalStack S3 URL
+                        byte[] fileBytes = restTemplate.getForObject(item.getFileUrl(), byte[].class);
+                        
+                        if (fileBytes != null) {
+                            String fileUrl = item.getFileUrl();
+                            String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
+                            
+                            if (fileName.contains("_")) {
+                                fileName = fileName.substring(fileName.indexOf("_") + 1);
+                            }
+
+                            zos.putNextEntry(new ZipEntry(fileName));
+                            zos.write(fileBytes);
+                            zos.closeEntry();
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Failed to fetch file for packaging: " + item.getFileUrl());
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -232,32 +233,6 @@ public class ReportJobService {
         reportJobRepository.save(job);
         
         broadcastUpdate(job);
-    }
-
-    /**
-     * Creates a MultipartFile instance from raw byte data.
-     *
-     * This utility method wraps a byte array in an anonymous implementation of
-     * MultipartFile, allowing generated files stored in memory to be handled as
-     * uploaded files. It is primarily used to upload generated PDF and ZIP files
-     * through the StorageService without requiring temporary files on disk.
-     *
-     * @param content the file contents as a byte array
-     * @param filename the name assigned to the generated file
-     * @param contentType the MIME type of the file
-     * @return a MultipartFile containing the provided file data
-     */
-    private MultipartFile createMultipartFileAdapter(byte[] content, String filename, String contentType) {
-        return new MultipartFile() {
-            @Override public String getName() { return "file"; }
-            @Override public String getOriginalFilename() { return filename; }
-            @Override public String getContentType() { return contentType; }
-            @Override public boolean isEmpty() { return content == null || content.length == 0; }
-            @Override public long getSize() { return content.length; }
-            @Override public byte[] getBytes() { return content; }
-            @Override public InputStream getInputStream() { return new ByteArrayInputStream(content); }
-            @Override public void transferTo(File dest) throws IOException, IllegalStateException { Files.write(dest.toPath(), content); }
-        };
     }
 
     /**
