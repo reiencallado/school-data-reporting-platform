@@ -424,6 +424,8 @@ export class Archives implements OnInit {
             subtitle: '',
             status: 'ACTIVE',
             grade: item.grade,
+            section: item.section,
+            strand: item.strand,
             yearLevel: item.section,
             course: item.strand
           }

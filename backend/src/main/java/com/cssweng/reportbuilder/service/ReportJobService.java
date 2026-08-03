@@ -118,7 +118,7 @@ public class ReportJobService {
         return savedJob;
     }
 
-    private void processJobInBackground(UUID jobId, String reportName, String configuration, List<Map<String, String>> inputs) {
+    private void processJobInBackground(UUID jobId, String reportName, String configuration, List<ReportJobRequest.InputItem> inputs) {
         try {
             markJobStatus(jobId, "PROCESSING", null);
 
@@ -157,6 +157,7 @@ public class ReportJobService {
             List<Map<String, Object>> results = (List<Map<String, Object>>) webhookPayload.get("results");
             if (results != null) {
                 for (Map<String, Object> itemData : results) {
+                    System.out.println("[DEBUG] itemData: " + itemData); // DEBUG
                     ReportItem item = new ReportItem(
                             job,
                             (String) itemData.get("studentId"),

@@ -46,39 +46,30 @@ async function processJob(jobData, receiptHandle) {
         for (let i = 0; i < inputs.length; i += CHUNK_SIZE) {
             const chunk = inputs.slice(i, i + CHUNK_SIZE);
 
-            await Promise.all(chunk.map(async (studentInput, index) => {
+            await Promise.all(chunk.map(async (item, index) => {
                 const globalIndex = i + index;
-                function extractValue(field) {
-                    if (!field) return '';
-                    if (typeof field === 'string' && field.trim().startsWith('{')) {
-                        try {
-                            const parsed = JSON.parse(field);
-                            return parsed[Object.keys(parsed)[0]] ?? '';
-                        } catch { return field; }
-                    }
-                    return field;
-                }
+                const studentInput = item.pdfmeInput;
+                const student = item.student;
 
-                const rawName = extractValue(studentInput.studentName || studentInput.name) || `student_${globalIndex}`;
+                const rawName = student?.studentName || `student_${globalIndex}`;
                 const nameParts = rawName.trim().split(/\s+/);
                 let formattedName = rawName;
-                
+
                 if (nameParts.length > 1) {
-                    const lastName = nameParts.pop(); 
+                    const lastName = nameParts.pop();
                     const firstNames = nameParts.join('_');
                     formattedName = `${lastName}_${firstNames}`;
                 }
 
                 const safeName = formattedName.replace(/[^a-zA-Z0-9_-]/g, '');
-                const fileName = `${safeName}.pdf`; 
-                const studentId = extractValue(studentInput.studentId) || String(globalIndex);
+                const fileName = `${safeName}.pdf`;
+                const studentId = student?.studentId ?? String(globalIndex);
 
                 try {
                     const pdfBytes = await generate({ template: templateConfig, inputs: [studentInput], plugins });
                     zip.file(fileName, pdfBytes);
 
                     const pdfKey = `reports/items/${jobId}_${fileName}`;
-                    
                     await s3.send(new PutObjectCommand({
                         Bucket: BUCKET_NAME,
                         Key: pdfKey,
@@ -89,9 +80,9 @@ async function processJob(jobData, receiptHandle) {
 
                     results.push({
                         studentId, studentName: rawName,
-                        grade: extractValue(studentInput.gradeLevel),
-                        section: extractValue(studentInput.section),
-                        strand: extractValue(studentInput.strand),
+                        grade: student?.grade ?? '',
+                        section: student?.section ?? '',
+                        strand: student?.strand ?? '',
                         status: 'DONE', fileName,
                         fileUrl: `http://localhost:4566/${BUCKET_NAME}/${pdfKey}`
                     });
@@ -120,6 +111,8 @@ async function processJob(jobData, receiptHandle) {
         }));
         
         const zipUrl = `http://localhost:4566/${BUCKET_NAME}/${zipKey}`;
+
+        console.log('[DEBUG] Sample result:', JSON.stringify(results[0])); // DEBUGGING
 
         await axios.post(WEBHOOK_URL, { jobId, status: 'DONE', fileUrl: zipUrl, results });
         await sqs.send(new DeleteMessageCommand({ QueueUrl: QUEUE_URL, ReceiptHandle: receiptHandle }));

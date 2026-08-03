@@ -923,8 +923,7 @@ export class GenerateReport implements OnInit {
 
   generate(): void {
     if (!this.selectedTemplate) return;
-
-    this.generating = true;
+    this.generating = false;
     this.generateError = null;
 
     try {
@@ -935,18 +934,26 @@ export class GenerateReport implements OnInit {
         throw new Error('This template\u2019s layout data is corrupted and can\u2019t be used to generate reports.');
       }
 
-      let inputs: Record<string, string>[];
+      let inputs: { pdfmeInput: Record<string, string>; student?: Record<string, string> }[];
       let detailString: string;
 
       if (this.selectedTemplate.reportKind === 'DATA') {
-        // One generated document, not tied to any student batch.
-        inputs = [this.buildInputsForReport(parsedTemplate)];
+        inputs = [{ pdfmeInput: this.buildInputsForReport(parsedTemplate) }];
         detailString = 'School data report';
         this.generateProgress = { done: 0, total: 1 };
       } else {
         const selected = this.allStudents.filter(s => this.selectedStudents.has(s.id));
         this.generateProgress = { done: 0, total: selected.length };
-        inputs = selected.map(student => this.buildInputsForStudent(parsedTemplate, student));
+        inputs = selected.map(student => ({
+          pdfmeInput: this.buildInputsForStudent(parsedTemplate, student),
+          student: {
+            studentId: student.studentId,
+            studentName: student.name,
+            grade: student.grade ?? '',
+            section: student.section ?? '',
+            strand: student.strand ?? '',
+          },
+        }));
 
         const topCategories = this.selectionBreakdown.slice(0, 2).map(b => b.label);
         detailString = '';
@@ -958,17 +965,10 @@ export class GenerateReport implements OnInit {
         detailString += `${selected.length} student(s)`;
       }
 
-      const payload = {
-        templateId: this.selectedTemplate.id,
-        details: detailString,
-        inputs,
-      };
+      const payload = { templateId: this.selectedTemplate.id, details: detailString, inputs };
 
       this.http.post('http://localhost:8080/api/report-jobs', payload).subscribe({
-        next: () => {
-          this.generating = false;
-          this.router.navigate(['/archives']);
-        },
+        next: () => { this.generating = false; this.router.navigate(['/archives']); },
         error: (err) => {
           console.error('Failed to queue report:', err);
           this.generateError = 'Failed to communicate with the server. Please try again.';
@@ -976,7 +976,6 @@ export class GenerateReport implements OnInit {
           this.cdr.detectChanges();
         }
       });
-
     } catch (e: any) {
       console.error('Data preparation failed:', e);
       this.generateError = e?.message ?? 'Something went wrong. Please try again.';
