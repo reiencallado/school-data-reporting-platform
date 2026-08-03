@@ -5,7 +5,7 @@ import { UserProfile } from '../services/user.model';
 import { UserRole } from './student.model';
 
 interface DecodedToken {
-  sub?: string;       // email, per AuthController's token subject
+  sub?: string;
   role?: UserRole;
   schoolId?: string;
   tenantId?: string;
@@ -32,6 +32,27 @@ export class AuthService {
   createUser(userData: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/admin/users`, userData);
   }
+
+  // Connects to: GET http://localhost:8080/api/admin/users
+  getUsers(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/admin/users`);
+  }
+
+  // Connects to: PUT http://localhost:8080/api/admin/users/{id}
+  updateUser(id: string, updates: any): Observable<any> {
+    return this.http.put(`${this.baseUrl}/admin/users/${id}`, updates);
+  }
+
+  // Connects to: DELETE http://localhost:8080/api/admin/users/{id}
+  // Server also rejects a user deleting their own account - the frontend
+  // check (Users.isSelf) is UI-only, not a security boundary.
+  deleteUser(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/admin/users/${id}`);
+  }
+
+  // Password resets go through updateUser(id, { password }) - there's no
+  // separate reset endpoint, since PUT /admin/users/{id} already hashes
+  // and saves a new password when one is included in the body.
 
   // Connects to: POST http://localhost:8080/api/auth/login
   login(credentials: any): Observable<any> {

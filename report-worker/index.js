@@ -1,6 +1,6 @@
 import express from 'express';
 import { SQSClient, ReceiveMessageCommand, DeleteMessageCommand } from '@aws-sdk/client-sqs';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { generate } from '@pdfme/generator';
 import { text, barcodes, image, multiVariableText, table, line, rectangle, ellipse } from '@pdfme/schemas';
 import JSZip from 'jszip';
@@ -33,12 +33,42 @@ const plugins = {
     Rectangle: rectangle, Ellipse: ellipse 
 };
 
+// Fill any unresolved image field blank so pdfme never errors on missing content
+const BLANK_PIXEL_PNG =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+
+function getImageSchemaNames(templateConfig) {
+    const names = [];
+    for (const page of templateConfig?.schemas ?? []) {
+        for (const schema of page) {
+            if (schema?.type === 'image' && schema?.name) names.push(schema.name);
+        }
+    }
+    return names;
+}
+
+// Ensures every image field on the template has valid, decodable content before generate() is called
+function sanitizeImageFields(pdfmeInput, imageSchemaNames) {
+    const sanitized = { ...pdfmeInput };
+    for (const name of imageSchemaNames) {
+        const value = sanitized[name];
+        if (typeof value !== 'string' || !value.startsWith('data:')) {
+            sanitized[name] = BLANK_PIXEL_PNG;
+        }
+    }
+    return sanitized;
+}
+
 async function processJob(jobData, receiptHandle) {
-    const { jobId, reportName, configuration, inputs } = jobData;
+    const { jobId, reportName, configurationKey, inputs } = jobData;
     console.log(`[Worker - Job ${jobId}] Processing ${inputs.length} student(s)...`);
 
     try {
-        const templateConfig = JSON.parse(configuration);
+        const s3Object = await s3.send(new GetObjectCommand({ Bucket: BUCKET_NAME, Key: configurationKey }));
+        const configJson = await s3Object.Body.transformToString();
+
+        const templateConfig = JSON.parse(configJson);
+        const imageSchemaNames = getImageSchemaNames(templateConfig);
         const zip = new JSZip();
         const results = [];
         const CHUNK_SIZE = 20;
@@ -66,7 +96,8 @@ async function processJob(jobData, receiptHandle) {
                 const studentId = student?.studentId ?? String(globalIndex);
 
                 try {
-                    const pdfBytes = await generate({ template: templateConfig, inputs: [studentInput], plugins });
+                    const safeInput = sanitizeImageFields(studentInput, imageSchemaNames);
+                    const pdfBytes = await generate({ template: templateConfig, inputs: [safeInput], plugins });
                     zip.file(fileName, pdfBytes);
 
                     const pdfKey = `reports/items/${jobId}_${fileName}`;
@@ -83,6 +114,8 @@ async function processJob(jobData, receiptHandle) {
                         grade: student?.grade ?? '',
                         section: student?.section ?? '',
                         strand: student?.strand ?? '',
+                        course: student?.course ?? '',
+                        yearLevel: student?.yearLevel ?? '',
                         status: 'DONE', fileName,
                         fileUrl: `http://localhost:4566/${BUCKET_NAME}/${pdfKey}`
                     });

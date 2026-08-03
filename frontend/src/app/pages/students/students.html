@@ -84,7 +84,7 @@
       <div class="type-toggle" *ngIf="isAdmin">
         <button class="type-pill" [class.active]="selectedType === 'K12'" (click)="selectType('K12')">K12</button>
         <button class="type-pill" [class.active]="selectedType === 'COLLEGE'" (click)="selectType('COLLEGE')">College</button>
-        <button class="type-pill" [class.active]="selectedType === 'ADMISSIONS'" (click)="selectType('ADMISSIONS')">Admissionss</button>
+        <button class="type-pill" [class.active]="selectedType === 'ADMISSIONS'" (click)="selectType('ADMISSIONS')">Admissions</button>
       </div>
 
     </div>
@@ -136,7 +136,7 @@
 
           <tr *ngIf="pagedStudents.length === 0">
             <td [attr.colspan]="columns.length || 1" class="template-state-msg">
-              {{ selectedType === 'ADMISSIONS' ? 'Admissionss data isn\'t available yet.' : 'No students match your search.' }}
+              {{ selectedType === 'ADMISSIONS' ? 'Admissions data isn\'t available yet.' : 'No students match your search.' }}
             </td>
           </tr>
         </tbody>

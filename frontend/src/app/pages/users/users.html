@@ -1,71 +1,191 @@
 <div class="users-page-container">
 
-  <div class="users-table-header section-card">
-    <div>
-      <h4 class="section-label">Users <span class="user-count">{{ users.length }} members</span></h4>
-    </div>
+  <div class="section-card">
     <div class="filter-row">
-      <input type="text" placeholder="Search users..." class="search-input" [(ngModel)]="searchTerm" />
+
+      <div class="search-bar-wrapper">
+        <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input
+          type="text"
+          placeholder="Search by name or email..."
+          class="search-input search-input-icon"
+          [(ngModel)]="searchTerm" />
+      </div>
 
       <div class="checkbox-dropdown-wrapper">
         <div class="dropdown-btn" (click)="toggleDropdown('role', $event)">
-          {{ getLabel() }}
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          {{ getRoleLabel() }}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['role']" (click)="onDropdownPanelClick($event)">
           <div class="dropdown-panel-header">
-            <span>Role filters</span>
-            <button class="dropdown-clear-btn" *ngIf="selectedRoles.size > 0" (click)="clearFilter()">Clear all</button>
+            <span>Role</span>
+            <button class="dropdown-clear-btn" *ngIf="selectedRoles.size > 0" (click)="clearRoleFilter()">Clear</button>
           </div>
           <label *ngFor="let role of roleOptions" class="checkbox-option-label">
-            <input type="checkbox" [checked]="selectedRoles.has(role)" (change)="toggleFilter(role)" />
+            <input type="checkbox" [checked]="selectedRoles.has(role)" (change)="toggleRoleFilter(role)" />
             <span>{{ roleLabel(role) }}</span>
           </label>
         </div>
       </div>
 
-      <button class="btn-primary" (click)="openAddModal()">+ Add User</button>
+      <div class="checkbox-dropdown-wrapper" *ngIf="isAdmin">
+        <div class="dropdown-btn" (click)="toggleDropdown('school', $event)">
+          {{ getSchoolLabel() }}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="dropdown-checkbox-panel" *ngIf="dropdownStates['school']" (click)="onDropdownPanelClick($event)">
+          <div class="dropdown-panel-header">
+            <span>School</span>
+            <button class="dropdown-clear-btn" *ngIf="selectedSchools.size > 0" (click)="clearSchoolFilter()">Clear</button>
+          </div>
+          <label *ngFor="let school of schools" class="checkbox-option-label">
+            <input type="checkbox" [checked]="selectedSchools.has(school.id)" (change)="toggleSchoolFilter(school.id)">
+            <span>{{ school.name }}</span>
+          </label>
+          <p class="no-options-msg" *ngIf="schools.length === 0">No schools found</p>
+        </div>
+      </div>
+
+      <button class="btn-primary btn-add-user" (click)="openAddModal()">+ Add User</button>
     </div>
   </div>
 
   <div class="section-card">
-    <p class="text-muted" *ngIf="users.length === 0">
-      No users to display yet. The backend doesn't have a "list users" endpoint yet, so newly created
-      users only appear here for this session. Use "+ Add User" to create one.
-    </p>
+    <h4 class="section-label">{{ tableHeading }}</h4>
 
-    <div class="table-responsive-scroll" *ngIf="users.length > 0">
-      <table class="users-data-grid">
+    <p *ngIf="loading" class="template-state-msg">Loading users…</p>
+    <p *ngIf="!loading && error" class="template-state-msg error">{{ error }}</p>
+
+    <div class="table-responsive-scroll" *ngIf="!loading && !error">
+      <table class="dashboard-table users-table">
+        <colgroup>
+          <col>
+          <col style="width: 160px;">
+          <col style="width: 180px;">
+          <col style="width: 132px;">
+        </colgroup>
         <thead>
           <tr>
-            <th>User</th>
-            <th>Role</th>
-            <th>School</th>
-            <th class="actions-col">Actions</th>
+            <th>
+              <button class="col-sort-btn" (click)="toggleSort('name')" aria-label="Sort by User">
+                <span>User</span>
+                <span class="sort-carets">
+                  <svg class="caret caret-up" [class.active]="sortColumn === 'name' && sortDirection === 'asc'"
+                       width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
+                    <path d="M4 0L8 5H0L4 0Z"/>
+                  </svg>
+                  <svg class="caret caret-down" [class.active]="sortColumn === 'name' && sortDirection === 'desc'"
+                       width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
+                    <path d="M4 5L0 0H8L4 5Z"/>
+                  </svg>
+                </span>
+              </button>
+            </th>
+            <th>
+              <button class="col-sort-btn" (click)="toggleSort('role')" aria-label="Sort by Role">
+                <span>Role</span>
+                <span class="sort-carets">
+                  <svg class="caret caret-up" [class.active]="sortColumn === 'role' && sortDirection === 'asc'"
+                       width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
+                    <path d="M4 0L8 5H0L4 0Z"/>
+                  </svg>
+                  <svg class="caret caret-down" [class.active]="sortColumn === 'role' && sortDirection === 'desc'"
+                       width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
+                    <path d="M4 5L0 0H8L4 5Z"/>
+                  </svg>
+                </span>
+              </button>
+            </th>
+            <th>
+              <button class="col-sort-btn" (click)="toggleSort('schoolName')" aria-label="Sort by School">
+                <span>School</span>
+                <span class="sort-carets">
+                  <svg class="caret caret-up" [class.active]="sortColumn === 'schoolName' && sortDirection === 'asc'"
+                       width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
+                    <path d="M4 0L8 5H0L4 0Z"/>
+                  </svg>
+                  <svg class="caret caret-down" [class.active]="sortColumn === 'schoolName' && sortDirection === 'desc'"
+                       width="8" height="5" viewBox="0 0 8 5" fill="currentColor">
+                    <path d="M4 5L0 0H8L4 5Z"/>
+                  </svg>
+                </span>
+              </button>
+            </th>
+            <th class="actions-header">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let user of filtered">
+          <tr *ngFor="let user of pagedUsers">
             <td>
               <div class="user-cell">
                 <div class="avatar">{{ initials(user.name) }}</div>
                 <div>
-                  <div class="user-name">{{ user.name }}</div>
-                  <div class="user-email">{{ user.email }}</div>
+                  <div class="user-name">
+                    {{ user.name }}
+                    <span class="you-tag" *ngIf="isSelf(user)">You</span>
+                  </div>
+                  <div class="user-email muted">{{ user.email }}</div>
                 </div>
               </div>
             </td>
             <td><span class="role-badge" [ngClass]="roleBadgeClass(user.role)">{{ roleLabel(user.role) }}</span></td>
-            <td>{{ user.schoolName || '-' }}</td>
-            <td class="actions-col">
-              <button class="btn-action" (click)="openEditModal(user)">Edit</button>
+            <td class="muted">{{ user.schoolName || '-' }}</td>
+            <td>
+              <div class="row-actions">
+                <button class="icon-action-btn" (click)="openEditModal(user)" title="Edit user">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+                <button class="icon-action-btn" (click)="openResetPasswordModal(user)" title="Reset password">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </button>
+                <button
+                  class="icon-action-btn danger"
+                  [class.disabled]="isSelf(user)"
+                  (click)="!isSelf(user) && openDeleteModal(user)"
+                  [title]="isSelf(user) ? 'You can\'t delete your own account' : 'Delete user'">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="pagedUsers.length === 0">
+            <td colspan="4" class="template-state-msg">
+              {{ users.length === 0 ? 'No users yet. Use "+ Add User" to create one.' : 'No users match your search.' }}
             </td>
           </tr>
         </tbody>
       </table>
+
+      <div class="pagination-row" *ngIf="filtered.length > 0">
+        <button class="page-step-btn" [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+
+        <button *ngFor="let page of totalPagesArray" class="page-btn" [class.active]="page === currentPage" (click)="changePage(page)">{{ page }}</button>
+
+        <button class="page-step-btn" [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 
+  <!-- ── Add / Edit modal ── -->
   <div class="modal-overlay" *ngIf="modalState !== 'closed'" (click)="closeModal()"></div>
 
   <div class="modal-dialog" *ngIf="modalState === 'add' || modalState === 'edit'">
@@ -98,11 +218,60 @@
           <option *ngFor="let school of schools" [value]="school.id">{{ school.name }}</option>
         </select>
       </div>
-      <p class="text-muted" *ngIf="saveError">{{ saveError }}</p>
+      <p class="text-muted error" *ngIf="saveError">{{ saveError }}</p>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" (click)="closeModal()">Cancel</button>
-      <button class="btn-primary" (click)="saveUser()">{{ modalState === 'add' ? 'Add User' : 'Save Changes' }}</button>
+      <button class="btn-primary" [disabled]="saving" (click)="saveUser()">
+        {{ saving ? 'Saving…' : (modalState === 'add' ? 'Add User' : 'Save Changes') }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Reset password modal ── -->
+  <div class="modal-overlay" *ngIf="resetPasswordOpen" (click)="closeResetPasswordModal()"></div>
+
+  <div class="modal-dialog modal-dialog-sm" *ngIf="resetPasswordOpen">
+    <div class="modal-header">
+      <h4>Reset Password</h4>
+      <button class="modal-close" (click)="closeResetPasswordModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted">Set a new password for <strong>{{ resetPasswordUser?.name }}</strong>.</p>
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="password" [(ngModel)]="resetPasswordValue" placeholder="At least 8 characters">
+      </div>
+      <p class="text-muted error" *ngIf="resetPasswordError">{{ resetPasswordError }}</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeResetPasswordModal()">Cancel</button>
+      <button class="btn-primary" [disabled]="resetPasswordSaving" (click)="confirmResetPassword()">
+        {{ resetPasswordSaving ? 'Saving…' : 'Reset Password' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Delete confirmation modal ── -->
+  <div class="modal-overlay" *ngIf="deleteModalOpen" (click)="closeDeleteModal()"></div>
+
+  <div class="modal-dialog modal-dialog-sm" *ngIf="deleteModalOpen">
+    <div class="modal-header">
+      <h4>Delete User</h4>
+      <button class="modal-close" (click)="closeDeleteModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="text-muted">
+        Are you sure you want to delete <strong>{{ userToDelete?.name }}</strong>?
+        This action can't be undone.
+      </p>
+      <p class="text-muted error" *ngIf="deleteError">{{ deleteError }}</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeDeleteModal()">Cancel</button>
+      <button class="btn-danger" [disabled]="deleting" (click)="confirmDelete()">
+        {{ deleting ? 'Deleting…' : 'Delete User' }}
+      </button>
     </div>
   </div>
 

@@ -15,10 +15,14 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -42,19 +46,23 @@ public class ReportJobService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final SqsClient sqsClient;
+    private final S3Client s3Client;
     private final String QUEUE_URL = "http://localhost:4566/000000000000/my-queue.fifo";
-    
+    private static final String BUCKET_NAME = "document-maker-bucket";
+
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
-    public ReportJobService(ReportJobRepository reportJobRepository, 
+    public ReportJobService(ReportJobRepository reportJobRepository,
                             ReportItemRepository reportItemRepository,
                             ReportTemplateRepository templateRepository,
                             StorageService storageService,
-                            SqsClient sqsClient) {
+                            SqsClient sqsClient,
+                            S3Client s3Client) {
         this.reportJobRepository = reportJobRepository;
         this.reportItemRepository = reportItemRepository;
         this.templateRepository = templateRepository;
         this.sqsClient = sqsClient;
+        this.s3Client = s3Client;
         this.restTemplate = new RestTemplate();
     }
 
@@ -72,8 +80,19 @@ public class ReportJobService {
     }
 
     /**
+     * Retrieves all report jobs across all users, newest first.
+     * Intended for admin-facing views (dashboard, archives) rather than
+     * the per-user "my jobs" endpoint.
+     *
+     * @return every {@link ReportJob} in the system, sorted by creation time descending
+     */
+    public List<ReportJob> getAllJobs() {
+        return reportJobRepository.findAllByOrderByCreatedAtDesc();
+    }
+
+    /**
      * Retrieves all report items generated for a specific report job.
-     * Each report item represents the generation result for an individual record, 
+     * Each report item represents the generation result for an individual record,
      * including its processing status, generated file URL, and any failure information.
      *
      * @param jobId the unique identifier of the report job
@@ -107,8 +126,8 @@ public class ReportJobService {
         job.setReportName(template.getName() + " Batch");
         job.setDetails(request.getDetails());
         job.setTotalCount(request.getInputs().size());
-        job.setStatus("PENDING"); 
-        
+        job.setStatus("PENDING");
+
         ReportJob savedJob = reportJobRepository.save(job);
 
         broadcastUpdate(savedJob);
@@ -121,11 +140,20 @@ public class ReportJobService {
     private void processJobInBackground(UUID jobId, String reportName, String configuration, List<ReportJobRequest.InputItem> inputs) {
         try {
             markJobStatus(jobId, "PROCESSING", null);
+            String configKey = "configs/" + jobId + ".json";
+            s3Client.putObject(
+                    PutObjectRequest.builder()
+                            .bucket(BUCKET_NAME)
+                            .key(configKey)
+                            .contentType("application/json")
+                            .build(),
+                    RequestBody.fromBytes(configuration.getBytes(StandardCharsets.UTF_8))
+            );
 
             Map<String, Object> payload = new HashMap<>();
             payload.put("jobId", jobId.toString());
             payload.put("reportName", reportName);
-            payload.put("configuration", configuration);
+            payload.put("configurationKey", configKey);
             payload.put("inputs", inputs);
 
             String messageBody = objectMapper.writeValueAsString(payload);
@@ -150,38 +178,44 @@ public class ReportJobService {
         UUID jobId = UUID.fromString((String) webhookPayload.get("jobId"));
         String status = (String) webhookPayload.get("status");
         String fileUrl = (String) webhookPayload.get("fileUrl");
-        
+
         ReportJob job = reportJobRepository.findById(jobId).orElseThrow();
-        
+
         if ("DONE".equals(status)) {
             List<Map<String, Object>> results = (List<Map<String, Object>>) webhookPayload.get("results");
             if (results != null) {
                 for (Map<String, Object> itemData : results) {
-                    System.out.println("[DEBUG] itemData: " + itemData); // DEBUG
-                    ReportItem item = new ReportItem(
-                            job,
-                            (String) itemData.get("studentId"),
-                            (String) itemData.get("studentName")
-                    );
+                    // studentId/studentName can be missing on a worker-side failure
+                    // (e.g. the input never resolved to a real student), and the
+                    // ReportItem constructor shouldn't be handed a raw null here -
+                    // fall back to safe defaults so the row always saves cleanly.
+                    String studentId = itemData.get("studentId") != null
+                            ? (String) itemData.get("studentId") : "";
+                    String studentName = itemData.get("studentName") != null
+                            ? (String) itemData.get("studentName") : "Unknown";
+
+                    ReportItem item = new ReportItem(job, studentId, studentName);
                     item.setStatus((String) itemData.get("status"));
-                    
+
                     if (itemData.containsKey("failureReason")) item.setFailureReason((String) itemData.get("failureReason"));
                     if (itemData.containsKey("grade")) item.setGrade((String) itemData.get("grade"));
                     if (itemData.containsKey("section")) item.setSection((String) itemData.get("section"));
                     if (itemData.containsKey("strand")) item.setStrand((String) itemData.get("strand"));
+                    if (itemData.containsKey("course")) item.setCourse((String) itemData.get("course"));
+                    if (itemData.containsKey("yearLevel")) item.setYearLevel((String) itemData.get("yearLevel"));
                     if (itemData.containsKey("fileUrl")) item.setFileUrl((String) itemData.get("fileUrl"));
-                    
+
                     reportItemRepository.save(item);
                 }
             }
         }
-        
+
         markJobStatus(jobId, status, fileUrl);
     }
 
     public void generateSelectedZip(List<UUID> selectedItemIds, HttpServletResponse response) throws IOException {
         List<ReportItem> items = reportItemRepository.findAllById(selectedItemIds);
-        
+
         response.setContentType("application/zip");
         response.setHeader("Content-Disposition", "attachment; filename=\"Selected_Reports.zip\"");
 
@@ -191,11 +225,11 @@ public class ReportJobService {
                     try {
                         // Fetch from LocalStack S3 URL
                         byte[] fileBytes = restTemplate.getForObject(item.getFileUrl(), byte[].class);
-                        
+
                         if (fileBytes != null) {
                             String fileUrl = item.getFileUrl();
                             String fileName = fileUrl.substring(fileUrl.lastIndexOf("/") + 1);
-                            
+
                             if (fileName.contains("_")) {
                                 fileName = fileName.substring(fileName.indexOf("_") + 1);
                             }
@@ -232,7 +266,7 @@ public class ReportJobService {
         }
         job.setCompletedAt(LocalDateTime.now());
         reportJobRepository.save(job);
-        
+
         broadcastUpdate(job);
     }
 

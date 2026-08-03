@@ -7,7 +7,6 @@ import { StudentSummary, StudentType } from '../../services/student.model';
 import { Subscription } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { ReportStreamService } from '../../services/report-stream.service';
-// import { ReportService } from '../../services/report.service';
 
 export interface ArchiveReport {
   id:             string;
@@ -29,6 +28,7 @@ export interface ReportBatch {
   template:       string;
   generatedBy:    string;
   date:           string;
+  createdAtRaw?:  string;
   details:        string;
   status:         'PENDING' | 'DONE' | 'PROCESSING' | 'FAILED';
   generatedCount: number;
@@ -95,8 +95,8 @@ export class Archives implements OnInit {
   private streamSub?: Subscription;
 
   constructor(
-    private authService: AuthService, 
-    private studentService: StudentService, 
+    private authService: AuthService,
+    private studentService: StudentService,
     private cdr: ChangeDetectorRef,
     private http: HttpClient,
     private reportStream: ReportStreamService
@@ -108,7 +108,7 @@ export class Archives implements OnInit {
     // Listen to SSE Stream
     this.streamSub = this.reportStream.jobUpdates$.subscribe((updatedJob: any) => {
       const index = this.batches.findIndex(b => b.id === updatedJob.id);
-      
+
       if (index !== -1) {
         this.batches[index].status = updatedJob.status;
         this.batches[index].downloadUrl = updatedJob.fileUrl;
@@ -120,7 +120,7 @@ export class Archives implements OnInit {
       this.cdr.detectChanges();
     });
   }
-  
+
   ngOnDestroy(): void {
     if (this.streamSub) {
       this.streamSub.unsubscribe();
@@ -128,7 +128,15 @@ export class Archives implements OnInit {
   }
 
   fetchArchives(): void {
-    this.http.get<any[]>('http://localhost:8080/api/report-jobs').subscribe({
+    // Admins see every batch org-wide; everyone else only sees batches
+    // they personally requested (same distinction Dashboard makes for
+    // Recent Reports). isAdmin() reads the role claim straight off the
+    // JWT - it's a UI-only check, the backend re-verifies independently.
+    const url = this.authService.isAdmin()
+      ? 'http://localhost:8080/api/report-jobs/all'
+      : 'http://localhost:8080/api/report-jobs';
+
+    this.http.get<any[]>(url).subscribe({
       next: (data: any[]) => {
         this.batches = data.map((job: any) => ({
           id: job.id,
@@ -136,6 +144,7 @@ export class Archives implements OnInit {
           template: job.template?.name || 'Unknown Template',
           generatedBy: job.requestedBy?.name || 'Admin',
           date: job.createdAt ? job.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+          createdAtRaw: job.createdAt || new Date().toISOString(),
           details: job.details || 'Background Job',
           status: job.status as 'DONE' | 'PROCESSING' | 'FAILED',
           totalCount: job.totalCount || 0,
@@ -144,75 +153,16 @@ export class Archives implements OnInit {
           studentType: job.template?.studentType,
           reports: []
         }));
+
+        // Newest first
+        this.batches.sort(
+          (a, b) => new Date(b.createdAtRaw!).getTime() - new Date(a.createdAtRaw!).getTime()
+        );
+
         this.cdr.detectChanges();
       },
       error: (err: any) => console.error('Failed to fetch archives:', err)
     });
-  }
-
-  private get currentUserName(): string {
-    return this.authService.getCurrentUser()?.username ?? 'You';
-  }
-
-  private buildMockBatches(students: StudentSummary[]): ReportBatch[] {
-    const k12Students = students.filter(s => s.studentType === 'K12');
-    const collegeStudents = students.filter(s => s.studentType === 'COLLEGE');
-
-    return [
-      {
-        id: 'B-1',
-        name: 'Batch 1 - Certificate of Enrollment',
-        template: 'Certificate of Enrollment',
-        generatedBy: this.currentUserName,
-        date: '2026-06-01',
-        details: 'Grade 11 • STEM • St. Jude',
-        status: 'DONE',
-        generatedCount: Math.min(2, k12Students.length),
-        totalCount: Math.min(2, k12Students.length),
-        lastDownloadedAt: '2026-06-02',
-        reports: this.makeMockReports('B-1', 'Certificate of Enrollment', k12Students.slice(0, 2), 'DONE'),
-      },
-      {
-        id: 'B-2',
-        name: 'Batch 2 - Diploma Certificate',
-        template: 'Diploma Certificate',
-        generatedBy: this.currentUserName,
-        date: '2026-05-30',
-        details: 'Grade 12 • ABM • St. Thomas',
-        status: 'FAILED',
-        generatedCount: Math.min(1, k12Students.length),
-        totalCount: Math.min(2, k12Students.slice(2, 4).length || k12Students.length),
-        reports: this.makeMockReports('B-2', 'Diploma Certificate', k12Students.slice(2, 4), 'FAILED', 1),
-      },
-      {
-        id: 'B-3',
-        name: 'Batch 3 - Registrar Form 137',
-        template: 'Registrar Form 137',
-        generatedBy: this.currentUserName,
-        date: '2026-05-28',
-        details: 'College • CS & Accountancy',
-        status: 'PROCESSING',
-        generatedCount: Math.min(1, collegeStudents.length),
-        totalCount: collegeStudents.length,
-        reports: this.makeMockReports('B-3', 'Registrar Form 137', collegeStudents, 'PROCESSING', 1),
-      },
-    ];
-  }
-
-  private makeMockReports(batchId: string, template: string, students: StudentSummary[], status: ArchiveReport['status'], generatedOverride?: number): ArchiveReport[] {
-    const generated = generatedOverride ?? students.length;
-    return students.map((student, i) => ({
-      id: `${batchId}-R${i + 1}`,
-      name: template,
-      template,
-      type: 'REPORT',
-      generatedBy: this.currentUserName,
-      date: '2026-05-20',
-      status: i < generated ? 'DONE' : status,
-      downloadUrl: '#',
-      failureReason: (i >= generated && status === 'FAILED') ? 'Template variable "signatory" is missing for this student.' : undefined,
-      student,
-    }));
   }
 
   get statusOptions(): ArchiveReport['status'][] {
@@ -404,6 +354,8 @@ export class Archives implements OnInit {
         const batch = this.selectedBatch;
         if (!batch || batch.id !== batchId) return;
 
+        const studentType: StudentType = batch.studentType === 'COLLEGE' ? 'COLLEGE' : 'K12';
+
         batch.reports = items.map((item: any) => ({
           id: item.id,
           name: item.studentName,
@@ -416,7 +368,7 @@ export class Archives implements OnInit {
           failureReason: item.failureReason,
           student: {
             id: item.studentId,
-            studentType: (batch.studentType === 'COLLEGE' ? 'COLLEGE' : 'K12') as StudentType,
+            studentType,
             studentId: item.studentId,
             firstName: item.studentName,
             lastName: '',
@@ -426,8 +378,8 @@ export class Archives implements OnInit {
             grade: item.grade,
             section: item.section,
             strand: item.strand,
-            yearLevel: item.section,
-            course: item.strand
+            yearLevel: item.yearLevel,
+            course: item.course,
           }
         }));
 
@@ -470,10 +422,10 @@ export class Archives implements OnInit {
 
   get sortedReports(): ArchiveReport[] {
     if (!this.selectedBatch) return [];
-    
+
     // Create a copy so we don't mutate the original batch data
     const reports = [...this.selectedBatch.reports];
-    
+
     if (this.sortField) {
       reports.sort((a, b) => {
         let valA = this.resolveFieldValue(a, this.sortField);
@@ -488,7 +440,7 @@ export class Archives implements OnInit {
         return 0;
       });
     }
-    
+
     return reports;
   }
 
@@ -542,7 +494,7 @@ export class Archives implements OnInit {
 
   toggleSelectAll(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
-    
+
     // Only iterate over selectable reports so we don't grab PROCESSING ones
     this.selectableReports.forEach(r => {
       if (checked) this.selectedIds.add(r.id);
@@ -569,7 +521,7 @@ export class Archives implements OnInit {
     }
 
     this.http.post('http://localhost:8080/api/report-jobs/download-selected', selectedIdsArray, {
-        responseType: 'blob' 
+        responseType: 'blob'
     }).subscribe({
         next: (blob: Blob) => {
             const url = window.URL.createObjectURL(blob);
@@ -581,10 +533,10 @@ export class Archives implements OnInit {
                 baseName = this.selectedBatch.template.replace(/[^a-zA-Z0-9_-]/g, '_');
             }
             a.download = `${baseName}_Selected.zip`;
-            
+
             document.body.appendChild(a);
             a.click();
-            
+
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
         },

@@ -27,4 +27,12 @@ public interface ReportJobRepository extends JpaRepository<ReportJob, UUID> {
      * @return a list of report jobs requested by the user
      */
     List<ReportJob> findByRequestedById(UUID userId);
+
+    /**
+     * Retrieves all report jobs across all users, newest first.
+     * Used by admin-facing views (dashboard, archives).
+     *
+     * @return every report job, sorted by creation time descending
+     */
+    List<ReportJob> findAllByOrderByCreatedAtDesc();
 }

@@ -28,11 +28,11 @@ export interface ReportTemplate {
   name:          string;
   lastUsed:      string;
   thumbnailUrl?: string;
-  configuration: string;   // raw pdfme JSON to actually generate PDFs
+  configuration: string; 
   studentType?:  StudentType;
   reportKind:    TemplateReportKind;
   schoolId?:     string;
-  schoolName?:   string;    // for DATA-kind templates
+  schoolName?:   string; 
 }
 
 export interface ReportDetails {
@@ -205,8 +205,25 @@ export class GenerateReport implements OnInit {
     this.resetSearchFieldsForType();
     this._templateFieldsCache = this.computeTemplateFields();
     this.customImageValues = {};
+    this.logoLoadFailed = false;
+
     if (this.resolvedSchoolLogo && this._templateFieldsCache.some(f => f.kind === 'image' && f.key === 'schoollogo')) {
-      this.customImageValues['schoollogo'] = this.resolvedSchoolLogo;
+      const logoUrl = this.resolvedSchoolLogo;
+      this.fetchLogoAsBase64(logoUrl)
+        .then(base64 => {
+          // Guard: bail if the user switched templates/schools while this was in flight.
+          if (this.resolvedSchoolLogo === logoUrl) {
+            this.customImageValues['schoollogo'] = base64;
+            this.cdr.detectChanges();
+          }
+        })
+        .catch(err => {
+          console.error('Failed to load school logo:', err);
+          if (this.resolvedSchoolLogo === logoUrl) {
+            this.logoLoadFailed = true;
+            this.cdr.detectChanges();
+          }
+        });
     }
 
     if (!this.reportDetails.academicYear) {
@@ -214,6 +231,47 @@ export class GenerateReport implements OnInit {
     }
     if (!this.termOptions.includes(this.reportDetails.term)) {
       this.reportDetails.term = this.termOptions[0];
+    }
+  }
+
+  // Fetch an image URL and converts it to a base64 data URI for pdfme image fields
+  private logoBase64Cache = new Map<string, string>();
+
+  private async fetchLogoAsBase64(url: string): Promise<string> {
+    const cached = this.logoBase64Cache.get(url);
+    if (cached) return cached;
+    const token = localStorage.getItem('token');
+    const proxyUrl = `http://localhost:8080/api/storage/file?key=${encodeURIComponent(url)}`;
+    const response = await fetch(proxyUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!response.ok) throw new Error(`Failed to fetch logo (${response.status})`);
+    const blob = await response.blob();
+
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+
+    this.logoBase64Cache.set(url, base64);
+    return base64;
+  }
+
+  private async ensureSchoolLogoResolved(): Promise<void> {
+    const needsLogo = this._templateFieldsCache.some(f => f.kind === 'image' && f.key === 'schoollogo');
+    if (!needsLogo || !this.resolvedSchoolLogo) return;
+
+    const current = this.customImageValues['schoollogo'];
+    if (current && current.startsWith('data:')) return; // already a proper data URI
+
+    try {
+      this.customImageValues['schoollogo'] = await this.fetchLogoAsBase64(this.resolvedSchoolLogo);
+      this.logoLoadFailed = false;
+    } catch (err) {
+      console.error('Failed to resolve school logo before generation:', err);
+      this.logoLoadFailed = true;
     }
   }
 
@@ -493,6 +551,8 @@ export class GenerateReport implements OnInit {
   customImageValues: Record<string, string> = {};
   customDateFieldValues: Record<string, string> = {};
 
+  logoLoadFailed = false;
+
   onDateFieldChange(key: string, value: string): void {
     this.customDateFieldValues[key] = value;
     this.customFieldValues[key] = this.formatDisplayDate(value);
@@ -686,9 +746,7 @@ export class GenerateReport implements OnInit {
   }
 
   get imageFields(): TemplateField[] {
-    return this.templateFields.filter(f =>
-      f.kind === 'image' && !(f.key === 'schoollogo' && !!this.resolvedSchoolLogo)
-    );
+    return [];
   }
 
   get hasAnyFillableFields(): boolean {
@@ -707,24 +765,6 @@ export class GenerateReport implements OnInit {
       purpose: 'purpose', remarks: 'remarks',
     };
     return map[key] ?? null;
-  }
-
-  onImageFieldUpload(key: string, event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.customImageValues[key] = reader.result as string;
-      this.cdr.detectChanges();
-    };
-    reader.readAsDataURL(file);
-    input.value = ''; // allow re-selecting the same file if the user wants to replace it
-  }
-
-  clearImageField(key: string): void {
-    delete this.customImageValues[key];
   }
 
   get todayFormatted(): string {
@@ -910,7 +950,10 @@ export class GenerateReport implements OnInit {
 
         } else if (schema.type === 'image') {
           const key = (schema.name as string).toLowerCase().replace(/[\s_-]/g, '');
-          page[schema.name] = this.customImageValues[key] ?? schema.content ?? '';
+          const candidate = this.customImageValues[key] ?? schema.content;
+          if (typeof candidate === 'string' && candidate.startsWith('data:')) {
+            page[schema.name] = candidate;
+          }
 
         } else {
           page[schema.name] = schema.content ?? '';
@@ -921,7 +964,7 @@ export class GenerateReport implements OnInit {
     return page;
   }
 
-  generate(): void {
+  async generate(): Promise<void> {
     if (!this.selectedTemplate) return;
     this.generating = false;
     this.generateError = null;
@@ -933,6 +976,9 @@ export class GenerateReport implements OnInit {
       } catch (e) {
         throw new Error('This template\u2019s layout data is corrupted and can\u2019t be used to generate reports.');
       }
+
+      // Make sure the school logo is a real base64 data URI before it's baked into any pdfme input
+      await this.ensureSchoolLogoResolved();
 
       let inputs: { pdfmeInput: Record<string, string>; student?: Record<string, string> }[];
       let detailString: string;
@@ -952,6 +998,8 @@ export class GenerateReport implements OnInit {
             grade: student.grade ?? '',
             section: student.section ?? '',
             strand: student.strand ?? '',
+            course: student.course ?? '',
+            yearLevel: student.yearLevel ?? '',
           },
         }));
 

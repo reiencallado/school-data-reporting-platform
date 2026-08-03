@@ -10,6 +10,7 @@ import com.cssweng.reportbuilder.service.ReportJobService;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -46,6 +47,18 @@ public class ReportJobController {
         AppUser currentUser = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         return ResponseEntity.ok(reportJobService.getJobsForUser(currentUser.getId()));
+    }
+
+    /**
+     * Retrieves all report jobs in the system, for admin views (dashboard,
+     * archives) that need to see jobs from every user, not just their own.
+     *
+     * @return a list of all report jobs, newest first
+     */
+    @GetMapping("/all")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<List<ReportJob>> getAllJobs() {
+        return ResponseEntity.ok(reportJobService.getAllJobs());
     }
 
     /**

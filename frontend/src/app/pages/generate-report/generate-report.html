@@ -85,7 +85,7 @@
         <div class="type-toggle" *ngIf="isAdmin && filterReportKind !== 'DATA'">
           <button class="type-pill" [class.active]="filterStudentType === 'K12'" (click)="selectFilterStudentType('K12')">K12</button>
           <button class="type-pill" [class.active]="filterStudentType === 'COLLEGE'" (click)="selectFilterStudentType('COLLEGE')">College</button>
-          <button class="type-pill" [class.active]="filterStudentType === 'ADMISSIONS'" (click)="selectFilterStudentType('ADMISSIONS')">Admissionss</button>
+          <button class="type-pill" [class.active]="filterStudentType === 'ADMISSIONS'" (click)="selectFilterStudentType('ADMISSIONS')">Admissions</button>
           <button class="type-pill pill-all" [class.active]="filterStudentType === 'ALL'" (click)="selectFilterStudentType('ALL')">All</button>
         </div>
       </div>
@@ -362,28 +362,7 @@
                      [ngModel]="customDateFieldValues[f.key]"
                      (ngModelChange)="onDateFieldChange(f.key, $event)" />
               <span class="field-hint" *ngIf="customFieldValues[f.key]">Will print as "{{ customFieldValues[f.key] }}".</span>
-            </div>
-
-            <div class="form-field image-field" *ngFor="let f of imageFields">
-              <label class="field-label">{{ f.label }} <span class="optional" *ngIf="!f.required">(optional)</span></label>
-
-              <div class="image-upload" *ngIf="!customImageValues[f.key]">
-                <label class="image-upload-btn">
-                  <input type="file" accept="image/*" (change)="onImageFieldUpload(f.key, $event)" hidden />
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-                  </svg>
-                  Upload image
-                </label>
-              </div>
-
-              <div class="image-upload-preview" *ngIf="customImageValues[f.key]">
-                <img [src]="customImageValues[f.key]" [alt]="f.label" />
-                <button type="button" class="image-upload-remove" (click)="clearImageField(f.key)">Remove</button>
-              </div>
-
-              <span class="field-hint">This image will be used for {{ selectedTemplate?.reportKind === 'DATA' ? 'this report' : 'every selected student\u2019s document' }}.</span>
-            </div>
+            </div>    
           </div>
         </div>
 

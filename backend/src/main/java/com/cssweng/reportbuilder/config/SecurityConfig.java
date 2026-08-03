@@ -64,23 +64,15 @@ public class SecurityConfig {
             // Force session to be stateless
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-            // Configure endpoint authorization rules
-            //.authorizeHttpRequests(auth -> auth
-            //    // Allow public access to login and localstack
-            //    .requestMatchers("/api/auth/login", "/api/localstack/**").permitAll()
-            //    
-            //    // TEMPORARY FIX: Allow anyone to CREATE a user to seed the database in Postman
-                // (In production, lock this down and use a database seeding script instead)
-            //    .requestMatchers(HttpMethod.POST, "/api/admin/users").permitAll()
-                
-                // Any other endpoint still requires a valid login
-            //    .anyRequest().authenticated()
-            //)
-            // DEADASS COULDN'T UNDERSTAND WHY JWT KEPT BLOCKING MY AUTHENTICATION
+            // Configure endpoint authorization rules.
+            // /api/admin/** is intentionally NOT permitAll here - AdminController's
+            // endpoints are locked down individually with @PreAuthorize("hasAuthority('ROLE_ADMIN')"),
+            // so they just need to be authenticated (any valid login) to reach the method
+            // security check. The old "TEMPORARY FIX" permitAll on POST /api/admin/users
+            // has been removed now that user creation is a real authenticated admin action.
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login", "/api/localstack/**", "/api/report-jobs/stream").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/admin/users").permitAll()
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()   // ← add this
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/reports/webhook/**").permitAll()
                 .anyRequest().authenticated()
             )

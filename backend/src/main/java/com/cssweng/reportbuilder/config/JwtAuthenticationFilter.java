@@ -29,13 +29,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
+
         String authHeader = request.getHeader("Authorization");
 
         // Check if the request contains a Bearer token
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
-            
+
             try {
                 // Parse and verify the token using the secret key from JwtUtil
                 Claims claims = Jwts.parser()
@@ -50,17 +50,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // If token is valid and context isn't already set, authenticate the user
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                     List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
-                    
-                    UsernamePasswordAuthenticationToken authentication = 
+
+                    UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(username, null, authorities);
-                    
+
                     // Attach the extracted claims (like tenantId) to the authentication details
                     authentication.setDetails(claims);
-                    
+
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             } catch (Exception e) {
+                // A Bearer token was sent but it's invalid/expired/tampered with.
                 System.out.println("JWT validation failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json");
+                response.getWriter().write("{\"error\": \"Session expired. Please log in again.\"}");
+                return;
             }
         }
 

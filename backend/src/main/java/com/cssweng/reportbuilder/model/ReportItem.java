@@ -35,6 +35,7 @@ public class ReportItem {
     @Column(name = "failure_reason")
     private String failureReason;
 
+    // K12-only fields
     @Column(name = "grade")
     private String grade;
 
@@ -43,6 +44,13 @@ public class ReportItem {
 
     @Column(name = "strand")
     private String strand;
+
+    // College-only fields
+    @Column(name = "course")
+    private String course;
+
+    @Column(name = "year_level")
+    private String yearLevel;
 
     public ReportItem() {}
 
@@ -81,5 +89,11 @@ public class ReportItem {
     public void setSection(String section) { this.section = section; }
 
     public String getStrand() { return strand; }
-    public void setStrand(String strand) { this.strand = strand; }  
+    public void setStrand(String strand) { this.strand = strand; }
+
+    public String getCourse() { return course; }
+    public void setCourse(String course) { this.course = course; }
+
+    public String getYearLevel() { return yearLevel; }
+    public void setYearLevel(String yearLevel) { this.yearLevel = yearLevel; }
 }
