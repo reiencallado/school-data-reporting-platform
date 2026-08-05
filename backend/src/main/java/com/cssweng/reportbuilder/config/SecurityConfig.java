@@ -55,17 +55,11 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // 1. Allow public access to login and localstack endpoints
-                .requestMatchers("/api/auth/login", "/api/localstack/**").permitAll()
-                
-                // 2. Allow all browser CORS preflight checks
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                
-                // 3. Restrict user creation strictly to ADMIN users
-                .requestMatchers(HttpMethod.POST, "/api/admin/users").hasRole("ADMIN")
-                
-                // 4. Any other endpoint requires a valid JWT token
-                .anyRequest().authenticated()
+				.requestMatchers("/api/auth/login", "/api/localstack/**").permitAll()
+				.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+				.requestMatchers(HttpMethod.POST, "/api/admin/users").hasAnyAuthority("ADMIN", "ROLE_ADMIN", "SCHOOL_ADMIN", "ROLE_SCHOOL_ADMIN")
+				.anyRequest().authenticated()
+
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
