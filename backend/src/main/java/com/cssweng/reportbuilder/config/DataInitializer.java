@@ -19,7 +19,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        String adminEmail = "admin@edusuite.com";
+        String adminEmail = "seed.admin@edusuite.com";
 
         // Check if the default admin account already exists in PostgreSQL
         if (appUserRepository.findByNameOrEmail(adminEmail, adminEmail).isEmpty()) {
