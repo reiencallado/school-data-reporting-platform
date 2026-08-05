@@ -27,44 +27,46 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-        
-        String authHeader = request.getHeader("Authorization");
+protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+        throws ServletException, IOException {
 
-        // Check if the request contains a Bearer token
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            
-            try {
-                // Parse and verify the token using the secret key from JwtUtil
-                Claims claims = Jwts.parser()
-                        .verifyWith(jwtUtil.getSecretKey())
-                        .build()
-                        .parseSignedClaims(token)
-                        .getPayload();
+    String authHeader = request.getHeader("Authorization");
 
-                String username = claims.getSubject();
-                String role = claims.get("role", String.class);
+    if (authHeader != null && authHeader.startsWith("Bearer ")) {
+        String token = authHeader.substring(7);
 
-                // If token is valid and context isn't already set, authenticate the user
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
-                    
-                    UsernamePasswordAuthenticationToken authentication = 
-                            new UsernamePasswordAuthenticationToken(username, null, authorities);
-                    
-                    // Attach the extracted claims (like tenantId) to the authentication details
-                    authentication.setDetails(claims);
-                    
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
-            } catch (Exception e) {
-                System.out.println("JWT validation failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(jwtUtil.getSecretKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+
+            String username = claims.getSubject();
+            String role = claims.get("role", String.class);
+
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                
+                // Add both raw role and 'ROLE_' prefixed role to cover both hasRole() and hasAuthority()
+                String rawRole = role != null ? role : "USER";
+                String prefixedRole = rawRole.startsWith("ROLE_") ? rawRole : "ROLE_" + rawRole;
+
+                List<SimpleGrantedAuthority> authorities = List.of(
+                        new SimpleGrantedAuthority(rawRole),
+                        new SimpleGrantedAuthority(prefixedRole)
+                );
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(username, null, authorities);
+
+                authentication.setDetails(claims);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
+        } catch (Exception e) {
+            System.out.println("JWT validation failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
         }
-
-        // Continue processing the request
-        filterChain.doFilter(request, response);
     }
+
+    filterChain.doFilter(request, response);
+}
 }
