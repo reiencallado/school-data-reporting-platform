@@ -4,6 +4,11 @@ import jakarta.persistence.*;
 import java.util.UUID;
 import java.time.LocalDateTime;
 
+/**
+ * Represents a report generation job submitted by a user.
+ * Stores the job's status, associated report template,
+ * requesting user, generated file, and processing metadata.
+ */
 @Entity
 @Table(name = "report_jobs")
 public class ReportJob {
@@ -11,6 +16,18 @@ public class ReportJob {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Column(name = "report_name")
+    private String reportName;
+
+    @Column(name = "details")
+    private String details;
+
+    @Column(name = "total_count")
+    private Integer totalCount = 0;
+
+    @Column(name = "file_url")
+    private String fileUrl;
 
     @Column(nullable = false, length = 50)
     private String status = "PENDING"; // Default state on creation
@@ -39,6 +56,18 @@ public class ReportJob {
     // Getters and Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+
+    public String getReportName() { return reportName; }
+    public void setReportName(String reportName) { this.reportName = reportName; }
+
+    public String getDetails() { return details; }
+    public void setDetails(String details) { this.details = details; }
+
+    public Integer getTotalCount() { return totalCount; }
+    public void setTotalCount(Integer totalCount) { this.totalCount = totalCount; }
+
+    public String getFileUrl() { return fileUrl; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }

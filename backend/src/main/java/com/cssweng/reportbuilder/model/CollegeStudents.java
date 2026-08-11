@@ -13,6 +13,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+/**
+ * Represents a college student record associated with a school.
+ * Stores student information used for report generation and
+ * student management.
+ */
 @Entity
 @Table(name = "college_students")
 public class CollegeStudents {
@@ -41,7 +46,7 @@ public class CollegeStudents {
     private String yearLevel;
 
     @Column(nullable = false, length = 50)
-    private String status = "ACTIVE";
+    private String status = "ACTIVE"; // Default status ACTIVE upon creation
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

@@ -7,11 +7,32 @@ import com.cssweng.reportbuilder.model.ReportJob;
 import java.util.UUID;
 import java.util.List;
 
+/**
+ * Provides CRUD operations for ReportJob entities.
+ */
 @Repository
 public interface ReportJobRepository extends JpaRepository<ReportJob, UUID> {
-    
+    /**
+     * Retrieves all report jobs with the specified status.
+     *
+     * @param status the report job status
+     * @return a list of matching report jobs
+     */
     List<ReportJob> findByStatus(String status);
 
-    // ADDED: Allows a user to view their own personal report generation history queue
+    /**
+     * Allows a user to view their own personal report generation history queue.
+     *
+     * @param userId the unique identifier of the user
+     * @return a list of report jobs requested by the user
+     */
     List<ReportJob> findByRequestedById(UUID userId);
+
+    /**
+     * Retrieves all report jobs across all users, newest first.
+     * Used by admin-facing views (dashboard, archives).
+     *
+     * @return every report job, sorted by creation time descending
+     */
+    List<ReportJob> findAllByOrderByCreatedAtDesc();
 }

@@ -1,0 +1,209 @@
+{
+  "basePdf": {
+    "width": 210,
+    "height": 297,
+    "padding": [20, 20, 20, 20]
+  },
+  "schemas": [
+    [
+      {
+        "name": "schoolLogo",
+        "type": "image",
+        "content": "",
+        "position": { "x": 20, "y": 18 },
+        "width": 20,
+        "height": 20
+      },
+      {
+        "name": "schoolName",
+        "type": "multiVariableText",
+        "content": "{\"schoolName\":\"School Name\"}",
+        "text": "{schoolName}",
+        "variables": ["schoolName"],
+        "position": { "x": 45, "y": 20 },
+        "width": 145,
+        "height": 6,
+        "fontSize": 12,
+        "fontColor": "#013157",
+        "alignment": "left"
+      },
+      {
+        "name": "docTypeLabel",
+        "type": "text",
+        "content": "OFFICE OF THE REGISTRAR",
+        "position": { "x": 45, "y": 27 },
+        "width": 145,
+        "height": 5,
+        "fontSize": 8,
+        "fontColor": "#888888",
+        "alignment": "left"
+      },
+      {
+        "name": "headerRule",
+        "type": "line",
+        "position": { "x": 20, "y": 42 },
+        "width": 170,
+        "height": 0.6,
+        "color": "#013157"
+      },
+
+      {
+        "name": "docTitle",
+        "type": "text",
+        "content": "CERTIFICATE OF ENROLLMENT",
+        "position": { "x": 20, "y": 58 },
+        "width": 170,
+        "height": 12,
+        "fontSize": 20,
+        "fontColor": "#013157",
+        "alignment": "center"
+      },
+      {
+        "name": "titleRule",
+        "type": "line",
+        "position": { "x": 85, "y": 73 },
+        "width": 40,
+        "height": 0.8,
+        "color": "#c9942f"
+      },
+
+      {
+        "name": "bodyIntro",
+        "type": "text",
+        "content": "This is to certify that",
+        "position": { "x": 20, "y": 88 },
+        "width": 170,
+        "height": 8,
+        "fontSize": 12,
+        "alignment": "center",
+        "fontColor": "#555555"
+      },
+      {
+        "name": "studentName",
+        "type": "multiVariableText",
+        "content": "{\"studentName\":\"Student Name\"}",
+        "text": "{studentName}",
+        "variables": ["studentName"],
+        "position": { "x": 20, "y": 100 },
+        "width": 170,
+        "height": 13,
+        "fontSize": 19,
+        "fontColor": "#013157",
+        "alignment": "center"
+      },
+      {
+        "name": "studentIdLabel",
+        "type": "multiVariableText",
+        "content": "{\"studentId\":\"Student ID\"}",
+        "text": "Student ID: {studentId}",
+        "variables": ["studentId"],
+        "position": { "x": 20, "y": 116 },
+        "width": 170,
+        "height": 7,
+        "fontSize": 10.5,
+        "alignment": "center",
+        "fontColor": "#888888"
+      },
+      {
+        "name": "bodyMain",
+        "type": "text",
+        "content": "is a bona fide student of this institution, currently enrolled as:",
+        "position": { "x": 20, "y": 132 },
+        "width": 170,
+        "height": 8,
+        "fontSize": 12,
+        "alignment": "center",
+        "fontColor": "#555555"
+      },
+
+      {
+        "name": "detailsBoxTop",
+        "type": "line",
+        "position": { "x": 45, "y": 148 },
+        "width": 120,
+        "height": 0.3,
+        "color": "#e2e2e2"
+      },
+      {
+        "name": "course",
+        "type": "multiVariableText",
+        "content": "{\"course\":\"Program\"}",
+        "text": "{course}",
+        "variables": ["course"],
+        "position": { "x": 45, "y": 155 },
+        "width": 120,
+        "height": 8,
+        "fontSize": 12,
+        "alignment": "center",
+        "fontColor": "#013157"
+      },
+      {
+        "name": "yearLevel",
+        "type": "multiVariableText",
+        "content": "{\"yearLevel\":\"Year Level\"}",
+        "text": "Year Level: {yearLevel}",
+        "variables": ["yearLevel"],
+        "position": { "x": 45, "y": 166 },
+        "width": 120,
+        "height": 8,
+        "fontSize": 12,
+        "alignment": "center",
+        "fontColor": "#013157"
+      },
+      {
+        "name": "detailsBoxBottom",
+        "type": "line",
+        "position": { "x": 45, "y": 178 },
+        "width": 120,
+        "height": 0.3,
+        "color": "#e2e2e2"
+      },
+
+      {
+        "name": "issuanceLine",
+        "type": "multiVariableText",
+        "content": "{\"issuanceDate\":\"Issuance Date\"}",
+        "text": "Issued this {issuanceDate}.",
+        "variables": ["issuanceDate"],
+        "position": { "x": 20, "y": 232 },
+        "width": 170,
+        "height": 8,
+        "fontSize": 11,
+        "alignment": "center",
+        "fontColor": "#888888"
+      },
+      {
+        "name": "signatureRule",
+        "type": "line",
+        "position": { "x": 65, "y": 252 },
+        "width": 80,
+        "height": 0.4,
+        "color": "#888888"
+      },
+      {
+        "name": "signatureLine",
+        "type": "multiVariableText",
+        "content": "{\"registrarName\":\"Registrar Name\"}",
+        "text": "{registrarName}",
+        "variables": ["registrarName"],
+        "position": { "x": 65, "y": 255 },
+        "width": 80,
+        "height": 6,
+        "fontSize": 11,
+        "alignment": "center",
+        "fontColor": "#013157"
+      },
+      {
+        "name": "signatureTitle",
+        "type": "text",
+        "content": "University Registrar",
+        "position": { "x": 65, "y": 262 },
+        "width": 80,
+        "height": 5,
+        "fontSize": 9,
+        "alignment": "center",
+        "fontColor": "#888888"
+      }
+    ]
+  ]
+}

@@ -8,7 +8,11 @@ import com.cssweng.reportbuilder.repository.AdmissionStudentsRepository;
 
 import java.util.List;
 import java.util.UUID;
-
+/**
+ * Handles HTTP requests related to admission student records.
+ * Provides endpoints for creating, retrieving, updating, and deleting
+ * admission students.
+ */
 @RestController
 @RequestMapping("/api/admission-students")
 @CrossOrigin(origins = "*")
@@ -21,12 +25,23 @@ public class AdmissionStudentsController {
     }
 
     // GET http://localhost:8080/api/admission-students
+    /**
+     * Retrieves all admission students.
+     *
+     * @return a list of all admission students
+     */
     @GetMapping
     public ResponseEntity<List<AdmissionStudents>> getAllStudents() {
         return ResponseEntity.ok(admissionStudentsRepository.findAll());
     }
 
     // GET http://localhost:8080/api/admission-students/{id}
+    /**
+     * Retrieves an admission student by ID.
+     *
+     * @param id the ID of the admission student
+     * @return the admission student if found, or 404 if not found
+     */
     @GetMapping("/{id}")
     public ResponseEntity<AdmissionStudents> getStudentById(@PathVariable UUID id) {
         return admissionStudentsRepository.findById(id)
@@ -35,6 +50,12 @@ public class AdmissionStudentsController {
     }
 
     // POST http://localhost:8080/api/admission-students
+    /**
+     * Creates a new admission student.
+     *
+     * @param admissionStudent the admission student to create
+     * @return the saved admission student
+     */
     @PostMapping
     public ResponseEntity<AdmissionStudents> createStudent(@RequestBody AdmissionStudents admissionStudent) {
         AdmissionStudents saved = admissionStudentsRepository.save(admissionStudent);
@@ -42,7 +63,14 @@ public class AdmissionStudentsController {
     }
 
     // POST http://localhost:8080/api/admission-students/bulk
-    // ONLY FOR TESTING PURPOSES TO SEED DATA FAST IN POSTMANT
+    /**
+     * Creates multiple admission student records in a single request.
+     *
+     * This endpoint is primarily intended for testing and quickly seeding data.
+     *
+     * @param students the list of admission students to create
+     * @return the saved admission students
+     */
     @PostMapping("/bulk")
     public ResponseEntity<List<AdmissionStudents>> createStudents(@RequestBody List<AdmissionStudents> students) {
         List<AdmissionStudents> saved = admissionStudentsRepository.saveAll(students);
@@ -50,6 +78,13 @@ public class AdmissionStudentsController {
     }
 
     // PUT http://localhost:8080/api/admission-students/{id}
+    /**
+     * Updates an existing admission student.
+     *
+     * @param id the ID of the admission student to update
+     * @param admissionStudent the updated admission student information
+     * @return the updated admission student, or 404 if not found
+     */
     @PutMapping("/{id}")
     public ResponseEntity<AdmissionStudents> updateStudent(@PathVariable UUID id, @RequestBody AdmissionStudents admissionStudent) {
         return admissionStudentsRepository.findById(id)
@@ -68,6 +103,12 @@ public class AdmissionStudentsController {
     }
 
     // DEL http://localhost:8080/api/admission-students/{id}
+    /**
+     * Deletes an existing admission student.
+     *
+     * @param id the ID of the admission student to delete
+     * @return the deleted admission student, or 404 if not found
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<AdmissionStudents> deleteStudent(@PathVariable UUID id) {
         return admissionStudentsRepository.findById(id)

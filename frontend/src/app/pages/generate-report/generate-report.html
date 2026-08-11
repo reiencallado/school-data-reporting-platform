@@ -39,11 +39,54 @@
                  [(ngModel)]="templateSearch" />
         </div>
 
-        <div class="type-toggle">
-          <button class="type-pill" [class.active]="selectedType === 'K12'" (click)="selectTemplateType('K12')">K12</button>
-          <button class="type-pill" [class.active]="selectedType === 'COLLEGE'" (click)="selectTemplateType('COLLEGE')">College</button>
-          <button class="type-pill" [class.active]="selectedType === 'ADMISSIONS'" (click)="selectTemplateType('ADMISSIONS')">Admissionss</button>
-          <button class="type-pill pill-all" [class.active]="selectedType === 'ALL'" (click)="selectTemplateType('ALL')">All</button>
+        <div class="checkbox-dropdown-wrapper" (click)="$event.stopPropagation()">
+          <div class="dropdown-btn" (click)="toggleFilterReportKindDropdown($event)">
+            {{ filterReportKindLabel }}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="dropdown-checkbox-panel" *ngIf="filterReportKindDropdownOpen">
+            <button
+              *ngFor="let option of reportKindFilterOptions"
+              class="panel-option"
+              [class.active]="filterReportKind === option.value"
+              (click)="selectFilterReportKind(option.value)">
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="checkbox-dropdown-wrapper" *ngIf="isAdmin && availableFilterSchools.length > 1" (click)="$event.stopPropagation()">
+          <div class="dropdown-btn" (click)="toggleFilterSchoolDropdown($event)">
+            {{ filterSchoolLabel }}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="dropdown-checkbox-panel" *ngIf="filterSchoolDropdownOpen">
+            <div class="dropdown-panel-header">
+              <span>School</span>
+              <button class="dropdown-clear-btn" (click)="clearFilterSchools()">Clear</button>
+            </div>
+            <label *ngFor="let school of availableFilterSchools" class="checkbox-option-label">
+              <input type="checkbox" [checked]="selectedFilterSchools.has(school.id)" (change)="onFilterSchoolToggle(school.id)">
+              <span>{{ school.name }}</span>
+            </label>
+            <p class="no-options-msg" *ngIf="availableFilterSchools.length === 0">No schools found</p>
+          </div>
+        </div>
+
+        <!-- K12/College/Admissions - admin only, hidden for School Data
+             since those templates have no student type. Matches the pill
+             row used the same way on templates.html/students.html. -->
+        <div class="type-toggle" *ngIf="isAdmin && filterReportKind !== 'DATA'">
+          <button class="type-pill" [class.active]="filterStudentType === 'K12'" (click)="selectFilterStudentType('K12')">K12</button>
+          <button class="type-pill" [class.active]="filterStudentType === 'COLLEGE'" (click)="selectFilterStudentType('COLLEGE')">College</button>
+          <button class="type-pill" [class.active]="filterStudentType === 'ADMISSIONS'" (click)="selectFilterStudentType('ADMISSIONS')">Admissions</button>
+          <button class="type-pill pill-all" [class.active]="filterStudentType === 'ALL'" (click)="selectFilterStudentType('ALL')">All</button>
         </div>
       </div>
     </div>
@@ -97,18 +140,15 @@
 
     <p *ngIf="templatesLoading" class="template-state-msg">Loading templates…</p>
     <p *ngIf="templatesError" class="template-state-msg error">{{ templatesError }}</p>
-    <p class="template-state-msg" *ngIf="selectedType === 'ALL' && !templatesLoading && !templatesError">
-      Select a student type above to continue.
-    </p>
-    <p *ngIf="selectedType !== 'ALL' && !templatesLoading && !templatesError && filteredTemplates.length === 0" class="template-state-msg">
-      No templates yet - create one from the Templates page first.
+    <p *ngIf="!templatesLoading && !templatesError && filteredTemplates.length === 0" class="template-state-msg">
+      No templates match your filters. Try a different search or category, or create one from the Templates page.
     </p>
 
   </ng-container>
 
 
   <!-- ==== STEP 2 - Select Students ==== -->
-  <ng-container *ngIf="currentStep === 2">
+  <ng-container *ngIf="isStudentSelectionStep">
 
     <div class="context-banner">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -231,44 +271,77 @@
 
 
   <!-- ==== STEP 3 - Review & Generate ==== -->
-  <ng-container *ngIf="currentStep === 3">
+  <ng-container *ngIf="isReviewStep">
     <div class="confirm-grid">
 
       <div class="confirm-left">
 
         <div class="info-notice" *ngIf="autoFilledFieldLabels.length > 0">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-          <p>This template auto-fills <strong>{{ autoFilledFieldLabels.join(', ') }}</strong> from each student's record - no need to enter these below.</p>
+          <p>This template auto-fills <strong>{{ autoFilledFieldLabels.join(', ') }}</strong> automatically - no need to enter these below.</p>
         </div>
 
-        <div class="section-card" *ngIf="manualReportFields.length > 0 || customFieldKeys.length > 0">
+        <div class="section-card period-card" *ngIf="showPeriodSection">
+          <h4 class="section-label">Reporting Period</h4>
+          <p class="period-note">
+            This report covers the period below. Figures still need to be entered manually until the data is wired up to compute automatically.
+          </p>
+          <div class="form-grid">
+            <div class="form-field" *ngFor="let f of periodFields">
+              <ng-container [ngSwitch]="f.key">
+                <ng-container *ngSwitchCase="'academicyear'">
+                  <label class="field-label">Academic year <span class="optional" *ngIf="!f.required">(optional)</span></label>
+                  <select class="field-input" [(ngModel)]="reportDetails.academicYear">
+                    <option value="" disabled>Select academic year...</option>
+                    <option *ngFor="let year of academicYearOptions" [value]="year">{{ year }}</option>
+                  </select>
+                </ng-container>
+                <ng-container *ngSwitchCase="'term'">
+                  <label class="field-label">Term <span class="optional" *ngIf="!f.required">(optional)</span></label>
+                  <select class="field-input" [(ngModel)]="reportDetails.term">
+                    <option value="" disabled>Select term...</option>
+                    <option *ngFor="let t of termOptions" [value]="t">{{ t }}</option>
+                  </select>
+                </ng-container>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card" *ngIf="hasOtherFillableFields">
           <h4 class="section-label">Complete Report Details</h4>
 
           <div class="form-grid">
-            <div class="form-field" *ngFor="let f of manualReportFields">
+            <div class="form-field" *ngFor="let f of otherReportFields">
               <ng-container [ngSwitch]="f.key">
                 <ng-container *ngSwitchCase="'academicyear'">
-                  <label class="field-label">Academic year</label>
-                  <input class="field-input" type="text" placeholder="e.g. 2025 - 2026" [(ngModel)]="reportDetails.academicYear" />
+                  <label class="field-label">Academic year <span class="optional" *ngIf="!f.required">(optional)</span></label>
+                  <select class="field-input" [(ngModel)]="reportDetails.academicYear">
+                    <option value="" disabled>Select academic year...</option>
+                    <option *ngFor="let year of academicYearOptions" [value]="year">{{ year }}</option>
+                  </select>
                 </ng-container>
                 <ng-container *ngSwitchCase="'term'">
-                  <label class="field-label">Term</label>
-                  <input class="field-input" type="text" placeholder="e.g. Term 1" [(ngModel)]="reportDetails.term" />
+                  <label class="field-label">Term <span class="optional" *ngIf="!f.required">(optional)</span></label>
+                  <select class="field-input" [(ngModel)]="reportDetails.term">
+                    <option value="" disabled>Select term...</option>
+                    <option *ngFor="let t of termOptions" [value]="t">{{ t }}</option>
+                  </select>
                 </ng-container>
                 <ng-container *ngSwitchCase="'signatoryname'">
-                  <label class="field-label">Issued by (signatory name)</label>
+                  <label class="field-label">Issued by (signatory name) <span class="optional" *ngIf="!f.required">(optional)</span></label>
                   <input class="field-input" type="text" placeholder="e.g. Dr. John Dela Cruz" [(ngModel)]="reportDetails.signatoryName" />
                 </ng-container>
                 <ng-container *ngSwitchCase="'signatorytitle'">
-                  <label class="field-label">Signatory Title</label>
+                  <label class="field-label">Signatory Title <span class="optional" *ngIf="!f.required">(optional)</span></label>
                   <input class="field-input" type="text" placeholder="e.g. Registrar" [(ngModel)]="reportDetails.signatoryTitle" />
                 </ng-container>
                 <ng-container *ngSwitchCase="'purpose'">
-                  <label class="field-label">Purpose</label>
+                  <label class="field-label">Purpose <span class="optional" *ngIf="!f.required">(optional)</span></label>
                   <input class="field-input" type="text" placeholder="e.g. Employment" [(ngModel)]="reportDetails.purpose" />
                 </ng-container>
                 <ng-container *ngSwitchCase="'remarks'">
-                  <label class="field-label">Special notes / remarks <span class="optional">(optional)</span></label>
+                  <label class="field-label">Special notes / remarks <span class="optional" *ngIf="!f.required">(optional)</span></label>
                   <textarea class="field-input field-textarea" rows="3"
                             placeholder="e.g. This diploma is only valid for 30 days from date of issue."
                             [(ngModel)]="reportDetails.remarks"></textarea>
@@ -276,18 +349,26 @@
               </ng-container>
             </div>
 
-            <div class="form-field" *ngFor="let key of customFieldKeys">
-              <label class="field-label">{{ humanizeKey(key) }}</label>
-              <input class="field-input" type="text" [placeholder]="'Enter ' + humanizeKey(key).toLowerCase()"
-                     [(ngModel)]="customFieldValues[key]" />
-              <span class="optional">This value will be the same for all selected students.</span>
+            <div class="form-field" *ngFor="let f of customTextFields">
+              <label class="field-label">{{ f.label }} <span class="optional" *ngIf="!f.required">(optional)</span></label>
+              <input class="field-input" type="text" [placeholder]="'Enter ' + f.label.toLowerCase()"
+                     [(ngModel)]="customFieldValues[f.key]" />
+              <span class="field-hint">This value will be the same for {{ selectedTemplate?.reportKind === 'DATA' ? 'this report' : 'all selected students' }}.</span>
             </div>
+
+            <div class="form-field" *ngFor="let f of dateFields">
+              <label class="field-label">{{ f.label }} <span class="optional" *ngIf="!f.required">(optional)</span></label>
+              <input class="field-input" type="date"
+                     [ngModel]="customDateFieldValues[f.key]"
+                     (ngModelChange)="onDateFieldChange(f.key, $event)" />
+              <span class="field-hint" *ngIf="customFieldValues[f.key]">Will print as "{{ customFieldValues[f.key] }}".</span>
+            </div>    
           </div>
         </div>
 
-        <div class="info-notice" *ngIf="manualReportFields.length === 0 && customFieldKeys.length === 0">
+        <div class="info-notice" *ngIf="!hasAnyFillableFields">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
-          <p>Everything for this template is auto-filled from student records - you're ready to generate.</p>
+          <p>Everything for this template is auto-filled{{ selectedTemplate?.reportKind === 'DATA' ? '' : ' from student records' }} - you're ready to generate.</p>
         </div>
 
         <div class="section-card">
@@ -346,13 +427,13 @@
       <span *ngIf="currentStep === 1 && selectedTemplate" class="footer-status">
         1 template selected
       </span>
-      <span *ngIf="currentStep === 2" class="footer-status">
+      <span *ngIf="isStudentSelectionStep" class="footer-status">
         {{ selectedStudents.size }} student(s) selected
       </span>
-      <span *ngIf="currentStep === 3 && generating" class="footer-status">
-        Generating {{ generateProgress.done }} of {{ generateProgress.total }}…
+      <span *ngIf="isReviewStep && generating" class="footer-status">
+        {{ selectedTemplate?.reportKind === 'DATA' ? 'Generating report…' : ('Generating ' + generateProgress.done + ' of ' + generateProgress.total + '…') }}
       </span>
-      <span *ngIf="currentStep === 3 && generateError" class="footer-status error">
+      <span *ngIf="isReviewStep && generateError" class="footer-status error">
         {{ generateError }}
       </span>
     </div>
@@ -360,12 +441,12 @@
       <button class="btn-secondary" (click)="onBack()" [disabled]="generating">
         {{ currentStep === 1 ? 'Cancel' : 'Back' }}
       </button>
-      <button class="btn-primary" [class.generate]="currentStep === 3" (click)="onNext()" [disabled]="!canProceed()">
-        <ng-container [ngSwitch]="currentStep">
-          <ng-container *ngSwitchCase="1">Next: Select students →</ng-container>
-          <ng-container *ngSwitchCase="2">Next: Review &amp; generate →</ng-container>
-          <ng-container *ngSwitchCase="3">{{ generating ? 'Generating…' : 'Generate' }}</ng-container>
+      <button class="btn-primary" [class.generate]="isReviewStep" (click)="onNext()" [disabled]="!canProceed()">
+        <ng-container *ngIf="currentStep === 1">
+          Next: {{ selectedTemplate?.reportKind === 'DATA' ? 'Review & generate' : 'Select students' }} →
         </ng-container>
+        <ng-container *ngIf="isStudentSelectionStep">Next: Review &amp; generate →</ng-container>
+        <ng-container *ngIf="isReviewStep">{{ generating ? 'Generating…' : 'Generate' }}</ng-container>
       </button>
     </div>
   </div>

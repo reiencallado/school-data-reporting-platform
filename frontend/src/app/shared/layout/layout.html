@@ -5,14 +5,17 @@
 
     <!-- Brand / Logo -->
     <div class="brand-header">
-      <label class="brand-logo-circle" title="Click to change your logo">
+      <label class="brand-logo-circle" [class.no-logo]="!logoUrl || logoFailed" title="Click to change your logo">
         <img *ngIf="logoUrl && !logoFailed" [src]="logoUrl" [alt]="schoolName + ' logo'"
             (error)="onLogoError()" class="brand-logo-image" />
-        <span *ngIf="!logoUrl || logoFailed">{{ getInitialsPublic(schoolName) }}</span>
+        <span *ngIf="!logoUrl || logoFailed"
+              [style.font-size]="getAbbrFontSize(getSchoolAbbreviation(schoolName ?? ''))">
+          {{ getSchoolAbbreviation(schoolName ?? '') }}
+        </span>
         <input type="file" accept="image/*" class="sr-only" (change)="onLogoFileSelected($event)" />
       </label>
       <div class="brand-text">
-        <h1>{{ schoolName }}</h1>
+        <h1 [class.skeleton-text]="!profileLoaded" [title]="schoolName">{{ schoolName ?? '' }}</h1>
         <h2>Admin Portal</h2>
       </div>
     </div>
@@ -183,4 +186,31 @@
   </div>
   <!-- /main-content-wrapper -->
   
+  <div *ngIf="toastVisible" 
+       class="global-toast" 
+       [ngClass]="{'toast-FAILED': toastStatus === 'FAILED', 'hiding': toastHiding}"
+       (click)="onToastClick()">
+    
+    <div class="toast-icon">
+      <svg *ngIf="toastStatus === 'DONE'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+      <svg *ngIf="toastStatus === 'FAILED'" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+    </div>
+
+    <div class="toast-content">
+      <div class="toast-text">
+        <p class="toast-title">Batch Generation {{ toastStatus === 'DONE' ? 'Complete' : 'Failed' }}</p>
+        <p class="toast-message">{{ toastMessage }}</p>
+        <span class="toast-action" *ngIf="toastStatus === 'DONE'">Click to view in Archives</span>
+      </div>
+    </div>
+    
+    <button class="toast-close" (click)="closeToast($event)" aria-label="Close">✕</button>
+  </div>
 </div>

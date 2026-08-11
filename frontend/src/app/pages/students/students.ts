@@ -31,24 +31,23 @@ export class Students implements OnInit {
 
   // ── Type tabs ──
   selectedType: StudentType = 'K12';
+  isAdmin = false;
 
-  // Only offer tabs for types the current role can actually see - the data
-  // itself is already restricted server-side/in StudentService, so showing
-  // e.g. a "COLLEGE" tab to a ROLE_K12 user would just be a tab that always
-  // yields zero results. Computed in ngOnInit (not as a field initializer)
-  // since authService isn't assigned yet at that point.
-  //
-  // NOTE: ADMISSIONS is intentionally left out of this role check for now -
+  // NOTE: ADMISSIONS is intentionally left out of this role check for now/.
   // canViewStudentType always returns false for it (see student.model.ts),
   // so it would never appear here regardless. If/when AdmissionStudents
   // gets merged into StudentSummary, revisit this list.
   typeOptions: StudentType[] = [];
 
   // ── Status filter (value-based multi-select) ──
-  // NOTE: Active/Enrolled currently overlap conceptually - see student.model.ts note.
+  // NOTE: Active/Enrolled currently overlap conceptually...
   statusOptions = ['ACTIVE', 'ENROLLED', 'DROPPED', 'PENDING', 'INACTIVE'];
   selectedStatuses = new Set<string>();
   statusDropdownOpen = false;
+
+  // ── School filter (admin only, value-based multi-select) ──
+  selectedSchools = new Set<string>();
+  schoolDropdownOpen = false;
 
   // ── Search field scope: which extra fields the search term matches against ──
   searchTerm = '';
@@ -74,6 +73,8 @@ export class Students implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.isAdmin = this.authService.isAdmin();
+
     this.typeOptions = (['K12', 'COLLEGE'] as StudentType[])
       .filter(t => canViewStudentType(this.authService.getCurrentRole(), t));
 
@@ -109,7 +110,16 @@ export class Students implements OnInit {
 
   // ── Columns / search fields for the active type ──
   get columns(): ColumnConfig[] {
-    return typeColumns[this.selectedType];
+    const base = typeColumns[this.selectedType];
+    if (!this.isAdmin) return base;
+
+    // Admin-only School column
+    const schoolCol: ColumnConfig = {
+      key: 'schoolName',
+      label: 'School',
+      getValue: s => s.schoolName || '-',
+    };
+    return [...base, schoolCol];
   }
 
   get searchFieldOptions(): FilterFieldConfig[] {
@@ -157,6 +167,41 @@ export class Students implements OnInit {
     return `Status: ${this.selectedStatuses.size} selected`;
   }
 
+  // ── School dropdown (admin only) ──
+  get schoolOptions(): string[] {
+    return Array.from(new Set(
+      this.allStudents
+        .map(s => s.schoolName)
+        .filter((name): name is string => !!name)
+    )).sort();
+  }
+
+  toggleSchoolDropdown(event: Event): void {
+    event.stopPropagation();
+    const next = !this.schoolDropdownOpen;
+    this.closeAllDropdowns();
+    this.schoolDropdownOpen = next;
+  }
+
+  onSchoolToggle(value: string): void {
+    if (this.selectedSchools.has(value)) this.selectedSchools.delete(value);
+    else this.selectedSchools.add(value);
+    this.currentPage = 1;
+    this.applyFiltersAndCalculations();
+  }
+
+  clearSchoolFilter(): void {
+    this.selectedSchools.clear();
+    this.currentPage = 1;
+    this.applyFiltersAndCalculations();
+  }
+
+  getSchoolLabel(): string {
+    if (this.selectedSchools.size === 0) return 'School';
+    if (this.selectedSchools.size === 1) return `School: ${Array.from(this.selectedSchools)[0]}`;
+    return `School: ${this.selectedSchools.size} selected`;
+  }
+
   // ── Search field scope dropdown ──
   toggleSearchFieldsPanel(event: Event): void {
     event.stopPropagation();
@@ -198,7 +243,7 @@ export class Students implements OnInit {
   get tableHeading(): string {
     if (this.selectedType === 'ADMISSIONS') return 'Recent Students';
 
-    const isFiltered = !!this.searchTerm || this.selectedStatuses.size > 0 || this.sortColumn !== null;
+    const isFiltered = !!this.searchTerm || this.selectedStatuses.size > 0 || this.selectedSchools.size > 0 || this.sortColumn !== null;
     const count = this.filteredStudents.length;
 
     return isFiltered
@@ -209,6 +254,7 @@ export class Students implements OnInit {
   private closeAllDropdowns(): void {
     this.statusDropdownOpen = false;
     this.searchFieldsOpen = false;
+    this.schoolDropdownOpen = false;
   }
 
   onPanelClick(event: Event): void {
@@ -245,8 +291,9 @@ export class Students implements OnInit {
 
       const matchesSearch = !query || matchesCore || matchesExtraField;
       const matchesStatus = this.selectedStatuses.size === 0 || this.selectedStatuses.has(student.status);
+      const matchesSchool = this.selectedSchools.size === 0 || this.selectedSchools.has(student.schoolName || '');
 
-      return matchesType && matchesSearch && matchesStatus;
+      return matchesType && matchesSearch && matchesStatus && matchesSchool;
     });
 
     this.filteredStudents = this.applySort(this.filteredStudents);
@@ -258,7 +305,6 @@ export class Students implements OnInit {
 
   private applySort(list: StudentSummary[]): StudentSummary[] {
     if (!this.sortColumn) {
-      // Default: most recently added first. Falls back to name if createdAt is missing.
       return [...list].sort((a, b) => {
         if (a.createdAt && b.createdAt) return b.createdAt.localeCompare(a.createdAt);
         return a.name.localeCompare(b.name);

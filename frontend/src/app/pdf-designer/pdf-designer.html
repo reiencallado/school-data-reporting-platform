@@ -8,7 +8,7 @@
     />
 
     <select
-        *ngIf="!templateId"
+        *ngIf="isAdmin && !templateId"
         class="school-select"
         [(ngModel)]="currentSchoolId"
     >
@@ -17,6 +17,7 @@
     </select>
 
     <select
+        *ngIf="isAdmin && !templateId"
         class="school-select"
         [(ngModel)]="currentStudentType"
         (ngModelChange)="onStudentTypeChange()"

@@ -1,7 +1,10 @@
-import { Component, Input } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { ResolutionModalComponent } from '../../shared/components/resolution-modal/resolution-modal';
+import { StudentService } from '../../services/student.service';
+import { StudentSummary } from '../../services/student.model';
 // import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -11,7 +14,7 @@ import { ResolutionModalComponent } from '../../shared/components/resolution-mod
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
-export class Dashboard {
+export class Dashboard implements OnInit {
 
   // ── Role ─────────────────────────────────────────────────
   // TODO: replace with real value from AuthService
@@ -28,40 +31,31 @@ export class Dashboard {
     newReportsThisMonth:  12,
     templates:            10,
     newTemplatesThisMonth: 1,
-    // Admin-only
     systemUsers:          8,
     newUsersThisMonth:    1,
   };
 
   // ── Recent Students ──────────────────────────────────────
-  // TODO: fetch from StudentService (limit 10, sort by createdAt desc)
-  students: StudentRow[] = [
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '3.8', status: 'Inactive' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '3.5', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '3.9', status: 'Active' },
-    { id: '12XXXXX', name: 'John Doe', section: 'AXX', cgpa: '4.0', status: 'Active' },
-  ];
+  students = signal<StudentRow[]>([]);
+  studentsLoading = signal(false);
+  studentsError = signal<string | null>(null);
 
-  // ── Recent Reports ───────────────────────────────────────
-  // TODO: fetch from ReportService (limit 10, sort by createdAt desc)
-  reports: ReportRow[] = [
-    { name: 'Monthly Student Report',        type: 'Summary',     by: 'FName LName', date: 'June 10, 2026' },
-    { name: 'Graduation Report',             type: 'Class',       by: 'FName LName', date: 'June 10, 2026' },
-    { name: 'Diploma Certificates',          type: 'Certificate', by: 'FName LName', date: 'June 10, 2026' },
-    { name: 'Perfect Attendance Awards',     type: 'Certificate', by: 'FName LName', date: 'June 10, 2026' },
-    { name: 'Quarterly Financial Report',    type: 'Finance',     by: 'FName LName', date: 'June 10, 2026' },
-    { name: 'Monthly Student Report',        type: 'Summary',     by: 'FName LName', date: 'June 10, 2026' },
-    { name: 'Monthly Student Report',        type: 'Summary',     by: 'FName LName', date: 'June 10, 2026' },
-    { name: 'Monthly Student Report',        type: 'Summary',     by: 'FName LName', date: 'June 10, 2026' },
-    { name: 'Monthly Student Report',        type: 'Summary',     by: 'FName LName', date: 'June 10, 2026' },
-    { name: 'Monthly Student Report',        type: 'Summary',     by: 'FName LName', date: 'June 10, 2026' },
-  ];
+  // ── Recent Reports ────────────────────────────────────────
+  // Fetched from the same /api/report-jobs endpoint Archives uses,
+  // sorted newest-first, capped to 5. Kept as a signal for the same
+  // zoneless-repaint reason as `students` above.
+  reports = signal<ReportRow[]>([]);
+  reportsLoading = signal(false);
+  reportsError = signal<string | null>(null);
+
+  // Same status → badge-class mapping used in Archives, so the two
+  // views stay visually consistent.
+  statusClasses: Record<string, string> = {
+    DONE: 'status-badge-done',
+    PROCESSING: 'status-badge-processing',
+    FAILED: 'status-badge-failed',
+    PENDING: 'status-badge-processing',
+  };
 
   // ── System Overview (admin only) ─────────────────────────
   // TODO: change to real values; fetch from SystemService
@@ -80,8 +74,78 @@ export class Dashboard {
     pendingPercent:    25,
   };
 
-
   showConfigModal = false;
+
+  constructor(
+    private studentService: StudentService,
+    private http: HttpClient,
+  ) {}
+
+  ngOnInit(): void {
+    this.fetchRecentStudents();
+    this.fetchRecentReports();
+  }
+
+  private fetchRecentStudents(): void {
+    this.studentsLoading.set(true);
+    this.studentsError.set(null);
+
+    this.studentService.getAllStudents().subscribe({
+      next: (data: StudentSummary[]) => {
+        const mapped = data
+          .slice()
+          .sort((a, b) => {
+            const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return bTime - aTime;
+          })
+          .slice(0, 10)
+          .map((s): StudentRow => ({
+            id: s.studentId,
+            name: s.name,
+            section: s.subtitle,
+            cgpa: '—',
+            status: s.status === 'ACTIVE' ? 'Active' : 'Inactive',
+          }));
+        this.students.set(mapped);
+        this.studentsLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to fetch recent students:', err);
+        this.studentsError.set('Could not load recent students.');
+        this.studentsLoading.set(false);
+      },
+    });
+  }
+
+  private fetchRecentReports(): void {
+    this.reportsLoading.set(true);
+    this.reportsError.set(null);
+
+    this.http.get<any[]>('http://localhost:8080/api/report-jobs').subscribe({
+      next: (data: any[]) => {
+        const mapped = data
+          .slice()
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 10)   // ← was 5, now matches Recent Students
+          .map((job): ReportRow => ({
+            id: job.id,
+            name: job.reportName || job.template?.name || 'Untitled Batch',
+            template: job.template?.name || 'Unknown Template',
+            by: job.requestedBy?.name || 'Admin',
+            date: job.createdAt ? job.createdAt.split('T')[0] : '',
+            status: job.status || 'PENDING',
+          }));
+        this.reports.set(mapped);
+        this.reportsLoading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to fetch recent reports:', err);
+        this.reportsError.set('Could not load recent reports.');
+        this.reportsLoading.set(false);
+      },
+    });
+  }
 }
 
 // ── Interfaces ───────────────────────────────────────────────
@@ -94,8 +158,10 @@ interface StudentRow {
 }
 
 interface ReportRow {
-  name: string;
-  type: string;
-  by:   string;
-  date: string;
+  id:       string;
+  name:     string;
+  template: string;
+  by:       string;
+  date:     string;
+  status:   'PENDING' | 'DONE' | 'PROCESSING' | 'FAILED';
 }

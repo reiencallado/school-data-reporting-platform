@@ -1,0 +1,23 @@
+{
+  "name": "report-worker",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1101.0",
+    "@aws-sdk/client-sqs": "^3.1101.0",
+    "@pdfme/common": "^6.1.11",
+    "@pdfme/generator": "^6.1.11",
+    "axios": "^1.18.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "jszip": "^3.10.1"
+  }
+}

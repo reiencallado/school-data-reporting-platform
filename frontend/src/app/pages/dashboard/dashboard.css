@@ -1,21 +1,10 @@
-/* DASHBOARD - School Admin Portal */
-
-/* ── Page wrapper ── */
 .dashboard-container {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* ====   SHARED: Section card ==== */
-.dashboard-section {
-  background: var(--white-1);
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-xl);
-  padding: 20px 22px;
-  box-shadow: var(--shadow-sm);
-}
-
+/* ── Section card header row ── */
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -39,10 +28,7 @@
   transition: color 0.15s ease;
 }
 
-.view-all-link:hover {
-  color: var(--blue-3);
-  text-decoration: underline;
-}
+.view-all-link:hover { color: var(--blue-3); text-decoration: underline; }
 
 /* ==== METRIC CARDS ROW ==== */
 .metrics-row {
@@ -51,13 +37,8 @@
   gap: 16px;
 }
 
-@media (max-width: 1200px) {
-  .metrics-row { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (max-width: 768px) {
-  .metrics-row { grid-template-columns: repeat(2, 1fr); }
-}
+@media (max-width: 1200px) { .metrics-row { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px)  { .metrics-row { grid-template-columns: repeat(2, 1fr); } }
 
 .metric-card {
   background: var(--white-1);
@@ -71,10 +52,7 @@
   transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.metric-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
+.metric-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 
 .metric-icon {
   width: 50px;
@@ -87,61 +65,18 @@
   flex-shrink: 0;
 }
 
-.metric-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
+.metric-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.metric-label { font-size: 11.5px; color: var(--gray-2); font-weight: 500; white-space: nowrap; }
+.metric-value { font-size: 26px; font-weight: 800; color: var(--blue-1); line-height: 1.1; }
+.metric-delta { font-size: 11px; font-weight: 500; }
+.metric-delta.positive { color: var(--green-1); }
 
-.metric-label {
-  font-size: 11.5px;
-  color: var(--gray-2);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.metric-value {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--blue-1);
-  line-height: 1.1;
-}
-
-.metric-delta {
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.metric-delta.positive {
-  color: var(--green-1);
-}
-
-/* ICON BACKGROUND COLOR VARIANTS */
-.icon-bg-blue {
-  background-color: var(--blue-4);
-  color: var(--blue-2);
-}
-
-.icon-bg-blue-soft {
-  background-color: var(--blue-4);
-  color: var(--blue-3);
-}
-
-.icon-bg-green {
-  background-color: var(--green-2);
-  color: var(--green-1);
-}
-
-.icon-bg-orange {
-  background-color: #fff3e0;       /* light orange ; outside edusuite tokens */
-  color: var(--orange-1);
-}
-
-.icon-bg-purple {
-  background-color: #f0edff;
-  color: #7c6fe0;
-}
+/* Icon background color variants (used by metric + quick action icons) */
+.icon-bg-blue { background-color: var(--blue-4); color: var(--blue-2); }
+.icon-bg-blue-soft { background-color: var(--blue-4); color: var(--blue-3); }
+.icon-bg-green { background-color: var(--green-2); color: var(--green-1); }
+.icon-bg-orange { background-color: #fff3e0; color: var(--orange-1); }
+.icon-bg-purple { background-color: #f0edff; color: #7c6fe0; }
 
 /* ==== QUICK ACTIONS ==== */
 .quick-actions-grid {
@@ -150,13 +85,8 @@
   gap: 12px;
 }
 
-@media (max-width: 1200px) {
-  .quick-actions-grid { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (max-width: 768px) {
-  .quick-actions-grid { grid-template-columns: repeat(2, 1fr); }
-}
+@media (max-width: 1200px) { .quick-actions-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px)  { .quick-actions-grid { grid-template-columns: repeat(2, 1fr); } }
 
 .action-card {
   display: flex;
@@ -190,12 +120,7 @@
   flex-shrink: 0;
 }
 
-.action-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
+.action-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
 .action-label {
   font-size: 13px;
@@ -221,92 +146,9 @@
   gap: 20px;
 }
 
-@media (max-width: 960px) {
-  .tables-grid { grid-template-columns: 1fr; }
-}
+@media (max-width: 960px) { .tables-grid { grid-template-columns: 1fr; } }
 
-.table-wrapper {
-  min-width: 0;
-}
-
-.table-responsive {
-  overflow-x: auto;
-}
-
-.dashboard-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.dashboard-table th {
-  text-align: left;
-  padding: 8px 10px;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--gray-2);
-  border-bottom: 1px solid var(--gray-4);
-  white-space: nowrap;
-}
-
-.dashboard-table td {
-  padding: 10px 10px;
-  color: var(--blue-1);
-  border-bottom: 1px solid var(--white-2);
-  vertical-align: middle;
-}
-
-.dashboard-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.dashboard-table tbody tr:hover td {
-  background-color: var(--white-2);
-}
-
-/* ── Utility cell modifiers ── */
-.mono {
-  font-family: monospace;
-  font-size: 12px;
-}
-
-.muted {
-  color: var(--gray-2);
-}
-
-/* ── Status badge ── */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 11.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.badge-active {
-  background-color: var(--green-2);
-  color: var(--green-1);
-}
-
-.badge-inactive {
-  background-color: var(--white-2);
-  color: var(--gray-2);
-}
-
-/* ── Report type pill ── */
-.type-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 9px;
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  font-weight: 600;
-  background-color: var(--blue-4);
-  color: var(--blue-2);
-  white-space: nowrap;
-}
+.table-wrapper { min-width: 0; }
 
 /* ==== SYSTEM OVERVIEW (admin only) ==== */
 .overview-grid {
@@ -315,13 +157,8 @@
   gap: 14px;
 }
 
-@media (max-width: 1200px) {
-  .overview-grid { grid-template-columns: repeat(3, 1fr); }
-}
-
-@media (max-width: 768px) {
-  .overview-grid { grid-template-columns: repeat(2, 1fr); }
-}
+@media (max-width: 1200px) { .overview-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 768px)  { .overview-grid { grid-template-columns: repeat(2, 1fr); } }
 
 .overview-card {
   background: var(--white-2);
@@ -341,12 +178,7 @@
   letter-spacing: 0.5px;
 }
 
-.overview-value {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--blue-1);
-  line-height: 1;
-}
+.overview-value { font-size: 28px; font-weight: 800; color: var(--blue-1); line-height: 1; }
 
 .overview-bar {
   height: 5px;
@@ -363,15 +195,27 @@
   transition: width 0.4s ease;
 }
 
-.overview-bar-fill.bar-green {
-  background: var(--green-1);
-}
+.overview-bar-fill.bar-green { background: var(--green-1); }
+.overview-bar-fill.bar-orange { background: var(--orange-1); }
+.overview-sub { font-size: 11px; color: var(--gray-3); }
 
-.overview-bar-fill.bar-orange {
-  background: var(--orange-1);
-}
-
-.overview-sub {
+/* ==== STATUS BADGES (mirrors Archives) ==== */
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 99px;
   font-size: 11px;
-  color: var(--gray-3);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge-done       { background: var(--green-2); color: var(--green-1); }
+.status-badge-processing { background: var(--blue-4);  color: var(--blue-2); }
+.status-badge-failed     { background: #fdecea;        color: #c62828; }
+
+.empty-state {
+  text-align: center;
+  color: var(--gray-2);
+  font-size: 12px;
+  padding: 20px 0;
 }

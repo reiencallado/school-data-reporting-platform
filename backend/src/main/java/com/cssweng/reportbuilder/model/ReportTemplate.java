@@ -4,6 +4,11 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Represents a report template used to generate student reports.
+ * Stores the template configuration, associated school, supported
+ * student type, and related metadata.
+ */
 @Entity
 @Table(name = "report_templates")
 public class ReportTemplate {
@@ -28,6 +33,17 @@ public class ReportTemplate {
 
     @Column(name = "thumbnail_url")
     private String thumbnailUrl;
+
+    // Which student roster this template is meant for — K12, COLLEGE, or
+    // ADMISSIONS (mirrors StudentType on the frontend). Nullable since
+    // templates created before this field existed have no value here;
+    // they simply won't match any type filter in Generate Report until
+    // someone edits and sets one.
+    @Column(name = "student_type", length = 20)
+    private String studentType;
+
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
 
     public ReportTemplate() {}
 
@@ -55,4 +71,10 @@ public class ReportTemplate {
 
     public String getThumbnailUrl() { return thumbnailUrl; }
     public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+
+    public String getStudentType() { return studentType; }
+    public void setStudentType(String studentType) { this.studentType = studentType; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 }

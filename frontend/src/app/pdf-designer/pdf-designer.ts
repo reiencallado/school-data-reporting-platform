@@ -9,7 +9,8 @@ import { Template } from '@pdfme/common';
 import { text, barcodes, image, multiVariableText, rectangle, ellipse, line, table } from '@pdfme/schemas';
 import { ReportTemplateService } from '../services/report-template.service';
 import { ReportTemplate } from '../services/report-template.model';
-import { StudentType } from '../services/student.model';
+import { StudentType, ROLE_STUDENT_TYPE_ACCESS } from '../services/student.model';
+import { AuthService } from '../services/auth.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import html2canvas from 'html2canvas';
 import { ResolutionModalComponent, SizeSelection, PaperSize as ModalPaperSize } from '../shared/components/resolution-modal/resolution-modal';
@@ -118,6 +119,11 @@ export class PdfDesigner implements OnInit, OnDestroy {
   currentStudentType: StudentType | null = null;
   studentTypes = STUDENT_TYPES;
 
+  // The type dropdown is only shown to ROLE_ADMIN — every other role can
+  // only ever create templates for their own single accessible type
+  // anyway, so it's auto-assigned instead (see applyRoleDefaultStudentType).
+  isAdmin = false;
+
   currentName = 'Untitled Template';
   currentSchoolId = '';
   schools = SEED_SCHOOLS;
@@ -192,11 +198,38 @@ export class PdfDesigner implements OnInit, OnDestroy {
     private router: Router,
     private reportTemplateService: ReportTemplateService,
     private cdr: ChangeDetectorRef,
+    private authService: AuthService,
   ) {
+    this.isAdmin = this.authService.isAdmin();
+
     const navState = this.router.getCurrentNavigation()?.extras?.state as
       { template?: Template; scale?: number; studentType?: StudentType } | undefined;
     this.incomingTemplate = navState?.template;
-    this.currentStudentType = navState?.studentType ?? null;
+
+    if (this.isAdmin) {
+      // Admins pick both explicitly — they aren't tied to one school or
+      // one student type, so nothing to auto-assign here.
+      this.currentStudentType = navState?.studentType ?? null;
+    } else {
+      // Non-admins are locked to their own account's school and single
+      // accessible student type — no picker needed, and this also
+      // prevents e.g. a ROLE_K12 user creating a template tagged for a
+      // different school or type than their own.
+      this.currentSchoolId = this.authService.getCurrentSchoolId() ?? '';
+      this.currentStudentType = this.getRoleDefaultStudentType();
+    }
+  }
+
+  /**
+   * The single StudentType a non-admin role is allowed to create
+   * templates for, derived from the same role→type access map used
+   * elsewhere (student.model.ts). Returns null if the role has no
+   * mapped type at all (shouldn't normally happen for a logged-in user).
+   */
+  private getRoleDefaultStudentType(): StudentType | null {
+    const role = this.authService.getCurrentRole();
+    const allowed = role ? ROLE_STUDENT_TYPE_ACCESS[role] : [];
+    return allowed && allowed.length > 0 ? allowed[0] : null;
   }
 
   ngOnInit() {
@@ -219,9 +252,14 @@ export class PdfDesigner implements OnInit, OnDestroy {
 
   private loadTemplate(id: string | null): void {
     this.currentName = 'Untitled Template';
-    this.currentSchoolId = '';
 
     if (id) {
+      // About to load real data for a specific existing template — reset
+      // first so stale values from a previous template (if this component
+      // instance is reused) don't briefly show before the fetch resolves.
+      this.currentSchoolId = '';
+      this.currentStudentType = null;
+
       this.reportTemplateService.getTemplateById(id).subscribe({
         next: (template: ReportTemplate) => {
           this.currentName = template.name;
@@ -245,10 +283,14 @@ export class PdfDesigner implements OnInit, OnDestroy {
         },
       });
     } else if (this.incomingTemplate) {
+      // No reset here — currentSchoolId/currentStudentType were already
+      // correctly set in the constructor (auto-assigned for non-admins,
+      // or from navState/left for the dropdown for admins).
       this.currentPaperSizeId = this.detectPaperSizeId(this.incomingTemplate.basePdf as any);
       this.cdr.detectChanges();
       this.initDesigner(this.incomingTemplate);
     } else {
+      // Same reasoning — brand new blank template, constructor's values stand.
       this.initDesigner(this.buildBlankTemplate());
     }
   }

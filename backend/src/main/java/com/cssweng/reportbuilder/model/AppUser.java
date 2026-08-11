@@ -4,6 +4,11 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Represents an application user who can access the report generation system.
+ * Stores authentication credentials, assigned role, associated school,
+ * and user profile information.
+ */
 @Entity
 @Table(name = "app_users")
 public class AppUser {
@@ -12,7 +17,6 @@ public class AppUser {
     @GeneratedValue(strategy = GenerationType.UUID) // Automatically generates UUIDs on creation
     private UUID id;
 
-    // FIX: Changed from raw UUID to a proper relational mapping to match your other files
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "school_id")
     private School school;
@@ -23,11 +27,9 @@ public class AppUser {
     @Column(nullable = false, unique = true)
     private String email;
 
-    // ADDED: Required to hold the hashed BCrypt password for logins
     @Column(nullable = false)
     private String password;
 
-    // ADDED: Required to hold roles ('ROLE_ADMIN', 'ROLE_SCHOOL_ADMIN', 'ROLE_VIEWER')
     @Column(nullable = false, length = 50)
     private String role;
 

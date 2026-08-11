@@ -14,6 +14,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+/**
+ * Represents an admission student record associated with a school.
+ * Stores applicant information used for report generation and
+ * admissions management.
+ */
 @Entity
 @Table(name = "admission_students")
 public class AdmissionStudents {
@@ -48,7 +53,7 @@ public class AdmissionStudents {
     private String courseApplied;
 
     @Column(nullable = false, length = 50)
-    private String status = "ACTIVE";
+    private String status = "ACTIVE"; // Default status ACTIVE upon creation
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();

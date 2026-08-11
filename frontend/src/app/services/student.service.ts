@@ -1,7 +1,10 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, forkJoin, of, map } from 'rxjs';
-import { K12StudentApi, CollegeStudentApi, StudentSummary, canViewStudentType } from './student.model';
+import { Observable, forkJoin, of, map, catchError } from 'rxjs';
+import {
+  K12StudentApi, CollegeStudentApi, AdmissionStudentApi,
+  StudentSummary, canViewStudentType,
+} from './student.model';
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -16,22 +19,27 @@ export class StudentService {
   }
 
   /**
-   * Merges K12 + College students into one normalized list. There is no
-   * single backend endpoint for this - /api/k12-students and
-   * /api/college-students are separate REST resources on two unrelated
-   * tables, so the merge happens here on the client via forkJoin.
+   * Merges K12 + College + Admissions students into one normalized list.
+   * There is no single backend endpoint for this — three separate REST
+   * resources on three unrelated tables — so the merge happens here on
+   * the client via forkJoin.
    *
    * IMPORTANT: only calls the endpoint(s) the current role is actually
-   * authorized for. Both controllers now enforce @PreAuthorize
-   * (ROLE_K12/ROLE_COLLEGE/ROLE_ADMIN), so unconditionally calling both
-   * via forkJoin would make forkJoin fail entirely for a non-admin user -
-   * a single 403 from the endpoint they can't access would break the
-   * whole merged list, including the data they DO have access to.
+   * authorized for. All three controllers enforce @PreAuthorize
+   * (ROLE_K12/ROLE_COLLEGE/ROLE_ADMISSIONS/ROLE_ADMIN), so unconditionally
+   * calling all three via forkJoin would make forkJoin fail entirely for
+   * any non-admin role — a single 403 from an endpoint they can't access
+   * would break the whole merged list, including data they DO have
+   * access to.
    *
-   * AdmissionStudents doesn't have a StudentType/StudentSummary shape yet
-   * (see student.model.ts), so ROLE_ADMISSIONS currently gets an empty
-   * list here rather than an error. Add a third call/mapper here once
-   * AdmissionStudents is merged into StudentSummary.
+   * ALSO IMPORTANT: ROLE_ADMIN is the only role that ever calls all three
+   * endpoints at once (see ROLE_STUDENT_TYPE_ACCESS in student.model.ts).
+   * forkJoin fails its entire result if ANY one inner observable errors,
+   * so without the catchError below, a single failing/unimplemented
+   * endpoint (e.g. admission-students) would wipe out K12 + College data
+   * too, even though those two calls succeeded. Each call is caught
+   * individually and falls back to an empty array so one bad endpoint
+   * can't take down the other two for admin.
    */
   getAllStudents(): Observable<StudentSummary[]> {
     const role = this.authService.getCurrentRole();
@@ -40,14 +48,39 @@ export class StudentService {
     if (canViewStudentType(role, 'K12')) {
       calls.push(
         this.http.get<K12StudentApi[]>(`${this.baseUrl}/k12-students`, { headers: this.authHeaders() })
-          .pipe(map(list => list.map(this.mapK12)))
+          .pipe(
+            map(list => list.map(this.mapK12)),
+            catchError(err => {
+              console.error('Failed to load K12 students:', err);
+              return of([] as StudentSummary[]);
+            })
+          )
       );
     }
 
     if (canViewStudentType(role, 'COLLEGE')) {
       calls.push(
         this.http.get<CollegeStudentApi[]>(`${this.baseUrl}/college-students`, { headers: this.authHeaders() })
-          .pipe(map(list => list.map(this.mapCollege)))
+          .pipe(
+            map(list => list.map(this.mapCollege)),
+            catchError(err => {
+              console.error('Failed to load College students:', err);
+              return of([] as StudentSummary[]);
+            })
+          )
+      );
+    }
+
+    if (canViewStudentType(role, 'ADMISSIONS')) {
+      calls.push(
+        this.http.get<AdmissionStudentApi[]>(`${this.baseUrl}/admission-students`, { headers: this.authHeaders() })
+          .pipe(
+            map(list => list.map(this.mapAdmission)),
+            catchError(err => {
+              console.error('Failed to load Admissions students:', err);
+              return of([] as StudentSummary[]);
+            })
+          )
       );
     }
 
@@ -67,12 +100,14 @@ export class StudentService {
       id: s.id,
       studentType: 'K12',
       schoolId: s.school?.id,
+      schoolName: s.school?.name,
       studentId: s.studentId,
       firstName: s.firstName,
       lastName: s.lastName,
       name: `${s.firstName} ${s.lastName}`,
       subtitle: parts.join(' • '),
       status: s.status,
+      createdAt: s.createdAt,
       grade: s.grade,
       strand: s.strand,
       section: s.section,
@@ -84,14 +119,45 @@ export class StudentService {
       id: s.id,
       studentType: 'COLLEGE',
       schoolId: s.school?.id,
+      schoolName: s.school?.name,
       studentId: s.studentId,
       firstName: s.firstName,
       lastName: s.lastName,
       name: `${s.firstName} ${s.lastName}`,
       subtitle: `${s.course} • ${s.yearLevel}`,
       status: s.status,
+      createdAt: s.createdAt,
       course: s.course,
       yearLevel: s.yearLevel,
+    };
+  }
+
+  /**
+   * AdmissionStudents has no dedicated reference-number field on the
+   * backend (unlike K12/College's studentId) — the raw UUID is used as
+   * studentId here so existing UI (tables, selection, etc.) that expects
+   * every StudentSummary to have a studentId keeps working unchanged.
+   */
+  private mapAdmission(s: AdmissionStudentApi): StudentSummary {
+    const appliedFor = s.gradeLevelApplied || s.courseApplied || 'Unspecified program';
+
+    return {
+      id: s.id,
+      studentType: 'ADMISSIONS',
+      schoolId: s.school?.id,
+      schoolName: s.school?.name,
+      studentId: s.id,
+      firstName: s.firstName,
+      lastName: s.lastName,
+      name: `${s.firstName} ${s.lastName}`,
+      subtitle: `Applying: ${appliedFor}`,
+      status: s.status,
+      createdAt: s.createdAt,
+      lastSchoolAttended: s.lastSchoolAttended,
+      highestGradeCompleted: s.highestGradeCompleted,
+      gpa: s.gpa,
+      gradeLevelApplied: s.gradeLevelApplied,
+      courseApplied: s.courseApplied,
     };
   }
 }

@@ -1,293 +1,37 @@
+/* USERS — page-specific only. Search bar, dropdowns, section card,
+   buttons, dashboard-table, sort carets, and pagination all come from
+   shared-components.css (same classes the Students and Templates pages
+   use — do not redefine them here). Row actions are plain icon buttons
+   defined below, not the shared kebab menu — see .row-actions. */
+
 .users-page-container {
   display: flex;
   flex-direction: column;
-  gap: 28px;
-}
-
-.users-table-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   gap: 16px;
-  flex-wrap: wrap;
+  width: 100%;
 }
 
-.users-table-header > div:first-child {
-  min-width: 180px;
-}
-
-.users-table-header .section-label {
-  margin-bottom: 0;
-}
-
-.filter-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.search-input {
-  flex: 1;
-  min-width: 340px;
-  height: 40px;
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-md);
-  padding: 0 14px;
-  font-family: var(--font-base);
-  font-size: 13px;
-  color: var(--blue-1);
-  background: var(--white-1);
-  outline: none;
-  transition: border-color 0.15s ease;
-}
-
-.search-input::placeholder { color: var(--gray-3); }
-.search-input:focus { border-color: var(--blue-3); }
-
-/* top buttons */
-.btn-primary {
-  padding: 10px 24px;
-  min-width: 140px;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease;
+/* Darker resting state for just this button — .btn-primary itself stays
+   untouched so Templates/modal footers etc. aren't affected. */
+.btn-add-user {
   background: var(--blue-1);
-  color: var(--white-1);
-  white-space: nowrap;
+  margin-left: auto;
 }
 
-.btn-primary:hover { 
-  background: var(--blue-2); 
+.btn-add-user:hover {
+  background: var(--blue-2, var(--blue-1));
+  filter: brightness(1.1);
 }
 
-/* dropdown buttons */
-.dropdown-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  height: 34px;
-  padding: 0 16px;
-  background: var(--blue-3);
-  color: var(--white-1);
-  border-radius: var(--radius-md);
-  border: none;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  user-select: none;
-  transition: background 0.15s ease;
-  min-width: 140px;
+.users-table {
+  min-width: 640px;
 }
 
-.dropdown-btn:hover { background: var(--blue-2); }
-
-.checkbox-dropdown-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.dropdown-checkbox-panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 180px;
-  background: var(--white-1);
-  border: 1px solid var(--gray-4);
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-  padding: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  z-index: 1010;
-  max-height: 240px;
-  overflow-y: auto;
-  animation: slideDown 0.15s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.checkbox-option-label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  font-size: 14px;
-  color: var(--blue-1);
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background-color 0.15s ease;
-}
-.dropdown-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px 8px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--gray-4);
-}
-
-.dropdown-panel-header span {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--blue-1);
-}
-
-.dropdown-clear-btn {
-  background: transparent;
-  border: none;
-  color: var(--blue-3);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 8px;
-  transition: background 0.15s ease;
-}
-
-.dropdown-clear-btn:hover {
-  background: var(--blue-4);
-}
-.checkbox-option-label:hover { background-color: var(--blue-4); }
-
-.checkbox-option-label input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--white-1);
-  cursor: pointer;
-  background-color: var(--blue-3);
-  border-color: var(--blue-3);
-}
-
-/* role cards */
-.role-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.role-card {
-  background: var(--white-1);
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm);
-  padding: 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
-
-.role-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-
-.role-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.role-count {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--blue-1);
-}
-
-.role-card p {
-  margin: 0;
-  color: var(--gray-2);
-  line-height: 1.6;
-}
-
-.role-card ul {
-  margin: 0;
-  padding-left: 18px;
-  display: grid;
-  gap: 8px;
-  color: var(--gray-2);
-}
-
-.role-card li {
-  list-style: disc;
-}
-
-/* users table */
-.section-card {
-  background: var(--white-1);
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-xl);
-  padding: 20px 24px;
-  box-shadow: var(--shadow-sm);
-}
-
-.section-label {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--blue-1);
-  margin: 0 0 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.user-count {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--gray-2);
-}
-
-.table-responsive-scroll {
-  width: 100%;
-  overflow-x: auto;
-}
-
-.users-data-grid {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.users-data-grid th {
-  color: var(--blue-1);
-  font-size: 14px;
-  font-weight: 700;
-  padding: 16px 12px;
-  border-bottom: 2px solid var(--blue-4);
-}
-
-.users-data-grid td {
-  padding: 18px 12px;
-  font-size: 14px;
-  color: #333;
-  border-bottom: 1px solid #F0F2F5;
-}
-
-.user-cell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+/* ── User cell (avatar + name/email) — specific to this page's first column ── */
+.user-cell { display: flex; align-items: center; gap: 12px; }
 
 .avatar {
+  flex-shrink: 0;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -300,17 +44,21 @@
   font-size: 12px;
 }
 
-.user-name {
-  font-weight: 600;
-  color: var(--blue-1);
-}
+.user-name { font-weight: 600; color: var(--blue-1); display: flex; align-items: center; gap: 8px; }
+.user-email { font-size: 12px; margin-top: 2px; }
 
-.user-email {
-  font-size: 12px;
+.you-tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
   color: var(--gray-2);
-  margin-top: 2px;
+  border: 1px solid var(--gray-4);
+  border-radius: 20px;
+  padding: 1px 8px;
 }
 
+/* ── Role badges — this page's own palette, distinct from students'
+   status-badge colors ── */
 .role-badge {
   display: inline-flex;
   align-items: center;
@@ -328,166 +76,72 @@
 .role-college { background: var(--orange-2); color: var(--white-1); }
 .role-admissions { background: var(--gray-2); color: var(--white-1); }
 
-.actions-col {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-action {
-  padding: 8px 14px;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease;
-  background: var(--blue-1);
-  color: var(--white-1);
-}
-
-.btn-action:hover { background: var(--blue-2); }
-
+/* ── Small extras shared-components.css doesn't define ── */
 .btn-danger {
-  background: transparent;
-  color: var(--blue-1);
-  border: 1px solid var(--blue-1);
+  background: var(--red-1, #D64545);
+  color: var(--white-1);
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  padding: 10px 18px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
 }
 
-.btn-danger:hover {
-  background: var(--blue-4);
-}
+.btn-danger:hover { opacity: 0.9; }
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.32);
-  z-index: 50;
-}
+/* ── Row actions — always-visible icon buttons, no dropdown. A
+   kebab menu here was getting clipped by the scrollable table
+   container (position: absolute + overflow don't mix), so every
+   action is inline instead. ── */
+.actions-header { text-align: right; }
 
-.modal-dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(500px, calc(100% - 32px));
-  background: var(--white-1);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  z-index: 100;
-  padding: 24px;
-}
-
-.modal-header {
+.row-actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.modal-header h4 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--blue-1);
-}
-
-.modal-close {
-  background: none;
-  border: none;
-  font-size: 24px;
-  color: var(--gray-2);
-  cursor: pointer;
-  line-height: 1;
-}
-
-.modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-group label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--blue-1);
-}
-
-.form-group input,
-.form-group select {
-  padding: 10px 12px;
-  border: 1px solid var(--gray-4);
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  color: var(--blue-1);
-  font-family: var(--font-base);
-  outline: none;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-  border-color: var(--blue-3);
-  background: var(--blue-4);
-}
-
-.modal-footer {
-  display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 6px;
 }
 
-.btn-secondary {
-  background: var(--white-1);
-  color: var(--blue-1);
+.icon-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--gray-4);
-  padding: 10px 18px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-
-.btn-secondary:hover { background: var(--blue-4); }
-
-.text-muted {
-  font-size: 12px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--white-1);
   color: var(--gray-2);
-  margin: 0;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-/* responsive */
+.icon-action-btn:hover {
+  background: var(--blue-4);
+  color: var(--blue-1);
+  border-color: var(--blue-3);
+}
+
+.icon-action-btn.danger:hover {
+  background: #FBE9E9;
+  color: var(--red-1, #D64545);
+  border-color: var(--red-1, #D64545);
+}
+
+.icon-action-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.modal-dialog-sm { max-width: 400px; }
+
+.text-muted.error { color: var(--red-1, #D64545); }
+
 @media (max-width: 768px) {
-  .filter-row {
-    flex-direction: column;
-  }
-
-  .search-input { min-width: 100%; }
-
-  .dropdown-btn { width: 100%; }
-
-  .users-data-grid {
-    font-size: 12px;
-  }
-
-  .users-data-grid th,
-  .users-data-grid td {
-    padding: 12px 8px;
-  }
-
-  .actions-col {
-    flex-direction: column;
-  }
-
-  .modal-dialog {
-    width: calc(100% - 32px);
-  }
+  .search-bar-wrapper { min-width: 100%; }
+  .btn-add-user { margin-left: 0; width: 100%; }
 }

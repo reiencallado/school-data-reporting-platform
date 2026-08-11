@@ -9,6 +9,7 @@ import { Archives } from './pages/archives/archives';
 import { PdfDesigner } from './pdf-designer/pdf-designer';
 import { Students } from './pages/students/students';
 import { Users } from './pages/users/users';
+import { ComingSoon } from './shared/components/coming-soon/coming-soon';
 import { authGuard } from './services/auth-guard';
 import { roleGuard } from './services/role-guard';
 
@@ -32,6 +33,25 @@ export const routes: Routes = [
         path: 'users',
         component: Users,
         canActivate: [roleGuard(['ROLE_ADMIN'])]
+      },
+      // Settings and Logs aren't built yet
+      {
+        path: 'settings',
+        component: ComingSoon,
+        canActivate: [roleGuard(['ROLE_ADMIN'])],
+        data: {
+          title: 'Settings',
+          message: "We're still building this page. Check back soon!"
+        }
+      },
+      {
+        path: 'logs',
+        component: ComingSoon,
+        canActivate: [roleGuard(['ROLE_ADMIN'])],
+        data: {
+          title: 'System Logs',
+          message: "We're still building this page. Check back soon!"
+        }
       },
     ]
   },

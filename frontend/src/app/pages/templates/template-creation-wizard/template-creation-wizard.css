@@ -79,6 +79,12 @@
   gap: 12px;
 }
 
+.wizard-kind-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
 .wizard-type-card {
   display: flex;
   flex-direction: column;
@@ -178,9 +184,12 @@
   .wizard-pick-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .wizard-kind-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* the component fills whatever box it's given. */
 .wizard-pick-thumb {
   min-height: 110px;
   border-radius: var(--radius-md);

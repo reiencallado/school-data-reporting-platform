@@ -3,8 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { StudentService } from '../../services/student.service';
-import { StudentSummary } from '../../services/student.model';
-// import { ReportService } from '../../services/report.service';
+import { StudentSummary, StudentType } from '../../services/student.model';
+import { Subscription } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { ReportStreamService } from '../../services/report-stream.service';
 
 export interface ArchiveReport {
   id:             string;
@@ -13,7 +15,7 @@ export interface ArchiveReport {
   type:           string;
   generatedBy:    string;
   date:           string;
-  status:         'DONE' | 'PROCESSING' | 'FAILED';
+  status:         'PENDING' | 'DONE' | 'PROCESSING' | 'FAILED';
   downloadUrl?:   string;
   failureReason?: string;
   lastDownloadedAt?: string;
@@ -26,11 +28,14 @@ export interface ReportBatch {
   template:       string;
   generatedBy:    string;
   date:           string;
+  createdAtRaw?:  string;
   details:        string;
-  status:         'DONE' | 'PROCESSING' | 'FAILED';
+  status:         'PENDING' | 'DONE' | 'PROCESSING' | 'FAILED';
   generatedCount: number;
   totalCount:     number;
   lastDownloadedAt?: string;
+  downloadUrl?:   string;
+  studentType?: string;
   reports:        ArchiveReport[];
 }
 
@@ -72,11 +77,9 @@ export class Archives implements OnInit {
   currentPage = 1;
   pageSize = 8;
 
-  // ── Pagination for the roster inside a batch's detail view ──
   detailPage = 1;
   detailPageSize = 10;
 
-  // ── Sorting state for batch roster ──
   sortField: string = 'student.studentId';
   sortAsc: boolean = true;
 
@@ -84,94 +87,99 @@ export class Archives implements OnInit {
     DONE: 'status-badge-done',
     PROCESSING: 'status-badge-processing',
     FAILED: 'status-badge-failed',
+    PENDING: 'status-badge-processing'
   };
 
   batches: ReportBatch[] = [];
 
-  constructor(private authService: AuthService, private studentService: StudentService, private cdr: ChangeDetectorRef) {}
+  private streamSub?: Subscription;
+
+  constructor(
+    private authService: AuthService,
+    private studentService: StudentService,
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient,
+    private reportStream: ReportStreamService
+  ) {}
 
   ngOnInit(): void {
-    this.studentService.getAllStudents().subscribe({
-      next: (students) => {
-        this.batches = this.buildMockBatches(students);
-        this.cdr.detectChanges();
-      },
-      error: (err) => console.error('Failed to load students for archives:', err),
+    this.fetchArchives();
+
+    // Listen to SSE Stream
+    this.streamSub = this.reportStream.jobUpdates$.subscribe((updatedJob: any) => {
+      const index = this.batches.findIndex(b => b.id === updatedJob.id);
+
+      if (index !== -1) {
+        this.batches[index].status = updatedJob.status;
+        this.batches[index].downloadUrl = updatedJob.fileUrl;
+        this.batches[index].totalCount = updatedJob.totalCount;
+        this.batches[index].generatedCount = updatedJob.status === 'DONE' ? updatedJob.totalCount : 0;
+      } else {
+        this.fetchArchives();
+      }
+      this.cdr.detectChanges();
     });
   }
 
-  private get currentUserName(): string {
-    return this.authService.getCurrentUser()?.username ?? 'You';
+  ngOnDestroy(): void {
+    if (this.streamSub) {
+      this.streamSub.unsubscribe();
+    }
   }
 
-  private buildMockBatches(students: StudentSummary[]): ReportBatch[] {
-    const k12Students = students.filter(s => s.studentType === 'K12');
-    const collegeStudents = students.filter(s => s.studentType === 'COLLEGE');
+  fetchArchives(): void {
+    // Admins see every batch org-wide; everyone else only sees batches
+    // they personally requested (same distinction Dashboard makes for
+    // Recent Reports). isAdmin() reads the role claim straight off the
+    // JWT - it's a UI-only check, the backend re-verifies independently.
+    const url = this.authService.isAdmin()
+      ? 'http://localhost:8080/api/report-jobs/all'
+      : 'http://localhost:8080/api/report-jobs';
 
-    return [
-      {
-        id: 'B-1',
-        name: 'Batch 1 - Certificate of Enrollment',
-        template: 'Certificate of Enrollment',
-        generatedBy: this.currentUserName,
-        date: '2026-06-01',
-        details: 'Grade 11 • STEM • St. Jude',
-        status: 'DONE',
-        generatedCount: Math.min(2, k12Students.length),
-        totalCount: Math.min(2, k12Students.length),
-        lastDownloadedAt: '2026-06-02',
-        reports: this.makeMockReports('B-1', 'Certificate of Enrollment', k12Students.slice(0, 2), 'DONE'),
-      },
-      {
-        id: 'B-2',
-        name: 'Batch 2 - Diploma Certificate',
-        template: 'Diploma Certificate',
-        generatedBy: this.currentUserName,
-        date: '2026-05-30',
-        details: 'Grade 12 • ABM • St. Thomas',
-        status: 'FAILED',
-        generatedCount: Math.min(1, k12Students.length),
-        totalCount: Math.min(2, k12Students.slice(2, 4).length || k12Students.length),
-        reports: this.makeMockReports('B-2', 'Diploma Certificate', k12Students.slice(2, 4), 'FAILED', 1),
-      },
-      {
-        id: 'B-3',
-        name: 'Batch 3 - Registrar Form 137',
-        template: 'Registrar Form 137',
-        generatedBy: this.currentUserName,
-        date: '2026-05-28',
-        details: 'College • CS & Accountancy',
-        status: 'PROCESSING',
-        generatedCount: Math.min(1, collegeStudents.length),
-        totalCount: collegeStudents.length,
-        reports: this.makeMockReports('B-3', 'Registrar Form 137', collegeStudents, 'PROCESSING', 1),
-      },
-    ];
-  }
+    this.http.get<any[]>(url).subscribe({
+      next: (data: any[]) => {
+        this.batches = data.map((job: any) => ({
+          id: job.id,
+          name: job.reportName || job.template?.name || 'Untitled Batch',
+          template: job.template?.name || 'Unknown Template',
+          generatedBy: job.requestedBy?.name || 'Admin',
+          date: job.createdAt ? job.createdAt.split('T')[0] : new Date().toISOString().split('T')[0],
+          createdAtRaw: job.createdAt || new Date().toISOString(),
+          details: job.details || 'Background Job',
+          status: job.status as 'DONE' | 'PROCESSING' | 'FAILED',
+          totalCount: job.totalCount || 0,
+          generatedCount: job.status === 'DONE' ? (job.totalCount || 0) : 0,
+          downloadUrl: job.fileUrl,
+          studentType: job.template?.studentType,
+          reports: []
+        }));
 
-  private makeMockReports(batchId: string, template: string, students: StudentSummary[], status: ArchiveReport['status'], generatedOverride?: number): ArchiveReport[] {
-    const generated = generatedOverride ?? students.length;
-    return students.map((student, i) => ({
-      id: `${batchId}-R${i + 1}`,
-      name: template,
-      template,
-      type: 'REPORT',
-      generatedBy: this.currentUserName,
-      date: '2026-05-20',
-      status: i < generated ? 'DONE' : status,
-      downloadUrl: '#',
-      failureReason: (i >= generated && status === 'FAILED') ? 'Template variable "signatory" is missing for this student.' : undefined,
-      student,
-    }));
+        // Newest first
+        this.batches.sort(
+          (a, b) => new Date(b.createdAtRaw!).getTime() - new Date(a.createdAtRaw!).getTime()
+        );
+
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => console.error('Failed to fetch archives:', err)
+    });
   }
 
   get statusOptions(): ArchiveReport['status'][] {
     return ['DONE', 'FAILED', 'PROCESSING'];
   }
 
-  // Highlights the student population a batch belongs to (K12 vs College)
-  batchStudentType(batch: ReportBatch): 'K12' | 'College' {
-    return batch.reports[0]?.student.studentType === 'COLLEGE' ? 'College' : 'K12';
+  batchStudentType(batch: ReportBatch): string {
+    if (batch.studentType === 'COLLEGE') return 'College';
+    if (batch.studentType === 'ADMISSIONS') return 'Admissions';
+    if (batch.studentType === 'K12') return 'K12';
+
+    if (batch.reports && batch.reports.length > 0) {
+      return batch.reports[0]?.student.studentType === 'COLLEGE' ? 'College' : 'K12';
+    }
+
+    // Default
+    return 'K12';
   }
 
   selectStudentType(type: StudentTypeFilter): void {
@@ -340,11 +348,53 @@ export class Archives implements OnInit {
     return true;
   }
 
+  fetchReportItems(batchId: string): void {
+    this.http.get<any[]>(`http://localhost:8080/api/report-jobs/${batchId}/items`).subscribe({
+      next: (items: any[]) => {
+        const batch = this.selectedBatch;
+        if (!batch || batch.id !== batchId) return;
+
+        const studentType: StudentType = batch.studentType === 'COLLEGE' ? 'COLLEGE' : 'K12';
+
+        batch.reports = items.map((item: any) => ({
+          id: item.id,
+          name: item.studentName,
+          template: batch.template,
+          type: 'REPORT',
+          generatedBy: batch.generatedBy,
+          date: batch.date,
+          status: item.status,
+          downloadUrl: item.fileUrl,
+          failureReason: item.failureReason,
+          student: {
+            id: item.studentId,
+            studentType,
+            studentId: item.studentId,
+            firstName: item.studentName,
+            lastName: '',
+            name: item.studentName,
+            subtitle: '',
+            status: 'ACTIVE',
+            grade: item.grade,
+            section: item.section,
+            strand: item.strand,
+            yearLevel: item.yearLevel,
+            course: item.course,
+          }
+        }));
+
+        this.cdr.detectChanges();
+      },
+      error: (err: any) => console.error('Failed to fetch report items:', err)
+    });
+  }
+
   openBatch(batch: ReportBatch): void {
     this.selectedBatch = batch;
     this.viewMode = 'detail';
     this.selectedIds.clear();
     this.detailPage = 1;
+    this.fetchReportItems(batch.id);
   }
 
   backToBatches(): void {
@@ -372,10 +422,10 @@ export class Archives implements OnInit {
 
   get sortedReports(): ArchiveReport[] {
     if (!this.selectedBatch) return [];
-    
+
     // Create a copy so we don't mutate the original batch data
     const reports = [...this.selectedBatch.reports];
-    
+
     if (this.sortField) {
       reports.sort((a, b) => {
         let valA = this.resolveFieldValue(a, this.sortField);
@@ -390,7 +440,7 @@ export class Archives implements OnInit {
         return 0;
       });
     }
-    
+
     return reports;
   }
 
@@ -414,21 +464,25 @@ export class Archives implements OnInit {
   }
 
   downloadBatch(batch: ReportBatch): void {
-    console.log('Downloading entire batch', batch.id);
-    batch.lastDownloadedAt = new Date().toISOString().slice(0, 10);
+    if (batch.status === 'DONE' && batch.downloadUrl) {
+      window.open(batch.downloadUrl, '_blank');
+      batch.lastDownloadedAt = new Date().toISOString().slice(0, 10);
+    }
   }
 
   retryBatch(batch: ReportBatch): void { console.log('Retrying batch generation for', batch.id); }
   retryReport(report: ArchiveReport): void { console.log('Retry report generation for', report.id); }
 
   downloadReport(report: ArchiveReport): void {
-    console.log('Downloading', report.id, report.downloadUrl);
-    report.lastDownloadedAt = new Date().toISOString().slice(0, 10);
+    if (report.status === 'DONE' && report.downloadUrl) {
+      window.open(report.downloadUrl, '_blank');
+      report.lastDownloadedAt = new Date().toISOString().slice(0, 10);
+    }
   }
 
   // ── Selection logic for batch detail view ──
 
-  // Helper to get only reports that are allowed to be downloaded
+  // Get only reports that are allowed to be downloaded
   get selectableReports(): ArchiveReport[] {
     return (this.selectedBatch?.reports ?? []).filter(r => r.status !== 'PROCESSING');
   }
@@ -440,7 +494,7 @@ export class Archives implements OnInit {
 
   toggleSelectAll(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
-    
+
     // Only iterate over selectable reports so we don't grab PROCESSING ones
     this.selectableReports.forEach(r => {
       if (checked) this.selectedIds.add(r.id);
@@ -458,8 +512,39 @@ export class Archives implements OnInit {
     this.selectedIds = new Set(this.selectedIds);
   }
 
-  downloadSelected(): void {
-    console.log('Batch download of selected reports', Array.from(this.selectedIds));
+  downloadSelected() {
+    const selectedIdsArray = Array.from(this.selectedIds);
+
+    if (selectedIdsArray.length === 0) {
+        alert("Please select at least one student.");
+        return;
+    }
+
+    this.http.post('http://localhost:8080/api/report-jobs/download-selected', selectedIdsArray, {
+        responseType: 'blob'
+    }).subscribe({
+        next: (blob: Blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            let baseName = 'Selected_Reports';
+            if (this.selectedBatch && this.selectedBatch.template) {
+                baseName = this.selectedBatch.template.replace(/[^a-zA-Z0-9_-]/g, '_');
+            }
+            a.download = `${baseName}_Selected.zip`;
+
+            document.body.appendChild(a);
+            a.click();
+
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        },
+        error: (err) => {
+            console.error("Failed to download selected items", err);
+            alert("An error occurred while generating the zip.");
+        }
+    });
   }
 
   changePage(page: number): void {

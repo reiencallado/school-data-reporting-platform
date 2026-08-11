@@ -1,0 +1,251 @@
+{
+  "basePdf": {
+    "width": 210,
+    "height": 297,
+    "padding": [20, 20, 20, 20]
+  },
+  "schemas": [
+    [
+      {
+        "name": "schoolLogo",
+        "type": "image",
+        "content": "",
+        "position": { "x": 20, "y": 18 },
+        "width": 18,
+        "height": 18
+      },
+      {
+        "name": "schoolName",
+        "type": "multiVariableText",
+        "content": "{\"schoolName\":\"School Name\"}",
+        "text": "{schoolName}",
+        "variables": ["schoolName"],
+        "position": { "x": 43, "y": 19.5 },
+        "width": 100,
+        "height": 6,
+        "fontSize": 11,
+        "fontColor": "#013157",
+        "alignment": "left"
+      },
+      {
+        "name": "periodLine",
+        "type": "multiVariableText",
+        "content": "{\"periodLabel\":\"Reporting Period\"}",
+        "text": "For the period: {periodLabel}",
+        "variables": ["periodLabel"],
+        "position": { "x": 43, "y": 26.5 },
+        "width": 100,
+        "height": 5,
+        "fontSize": 8,
+        "fontColor": "#888888",
+        "alignment": "left"
+      },
+      {
+        "name": "headerRule",
+        "type": "line",
+        "position": { "x": 20, "y": 40 },
+        "width": 170,
+        "height": 0.6,
+        "color": "#013157"
+      },
+
+      {
+        "name": "docTitle",
+        "type": "text",
+        "content": "Financial Summary Report",
+        "position": { "x": 20, "y": 48 },
+        "width": 170,
+        "height": 9,
+        "fontSize": 15,
+        "fontColor": "#013157",
+        "alignment": "left"
+      },
+
+      {
+        "name": "statCardDividerA",
+        "type": "line",
+        "position": { "x": 105, "y": 65 },
+        "width": 0.4,
+        "height": 45,
+        "color": "#e2e2e2"
+      },
+      {
+        "name": "totalBilledLabel",
+        "type": "text",
+        "content": "TOTAL TUITION BILLED",
+        "position": { "x": 20, "y": 65 },
+        "width": 80,
+        "height": 5,
+        "fontSize": 8.5,
+        "fontColor": "#888888",
+        "alignment": "left"
+      },
+      {
+        "name": "totalBilledValue",
+        "type": "multiVariableText",
+        "content": "{\"totalBilled\":\"₱0.00\"}",
+        "text": "{totalBilled}",
+        "variables": ["totalBilled"],
+        "position": { "x": 20, "y": 71 },
+        "width": 80,
+        "height": 11,
+        "fontSize": 18,
+        "fontColor": "#013157",
+        "alignment": "left"
+      },
+      {
+        "name": "totalCollectedLabel",
+        "type": "text",
+        "content": "TOTAL COLLECTED",
+        "position": { "x": 110, "y": 65 },
+        "width": 80,
+        "height": 5,
+        "fontSize": 8.5,
+        "fontColor": "#888888",
+        "alignment": "left"
+      },
+      {
+        "name": "totalCollectedValue",
+        "type": "multiVariableText",
+        "content": "{\"totalCollected\":\"₱0.00\"}",
+        "text": "{totalCollected}",
+        "variables": ["totalCollected"],
+        "position": { "x": 110, "y": 71 },
+        "width": 80,
+        "height": 11,
+        "fontSize": 18,
+        "fontColor": "#1a7f4b",
+        "alignment": "left"
+      },
+      {
+        "name": "outstandingLabel",
+        "type": "text",
+        "content": "OUTSTANDING BALANCE",
+        "position": { "x": 20, "y": 92 },
+        "width": 80,
+        "height": 5,
+        "fontSize": 8.5,
+        "fontColor": "#888888",
+        "alignment": "left"
+      },
+      {
+        "name": "outstandingValue",
+        "type": "multiVariableText",
+        "content": "{\"outstandingBalance\":\"₱0.00\"}",
+        "text": "{outstandingBalance}",
+        "variables": ["outstandingBalance"],
+        "position": { "x": 20, "y": 98 },
+        "width": 80,
+        "height": 11,
+        "fontSize": 18,
+        "fontColor": "#b8571e",
+        "alignment": "left"
+      },
+      {
+        "name": "collectionRateLabel",
+        "type": "text",
+        "content": "COLLECTION RATE",
+        "position": { "x": 110, "y": 92 },
+        "width": 80,
+        "height": 5,
+        "fontSize": 8.5,
+        "fontColor": "#888888",
+        "alignment": "left"
+      },
+      {
+        "name": "collectionRateValue",
+        "type": "multiVariableText",
+        "content": "{\"collectionRate\":\"0%\"}",
+        "text": "{collectionRate}",
+        "variables": ["collectionRate"],
+        "position": { "x": 110, "y": 98 },
+        "width": 80,
+        "height": 11,
+        "fontSize": 18,
+        "fontColor": "#013157",
+        "alignment": "left"
+      },
+      {
+        "name": "statCardBottomRule",
+        "type": "line",
+        "position": { "x": 20, "y": 118 },
+        "width": 170,
+        "height": 0.3,
+        "color": "#e2e2e2"
+      },
+
+      {
+        "name": "sectionLabelBreakdown",
+        "type": "text",
+        "content": "BREAKDOWN BY STUDENT TYPE",
+        "position": { "x": 20, "y": 130 },
+        "width": 170,
+        "height": 6,
+        "fontSize": 10,
+        "fontColor": "#013157",
+        "alignment": "left"
+      },
+      {
+        "name": "sectionDividerBreakdown",
+        "type": "line",
+        "position": { "x": 20, "y": 137 },
+        "width": 170,
+        "height": 0.3,
+        "color": "#d9d9d9"
+      },
+      {
+        "name": "k12Breakdown",
+        "type": "multiVariableText",
+        "content": "{\"k12Collected\":\"₱0.00\"}",
+        "text": "K12 Collected: {k12Collected}",
+        "variables": ["k12Collected"],
+        "position": { "x": 20, "y": 145 },
+        "width": 82.5,
+        "height": 8,
+        "fontSize": 11,
+        "alignment": "left",
+        "fontColor": "#333333"
+      },
+      {
+        "name": "collegeBreakdown",
+        "type": "multiVariableText",
+        "content": "{\"collegeCollected\":\"₱0.00\"}",
+        "text": "College Collected: {collegeCollected}",
+        "variables": ["collegeCollected"],
+        "position": { "x": 107.5, "y": 145 },
+        "width": 82.5,
+        "height": 8,
+        "fontSize": 11,
+        "alignment": "left",
+        "fontColor": "#333333"
+      },
+
+      {
+        "name": "preparedByLine",
+        "type": "multiVariableText",
+        "content": "{\"preparedBy\":\"Prepared By\"}",
+        "text": "Prepared by: {preparedBy}",
+        "variables": ["preparedBy"],
+        "position": { "x": 20, "y": 268 },
+        "width": 170,
+        "height": 6,
+        "fontSize": 9,
+        "alignment": "center",
+        "fontColor": "#888888"
+      },
+      {
+        "name": "generatedLine",
+        "type": "multiVariableText",
+        "content": "{\"generatedDate\":\"Generated Date\"}",
+        "text": "Generated on {generatedDate}",
+        "variables": ["generatedDate"],
+        "position": { "x": 20, "y": 275 },
+        "width": 170,
+        "height": 6,
+        "fontSize": 8.5,
+        "alignment": "center",
+        "fontColor": "#aaaaaa"
+      }
+    ]
+  ]
+}

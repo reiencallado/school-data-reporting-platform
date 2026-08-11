@@ -14,6 +14,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Handles HTTP requests related to user profiles.
+ * Provides endpoints for retrieving authenticated user information
+ * and managing user profile assets.
+ */
 @RestController
 @RequestMapping("/api/users")
 @CrossOrigin(origins = "*")
@@ -28,9 +33,12 @@ public class UserController {
     }
 
     // GET http://localhost:8080/api/users/me
-    // Returns the currently authenticated user's own profile, including
-    // their per-user branding logo. Note: password is deliberately never
-    // included in this response.
+    /**
+     * Retrieves the authenticated user's profile.
+     * The user's password is never included in the response.
+     *
+     * @return the authenticated user's profile, or 401 if unauthenticated
+     */
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser() {
         AppUser user = findCurrentUser();
@@ -55,6 +63,12 @@ public class UserController {
     // POST http://localhost:8080/api/users/me/logo
     // Uploads a per-user logo image via StorageService (S3/LocalStack),
     // same pattern as ReportTemplateController's thumbnail upload.
+    /**
+     * Uploads a profile logo and updates the authenticated user's profile.
+     *
+     * @param file the logo image to upload
+     * @return the uploaded logo URL, or an error response if the upload fails
+     */
     @PostMapping("/me/logo")
     public ResponseEntity<?> uploadLogo(@RequestParam("file") MultipartFile file) {
         AppUser user = findCurrentUser();
@@ -72,6 +86,11 @@ public class UserController {
         }
     }
 
+    /**
+     * Retrieves the currently authenticated user from the security context.
+     *
+     * @return the authenticated user, or null if no authenticated user exists
+     */
     private AppUser findCurrentUser() {
         String email = AuthUtil.getCurrentUsername();
         if (email == null) return null;
