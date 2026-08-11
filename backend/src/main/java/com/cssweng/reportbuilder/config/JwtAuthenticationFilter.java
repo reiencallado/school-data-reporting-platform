@@ -27,6 +27,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   }
 
   @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+	  String path = request.getRequestURI();
+	  // Do not run JWT validation on public login or setup routes, even if an old token is sent
+	  return path.startsWith("/api/auth/") 
+		  || path.startsWith("/api/v1/auth/") 
+		  || path.startsWith("/api/localstack/");
+  }
+
+  @Override
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
     throws ServletException, IOException {
 
