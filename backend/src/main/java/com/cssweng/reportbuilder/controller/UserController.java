@@ -32,11 +32,13 @@ public class UserController {
         this.storageService = storageService;
     }
 
-    // GET http://localhost:8080/api/users/me
     /**
      * Retrieves the authenticated user's profile.
      * The user's password is never included in the response.
      *
+     * Side effects: Queries the database for the user record matching the current security 
+     *               context and intentionally omits sensitive data from the response mapping.
+     * 
      * @return the authenticated user's profile, or 401 if unauthenticated
      */
     @GetMapping("/me")
@@ -60,12 +62,12 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    // POST http://localhost:8080/api/users/me/logo
-    // Uploads a per-user logo image via StorageService (S3/LocalStack),
-    // same pattern as ReportTemplateController's thumbnail upload.
     /**
      * Uploads a profile logo and updates the authenticated user's profile.
      *
+     * Side effects: Uploads the file to external storage via the StorageService and 
+     *               updates the user's database record with the resulting logo URL.
+     * 
      * @param file the logo image to upload
      * @return the uploaded logo URL, or an error response if the upload fails
      */

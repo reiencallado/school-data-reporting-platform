@@ -33,13 +33,13 @@ public class CollegeStudentsController {
         this.collegeStudentsRepository = collegeStudentsRepository;
     }
 
-    // GET http://localhost:8080/api/college-students
-    // ROLE_ADMIN sees all schools; ROLE_COLLEGE only sees their own school's students.
     /**
-     * Retrieves all college students.
-     * 
-     * ROLE_ADMIN sees all schools; ROLE_COLLEGE only sees their own school's students.
+     * Retrieves all college students. ROLE_ADMIN sees all schools; ROLE_COLLEGE only sees 
+     * their own school's students.
      *
+     * Side effects: Queries the database and evaluates the SecurityContextHolder to enforce 
+     *               tenant isolation.
+     * 
      * @return a list of accessible college students, or 403 if the user's school
      *         cannot be determined
      */
@@ -55,13 +55,13 @@ public class CollegeStudentsController {
         return ResponseEntity.ok(collegeStudentsRepository.findBySchoolId(schoolId));
     }
 
-    // GET http://localhost:8080/api/college-students/{id}
     /**
-     * Retrieves a college student by ID.
-     * 
-     * ROLE_ADMIN users can access students from any school, while ROLE_COLLEGE
-     * users can only access students belonging to their own school.
+     * Retrieves a college student by ID. ROLE_ADMIN users can access students from any 
+     * school, while ROLE_COLLEGE users can only access students belonging to their own school.
      *
+     * Side effects: Queries the database and evaluates the user's authorization to 
+     *               access the specific student's school data.
+     * 
      * @param id the ID of the student
      * @return the student if found and authorized, 403 if unauthorized,
      *         or 404 if not found
@@ -78,12 +78,13 @@ public class CollegeStudentsController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // GET http://localhost:8080/api/college-students/school/{schoolId}
     /**
-     * Retrieves all college students belonging to a specific school.
-     * 
-     * ROLE_ADMIN sees all schools; ROLE_COLLEGE only sees their own school's students.
+     * Retrieves all college students belonging to a specific school. ROLE_ADMIN sees all 
+     * schools; ROLE_COLLEGE only sees their own school's students.
      *
+     * Side effects: Queries the database and enforces tenant authorization against 
+     *               the requested school ID.
+     * 
      * @param schoolId the ID of the school
      * @return a list of students belonging to the school, or 403 if unauthorized
      */
@@ -95,7 +96,6 @@ public class CollegeStudentsController {
         return ResponseEntity.ok(collegeStudentsRepository.findBySchoolId(schoolId));
     }
 
-    // POST http://localhost:8080/api/college-students
     /**
      * Creates a new college student.
      * 
@@ -103,6 +103,9 @@ public class CollegeStudentsController {
      * whatever school is passed in the request body is ignored/overridden
      * for them, so a ROLE_COLLEGE user can't write into another school's
      * data just by changing the payload.
+     * 
+     * Side effects: Persists a new student to the database. For non-admins, overrides the 
+     *               request body's school assignment to match the user's JWT claim.
      *
      * @param collegeStudent the college student to create
      * @return the saved college student, or 403 if the user's school cannot be determined
@@ -122,19 +125,16 @@ public class CollegeStudentsController {
         return ResponseEntity.ok(saved);
     }
 
-    // POST http://localhost:8080/api/college-students/bulk
     /**
-     * Creates multiple college students in a single request.
+     * Bulk creates multiple college student records (primarily intended 
+     * for data seeding and testing).
      * 
-     * ROLE_ADMIN users can create students for any school, while ROLE_COLLEGE
-     * users can only create students under their own school.
-     * For ROLE_COLLEGE users, the school provided in each request is ignored
-     * and replaced with their own school.
+     * Side effects: Persists multiple students to the database. For non-admins, iterates through 
+     *               the list to override all school assignments to match the user's tenant context.
      *
-     * This endpoint is primarily intended for testing and quickly seeding data.
-     *
-     * @param students the list of college students to create
-     * @return the saved college students, or 403 if the user's school cannot be determined
+     * @param students a list of CollegeStudents objects to be saved.
+     * @return a response containing the list of successfully saved student records 
+     *         or a 403 Forbidden if context is invalid.
      */
     @PostMapping("/bulk")
     public ResponseEntity<List<CollegeStudents>> createStudents(@RequestBody List<CollegeStudents> students) {
@@ -153,7 +153,6 @@ public class CollegeStudentsController {
         return ResponseEntity.ok(saved);
     }
 
-    // PUT http://localhost:8080/api/college-students/{id}
     /**
      * Updates an existing college student.
      * 
@@ -161,6 +160,9 @@ public class CollegeStudentsController {
      * school assignment. ROLE_COLLEGE users can only update students from their
      * own school and cannot change the student's school assignment.
      *
+     * Side effects: Modifies a database record and ignores attempts by non-admins
+     *               to move a student to a different school.
+     * 
      * @param id the ID of the student to update
      * @param collegeStudent the updated student information
      * @return the updated student, 403 if unauthorized, or 404 if not found
@@ -192,13 +194,15 @@ public class CollegeStudentsController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // DEL http://localhost:8080/api/college-students/{id}
     /**
      * Deletes an existing college student.
      * 
      * ROLE_ADMIN users can delete students from any school, while ROLE_COLLEGE
      * users can only delete students belonging to their own school.
      *
+     * Side effects: Permanently removes a specific database record after verifying the user's 
+     *               authorization to modify that school's data.
+     * 
      * @param id the ID of the student to delete
      * @return the deleted student, 403 if unauthorized, or 404 if not found
      */

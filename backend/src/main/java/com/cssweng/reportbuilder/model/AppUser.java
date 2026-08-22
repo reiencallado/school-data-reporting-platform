@@ -33,7 +33,6 @@ public class AppUser {
     @Column(nullable = false, length = 50)
     private String role;
 
-    // Per-user branding logo, uploaded via StorageService (S3/LocalStack).
     @Column(name = "logo_url")
     private String logoUrl;
 

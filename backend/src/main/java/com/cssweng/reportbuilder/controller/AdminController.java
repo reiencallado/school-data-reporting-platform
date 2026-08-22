@@ -33,9 +33,14 @@ public class AdminController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // GET http://localhost:8080/api/admin/users
-    // Lists every user so the Users page can actually populate its table.
-    // Passwords are never included in the response.
+    /**
+     * Retrieves a complete list of all users registered in the system.
+     * 
+     * Side effects: Queries the database for all user records and maps them to a secure 
+     *               response format that excludes sensitive data like passwords.
+     *
+     * @return a JSON response containing the list of all users.
+     */
     @GetMapping("/users")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> getAllUsers() {
@@ -45,7 +50,15 @@ public class AdminController {
         return ResponseEntity.ok(response);
     }
 
-    // POST http://localhost:8080/api/admin/users
+    /**
+     * Creates a new administrative user in the system.
+     * 
+     * Side effects: Hashes the provided raw password for security and 
+     *               persists the new user record to the database.
+     *
+     * @param user the AppUser object containing the new admin's details
+     * @return a structured JSON response
+     */
     @PostMapping("/users")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> createAdminUser(@RequestBody AppUser user) {
@@ -67,9 +80,17 @@ public class AdminController {
         return ResponseEntity.ok(toUserResponse(savedUser));
     }
 
-    // PUT http://localhost:8080/api/admin/users/{id}
-    // Edits an existing user. Password is optional - only updated if a new
-    // non-blank value is sent, so editing a user doesn't force a password reset.
+    /**
+     * Updates the details of an existing user based on a payload.
+     * 
+     * Side effects: Queries the database, optionally hashes a new password, resolves 
+     *               any updated school associations, and persists the modified user record 
+     *               to the database.
+     *
+     * @param id      the UUID of the user to update
+     * @param updates a map containing the fields to be updated
+     * @return a JSON response containing the updated user details or a 404 Not Found if the user does not exist.
+     */
     @PutMapping("/users/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> updateAdminUser(@PathVariable UUID id, @RequestBody Map<String, Object> updates) {
@@ -101,8 +122,17 @@ public class AdminController {
         return ResponseEntity.ok(toUserResponse(savedUser));
     }
 
-    // DELETE http://localhost:8080/api/admin/users/{id}
-    // Blocks an admin from deleting their own account server-side.
+    /**
+     * Deletes a user record from the system, enforcing a safeguard that prevents the 
+     * currently authenticated admin from deleting their own account.
+     * 
+     * Side effects: Queries the database, evaluates the current security context to check 
+     *               the safeguard, and permanently removes the user record from the database.
+     *
+     * @param id yhe UUID of the user to delete
+     * @return a 204 No Content response on successful deletion, a 404 if the user is missing, 
+     *         or a 403 Forbidden if the admin attempts to delete themselves.
+     */
     @DeleteMapping("/users/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<?> deleteAdminUser(@PathVariable UUID id) {

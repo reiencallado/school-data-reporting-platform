@@ -36,10 +36,11 @@ public class StorageController {
         this.s3Client = s3Client;
     }
 
-    // POST http://localhost:8080/api/storage/upload
     /**
      * Uploads a file to the storage service.
      *
+     * Side effects: Delegates to the StorageService, which writes data to an external AWS S3 bucket.
+     * 
      * @param file the file to upload
      * @return a confirmation message
      * @throws IOException if the file cannot be read or uploaded
@@ -49,10 +50,12 @@ public class StorageController {
         return ResponseEntity.ok(storageService.uploadFile(file));
     }
 
-    // POST http://localhost:8080/api/storage/message
     /**
      * Sends a message to the message queue.
      *
+     * Side effects: Delegates to the StorageService, which enqueues a new message in an 
+     *               external AWS SQS system.
+     * 
      * @param messageBody the message content
      * @return a confirmation message
      */
@@ -61,14 +64,18 @@ public class StorageController {
         return ResponseEntity.ok(storageService.sendMessage(messageBody));
     }
 
-    // GET http://localhost:8080/api/storage/file?key=...
     /**
-     * Streams a stored object (school logos, template thumbnails, etc.)
-     * through the backend.
-     * Accepts either a full stored URL
-     * (http://localhost:4566/document-maker-bucket/logos/xyz.png) or a bare
-     * object key (logos/xyz.png) so it keeps working regardless of which
-     * form a caller happens to have on hand.
+     * Streams a stored object directly to the client. Accepts either a full stored URL 
+     * or a bare object key, parsing it automatically so it keeps working.
+     * 
+     * Side effects: Makes an outbound network request to an external AWS S3 bucket to retrieve 
+     *               the file stream, and modifies the HTTP response headers to enforce 
+     *               client-side caching.
+     *
+     * @param key the full URL or raw S3 object key of the file to retrieve
+     * @return a ResponseEntity containing the file's binary byte array and appropriate content type, 
+     *         or a 404 Not Found if the key does not exist in the bucket
+     * @throws IOException if there is an error reading the byte stream from the S3 response
      */
     @GetMapping("/file")
     public ResponseEntity<byte[]> getFile(@RequestParam("key") String key) throws IOException {

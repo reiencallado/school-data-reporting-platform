@@ -24,10 +24,11 @@ public class AdmissionStudentsController {
         this.admissionStudentsRepository = admissionStudentsRepository;
     }
 
-    // GET http://localhost:8080/api/admission-students
     /**
      * Retrieves all admission students.
      *
+     * Side effects: Queries the database for all admission student records.
+     * 
      * @return a list of all admission students
      */
     @GetMapping
@@ -35,10 +36,11 @@ public class AdmissionStudentsController {
         return ResponseEntity.ok(admissionStudentsRepository.findAll());
     }
 
-    // GET http://localhost:8080/api/admission-students/{id}
     /**
      * Retrieves an admission student by ID.
      *
+     * Side effects: Queries the database for a specific admission student record.
+     * 
      * @param id the ID of the admission student
      * @return the admission student if found, or 404 if not found
      */
@@ -49,10 +51,11 @@ public class AdmissionStudentsController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // POST http://localhost:8080/api/admission-students
     /**
      * Creates a new admission student.
      *
+     * Side effects: Persists a newly created admission student record to the database.
+     * 
      * @param admissionStudent the admission student to create
      * @return the saved admission student
      */
@@ -62,14 +65,15 @@ public class AdmissionStudentsController {
         return ResponseEntity.ok(saved);
     }
 
-    // POST http://localhost:8080/api/admission-students/bulk
     /**
-     * Creates multiple admission student records in a single request.
+     * Bulk creates multiple admission student records (primarily intended 
+     * for data seeding and testing).
+     * 
+     * Side effects: Persists multiple new admission student records to the 
+     *               database in a single transaction.
      *
-     * This endpoint is primarily intended for testing and quickly seeding data.
-     *
-     * @param students the list of admission students to create
-     * @return the saved admission students
+     * @param students a list of AdmissionStudents objects to be saved.
+     * @return a response containing the list of successfully saved student records.
      */
     @PostMapping("/bulk")
     public ResponseEntity<List<AdmissionStudents>> createStudents(@RequestBody List<AdmissionStudents> students) {
@@ -77,10 +81,12 @@ public class AdmissionStudentsController {
         return ResponseEntity.ok(saved);
     }
 
-    // PUT http://localhost:8080/api/admission-students/{id}
     /**
      * Updates an existing admission student.
      *
+     * Side effects: Modifies the fields of an existing admission student 
+     *               record in the database.
+     * 
      * @param id the ID of the admission student to update
      * @param admissionStudent the updated admission student information
      * @return the updated admission student, or 404 if not found
@@ -102,10 +108,11 @@ public class AdmissionStudentsController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // DEL http://localhost:8080/api/admission-students/{id}
     /**
      * Deletes an existing admission student.
      *
+     * Side effects: Permanently removes a specific admission student record from the database.
+     * 
      * @param id the ID of the admission student to delete
      * @return the deleted admission student, or 404 if not found
      */

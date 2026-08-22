@@ -22,14 +22,42 @@ public class JwtUtil {
         return this.secretKey;
     }
 
+    /**
+     * Generates a JWT token for a user with basic role context.
+     *
+     * @param username the authenticated user's identifier
+     * @param role     the authority or role assigned to the user
+     * @return         the signed JWT string
+     */
     public String generateToken(String username, String role) {
         return generateToken(username, role, null, null);
     }
 
+    /**
+     * Generates a JWT token for a user including school-specific context.
+     *
+     * @param username the authenticated user's identifier
+     * @param role     the authority or role assigned to the user
+     * @param schoolId the associated school ID for scoped role enforcement
+     * @return         the signed JWT string
+     */
     public String generateToken(String username, String role, String schoolId) {
         return generateToken(username, role, schoolId, null);
     }
 
+    /**
+     * Generates a featured JWT token including role, school scope, display name, 
+     * and derived tenant metadata.
+     * 
+     * Side effects: Determines and adds a tenantId claim based on the provided role 
+     *               string prior to token generation.
+     *
+     * @param username the authenticated user's identifier
+     * @param role     the authority or role assigned to the user
+     * @param schoolId the associated school ID for scoped role enforcement
+     * @param name     the display name for frontend convenience
+     * @return         the signed JWT string
+     */
     public String generateToken(String username, String role, String schoolId, String name) {
         // Guarantee role has 'ROLE_' prefix when stored in claims
         String formattedRole = (role != null && !role.startsWith("ROLE_")) ? "ROLE_" + role : role;

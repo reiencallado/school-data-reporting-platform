@@ -27,9 +27,20 @@ public class AuthController {
         this.jwtUtil = jwtUtil;
     }
 
+    /**
+     * Authenticates a user based on their provided username and password, 
+     * issuing a JWT token upon success.
+     * 
+     * Side effects: Queries the database for user credentials and generates 
+     *               a JWT token.
+     *
+     * @param credentials a Map containing the login payload
+     * @return a JSON response containing the HTTP status and JWT token on 
+     *         success, or an error message on failure.
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
-        // 1. Grab 'username' OR 'email' from the incoming Postman JSON
+        // Grab username or email from the incoming Postman JSON
         String identifier = credentials.get("username") != null ? credentials.get("username") : credentials.get("email");
         String password = credentials.get("password");
 
@@ -37,10 +48,10 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("message", "Username or email is required."));
         }
 
-        // 2. Query the database checking BOTH fields for that identifier
+        // Query the database checking both fields for that identifier
         Optional<AppUser> userOptional = userRepository.findByNameOrEmail(identifier, identifier);
 
-        // 3. Verify the password if the user was found
+        // Verify the password if the user was found
         if (userOptional.isPresent() && passwordEncoder.matches(password, userOptional.get().getPassword())) {
             
             AppUser user = userOptional.get();
@@ -59,7 +70,7 @@ public class AuthController {
             ));
         }
 
-        // 4. Return 401 if unauthorized
+        // Return 401 if unauthorized
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
             "status", 401,
             "error", "Unauthorized",

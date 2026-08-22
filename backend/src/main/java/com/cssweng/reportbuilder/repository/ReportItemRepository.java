@@ -12,7 +12,6 @@ import java.util.List;
  */
 @Repository
 public interface ReportItemRepository extends JpaRepository<ReportItem, UUID> {
-
     /**
      * Fetches all individual student report rows belonging to one batch job.
      *

@@ -39,6 +39,16 @@ public class LocalStackController {
         this.sqsClient = sqsClient;
     }
 
+    /**
+     * Uploads a provided file to the LocalStack S3 bucket.
+     * 
+     * Side effects: Writes an object to an external S3 storage bucket and 
+     *               generates a random UUID to prefix the file key.
+     *
+     * @param file the MultipartFile object containing the document payload
+     * @return a JSON response containing success details on a 200 OK, a 400 if 
+     *         the file is empty, or a 500 on an AWS/LocalStack failure
+     */
     @PostMapping("/s3/upload")
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
         // TRIGGER 400 BAD REQUEST: File cannot be missing or empty
@@ -80,6 +90,17 @@ public class LocalStackController {
         }
     }
 
+    /**
+     * Sends a plain text message to the LocalStack SQS queue.
+     * 
+     * Side effects: Enqueues a new message in an external SQS system and generates 
+     *               a random UUID for the message deduplication ID.
+     *
+     * @param payload a Map representing the request body, specifically expecting a 
+     *                message key containing the text to send.
+     * @return a JSON response containing delivery details on a 200 OK,
+     *         a 400 if the message is missing, or a 500 on an SQS delivery failure.
+     */
     @PostMapping("/sqs/send")
     public ResponseEntity<?> sendMessage(@RequestBody Map<String, String> payload) {
         String messageBody = payload.get("message");

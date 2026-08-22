@@ -6,7 +6,7 @@ import com.cssweng.reportbuilder.model.AppUser;
 
 import java.util.UUID;
 import java.util.List;
-import java.util.Optional; // Added for safe null-handling on login lookup
+import java.util.Optional; 
 
 /**
  * Provides database access operations for AppUser entities.

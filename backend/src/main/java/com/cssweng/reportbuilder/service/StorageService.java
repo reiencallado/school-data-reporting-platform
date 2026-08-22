@@ -39,6 +39,8 @@ public class StorageService {
 
     /**
      * Uploads a file to the configured S3 bucket.
+     * 
+     * Side effects: Writes data to an external AWS S3 bucket.
      *
      * @param file the file to upload
      * @return a confirmation message containing the uploaded file name
@@ -59,6 +61,8 @@ public class StorageService {
     /**
      * Uploads a file to S3 and returns its accessible URL.
      *
+     * Side effects: Writes data to an external AWS S3 bucket.
+     * 
      * @param file the file to upload
      * @param keyPrefix the S3 key prefix for the uploaded file
      * @return the URL of the uploaded file
@@ -71,6 +75,9 @@ public class StorageService {
     /**
      * Uploads a file to S3 with a custom download filename and returns its URL.
      *
+     * Side effects: Writes data to an external AWS S3 bucket and generates a 
+     *               random UUID for the object's key.
+     * 
      * @param file the file to upload
      * @param keyPrefix the S3 key prefix for the uploaded file
      * @param downloadFilename the filename presented when the file is downloaded
@@ -102,6 +109,8 @@ public class StorageService {
     /**
      * Sends a message to the configured SQS queue.
      *
+     * Side effects: Sends a message to an external AWS SQS queue.
+     * 
      * @param messageBody the message content to send
      * @return a confirmation message
      */

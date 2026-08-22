@@ -29,10 +29,11 @@ public class ReportTemplateController {
         this.storageService = storageService;
     }
 
-    // GET http://localhost:8080/api/report-templates
     /**
      * Retrieves all active report templates.
      *
+     * Side effects: Queries the database for all report template records.
+     * 
      * @return a list of active report templates
     */
     @GetMapping
@@ -40,10 +41,12 @@ public class ReportTemplateController {
         return ResponseEntity.ok(reportTemplateRepository.findByActiveTrue());
     }
 
-    // GET http://localhost:8080/api/report-templates/{id}
     /**
      * Retrieves a report template by its ID and updates its last opened timestamp.
      *
+     * Side effects: Modifies the template record by updating its lastOpenedAt timestamp 
+     *               to current time and storing the change to the database before returning.
+     * 
      * @param id the ID of the report template
      * @return the report template if found, or 404 if not found
     */
@@ -58,10 +61,11 @@ public class ReportTemplateController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // GET http://localhost:8080/api/report-templates/school/{schoolId}
     /**
      * Retrieves all report templates associated with a school.
      *
+     * Side effects: Queries the database for report templates linked to the provided school ID.
+     * 
      * @param schoolId the ID of the school
      * @return a list of report templates belonging to the school
     */
@@ -70,10 +74,11 @@ public class ReportTemplateController {
         return ResponseEntity.ok(reportTemplateRepository.findBySchoolId(schoolId));
     }
 
-    // POST http://localhost:8080/api/report-templates
     /**
      * Creates and saves a new report template.
      *
+     * Side effects: Persists a newly created report template record to the database.
+     * 
      * @param reportTemplate the report template to create
      * @return the saved report template
     */
@@ -83,10 +88,11 @@ public class ReportTemplateController {
         return ResponseEntity.ok(saved);
     }
 
-    // PUT http://localhost:8080/api/report-templates/{id}
     /**
      * Updates an existing report template with the provided information.
      *
+     * Side effects: Modifies the fields of an existing report template record in the database.
+     * 
      * @param id the ID of the report template to update
      * @param reportTemplate the updated report template data
      * @return the updated report template, or 404 if not found
@@ -106,12 +112,13 @@ public class ReportTemplateController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // DEL http://localhost:8080/api/report-templates/{id}
     /**
      * Soft deletes a report template by marking it as inactive.
      * This keeps report_jobs (and any other historical references) intact,
      * and sidesteps the FK constraint entirely since the row is never removed.
      *
+     * Side effects: Permanently removes a specific report template record from the database.
+     * 
      * @param id the ID of the report template to delete
      * @return the updated report template, or 404 if not found
      */
@@ -126,10 +133,12 @@ public class ReportTemplateController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // POST http://localhost:8080/api/report-templates/{id}/thumbnail
     /**
      * Uploads a thumbnail image for a report template and updates its thumbnail URL.
      *
+     * Side effects: Uploads the file to external storage via the StorageService and updates 
+     *               the template's database record with the resulting URL.
+     * 
      * @param id the ID of the report template
      * @param file the thumbnail image to upload
      * @return the uploaded thumbnail URL, or 404 if the template is not found

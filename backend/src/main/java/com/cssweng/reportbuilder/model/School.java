@@ -3,7 +3,7 @@ package com.cssweng.reportbuilder.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
-import org.hibernate.annotations.UuidGenerator; // TODO: change uuid_generator to what ever fits
+import org.hibernate.annotations.UuidGenerator; // Change uuid_generator to what ever fits
 
 /**
  * Represents a school within the report generation system.

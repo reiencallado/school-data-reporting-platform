@@ -71,6 +71,8 @@ public class ReportJobService {
      * The returned list may include jobs in different states such as PENDING,
      * PROCESSING, DONE, or FAILED.
      *
+     * Side effects: Queries the database for report jobs associated with the provided user ID.
+     * 
      * @param userId the unique identifier of the user whose report jobs are to be retrieved
      * @return a list of {@link ReportJob} objects associated with the specified user;
      *         returns an empty list if the user has no report jobs
@@ -84,6 +86,8 @@ public class ReportJobService {
      * Intended for admin-facing views (dashboard, archives) rather than
      * the per-user "my jobs" endpoint.
      *
+     * Side effects: Queries the database for all report jobs across the system.
+     * 
      * @return every {@link ReportJob} in the system, sorted by creation time descending
      */
     public List<ReportJob> getAllJobs() {
@@ -95,6 +99,8 @@ public class ReportJobService {
      * Each report item represents the generation result for an individual record,
      * including its processing status, generated file URL, and any failure information.
      *
+     * Side effects: Queries the database for report items associated with the provided job ID.
+     * 
      * @param jobId the unique identifier of the report job
      * @return a list of {@link ReportItem} objects belonging to the specified
      *         report job; returns an empty list if no report items exist
@@ -112,6 +118,9 @@ public class ReportJobService {
      * and starts asynchronous report generation. The method returns immediately
      * without waiting for the report generation process to complete.
      *
+     * Side effects: Persists a new job to the database, fires an SSE broadcast, and 
+     *               triggers an asynchronous background thread for SQS/S3 queuing.
+     * 
      * @param request contains the selected template, report details, and input data
      * @param user the authenticated user requesting the report generation
      * @return the newly created report job
@@ -137,6 +146,18 @@ public class ReportJobService {
         return savedJob;
     }
 
+    /**
+     * Configures and enqueues a report generation job for asynchronous background processing.
+     *
+     * Side effects: Modifies the job status in the database, writes a configuration JSON 
+     *               file to an external S3 bucket, and dispatches a job payload message to 
+     *               an external SQS queue.
+     *
+     * @param jobId the unique identifier of the report job
+     * @param reportName the name of the report batch
+     * @param configuration the JSON configuration string for the template
+     * @param inputs the list of input data items for the report
+     */
     private void processJobInBackground(UUID jobId, String reportName, String configuration, List<ReportJobRequest.InputItem> inputs) {
         try {
             markJobStatus(jobId, "PROCESSING", null);
@@ -174,6 +195,15 @@ public class ReportJobService {
         }
     }
 
+    /**
+     * Processes the webhook payload received upon the completion of a background report generation job.
+     *
+     * Side effects: Parses the result payload to create and persist multiple ReportItem
+     *               records to the database, updates the parent ReportJob status, and triggers 
+     *               an SSE broadcast to connected clients.
+     *
+     * @param webhookPayload a Map containing the job results, status, and generated file URLs
+     */
     public void handleJobCompletion(Map<String, Object> webhookPayload) {
         UUID jobId = UUID.fromString((String) webhookPayload.get("jobId"));
         String status = (String) webhookPayload.get("status");
@@ -213,6 +243,17 @@ public class ReportJobService {
         markJobStatus(jobId, status, fileUrl);
     }
 
+    /**
+     * Packages multiple completed report items into a single downloadable ZIP archive.
+     *
+     * Side effects: Queries the database for the selected items, makes outbound HTTP GET 
+     *               requests to fetch the files from external S3 storage, and streams the 
+     *               zipped byte output directly to the HttpServletResponse.
+     *
+     * @param selectedItemIds the list of UUIDs for the specific report items to include
+     * @param response the HttpServletResponse to stream the ZIP archive into
+     * @throws IOException if there is an error reading the external files or writing to the response output stream
+     */
     public void generateSelectedZip(List<UUID> selectedItemIds, HttpServletResponse response) throws IOException {
         List<ReportItem> items = reportItemRepository.findAllById(selectedItemIds);
 
@@ -254,6 +295,9 @@ public class ReportJobService {
      * the updated job to the database, and broadcasts the latest job information
      * to all connected SSE clients.
      *
+     * Side effects: Modifies the job record in the database and pushes an update 
+     *               event to all active SSE clients.
+     * 
      * @param jobId the unique identifier of the report job
      * @param status the new status of the report job
      * @param fileUrl the URL of the generated report file, or null if no file is available
@@ -278,6 +322,8 @@ public class ReportJobService {
      * automatically remove the emitter when the connection is completed,
      * times out, or encounters an error.
      *
+     * Side effects: Updates active emitters and registers lifecycle callbacks.
+     * 
      * @return a configured and registered SseEmitter instance for streaming
      *         report job updates to the client
      */
@@ -303,6 +349,9 @@ public class ReportJobService {
      * Server-Sent Events (SSE) emitter. Emitters that fail to receive the update
      * are removed from the active emitter list.
      *
+     * Side effects: Transmits data over active HTTP connections and removes stale or broken 
+     *               connections from the internal in-memory list.
+     * 
      * @param job the report job whose updated information will be broadcast to connected clients
      */
     private void broadcastUpdate(ReportJob job) {

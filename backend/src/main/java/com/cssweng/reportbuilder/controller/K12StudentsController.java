@@ -33,11 +33,13 @@ public class K12StudentsController {
         this.k12StudentsRepository = k12StudentsRepository;
     }
 
-    // GET http://localhost:8080/api/k12-students
     /**
      * Retrieves all K-12 students.
      * ROLE_ADMIN sees all schools; ROLE_K12 only sees their own school's students.
      *
+     * Side effects: Queries the database and evaluates the Spring SecurityContextHolder to 
+     *               enforce tenant isolation.
+     * 
      * @return a list of accessible K-12 students, or 403 if the user's school
      *         cannot be determined
      */
@@ -58,6 +60,9 @@ public class K12StudentsController {
      * Retrieves a K-12 student by ID.
      * ROLE_ADMIN sees all schools; ROLE_K12 only sees their own school's students.
      *
+     * Side effects: Queries the database and evaluates the user's authorization to access 
+     *               the specific student's school data.
+     * 
      * @param id the ID of the student
      * @return the student if found and authorized, 403 if unauthorized,
      *         or 404 if not found
@@ -74,11 +79,13 @@ public class K12StudentsController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // GET http://localhost:8080/api/k12-students/school/{schoolId}
     /**
      * Retrieves all K-12 students belonging to a specific school.
      * ROLE_ADMIN sees all schools; ROLE_K12 only sees their own school's students.
      *
+     * Side effects: Queries the database and strictly enforces tenant authorization against 
+     *               the requested school ID.
+     * 
      * @param schoolId the ID of the school
      * @return a list of students belonging to the school, or 403 if unauthorized
      */
@@ -90,7 +97,6 @@ public class K12StudentsController {
         return ResponseEntity.ok(k12StudentsRepository.findBySchoolId(schoolId));
     }
 
-    // POST http://localhost:8080/api/k12-students
     /**
      * Creates a new K-12 student.
      * 
@@ -98,6 +104,10 @@ public class K12StudentsController {
      * whatever school is passed in the request body is ignored/overridden
      * for them, so a ROLE_K12 user can't write into another school's data
      * just by changing the payload.
+     * 
+     * Side effects: Persists a new student to the database. For non-admins, overrides 
+     *               the request body's school assignment to match the authenticated user's 
+     *               JWT claim.
      *
      * @param k12Student the K-12 student to create
      * @return the saved K-12 student, or 403 if the user's school cannot be determined
@@ -117,19 +127,17 @@ public class K12StudentsController {
         return ResponseEntity.ok(saved);
     }
 
-    // POST http://localhost:8080/api/k12-students/bulk
     /**
-     * Creates multiple K-12 students in a single request.
+     * Bulk creates multiple K-12 student records (primarily intended 
+     * for fast data seeding and testing).
      * 
-     * Non-admins can only ever create students under their own school -
-     * whatever school is passed in the request body is ignored/overridden
-     * for them, so a ROLE_K12 user can't write into another school's data
-     * just by changing the payload.
+     * Side effects: Persists multiple students to the database. For non-admins, iterates 
+     *               through the list to forcibly override all school assignments to match 
+     *               the user's tenant context.
      *
-     * This endpoint is primarily intended for testing and quickly seeding data.
-     *
-     * @param students the list of K-12 students to create
-     * @return the saved K-12 students, or 403 if the user's school cannot be determined
+     * @param students A list of K12Students objects to be saved
+     * @return a response containing the list of successfully saved student records, 
+     *         or a 403 Forbidden if context is invalid
      */
     @PostMapping("/bulk")
     public ResponseEntity<List<K12Students>> createStudents(@RequestBody List<K12Students> students) {
@@ -148,7 +156,6 @@ public class K12StudentsController {
         return ResponseEntity.ok(saved);
     }
 
-    // PUT http://localhost:8080/api/k12-students/{id}
     /**
      * Updates an existing K-12 student.
      * 
@@ -156,6 +163,9 @@ public class K12StudentsController {
      * school assignment. ROLE_K12 users can only update students from their
      * own school and cannot change the student's school assignment.
      *
+     * Side effects: Modifies a database record and ignores attempts by non-admins 
+     *               to move a student to a different school.
+     * 
      * @param id the ID of the student to update
      * @param k12Student the updated student information
      * @return the updated student, 403 if unauthorized, or 404 if not found
@@ -188,13 +198,15 @@ public class K12StudentsController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // DEL http://localhost:8080/api/k12-students/{id}
     /**
      * Deletes an existing K-12 student.
      * 
      * ROLE_ADMIN users can delete students from any school, while ROLE_K12
      * users can only delete students belonging to their own school.
      *
+     * Side effects: Permanently removes a specific database record after verifying the 
+     *               user's authorization to modify that school's data.
+     * 
      * @param id the ID of the student to delete
      * @return the deleted student, 403 if unauthorized, or 404 if not found
      */

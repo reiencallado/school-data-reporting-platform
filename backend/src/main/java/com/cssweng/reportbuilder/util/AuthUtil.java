@@ -32,9 +32,11 @@ public final class AuthUtil {
     }
 
     /**
-     * Returns the current request's authenticated principal — this is the
-     * email string set as the JWT subject (see AuthController.login /
-     * JwtAuthenticationFilter), not a separately-stored "username" field.
+     * Retrieves the current request's authenticated principal.
+     * 
+     * Side effects: Reads authentication data from the SecurityContextHolder.
+     *
+     * @return the email of the authenticated user or null if no user is authenticated
      */
     public static String getCurrentUsername() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -47,8 +49,11 @@ public final class AuthUtil {
     }
 
     /**
-     * @return the current user's school id, or null if they have none
-     *         (e.g. a global ROLE_ADMIN account with no school set).
+     * Retrieves the current user's associated school ID from the JWT claims.
+     * 
+     * Side effects: Reads authentication data directly from the SecurityContextHolder.
+     *
+     * @return the current user's school ID, or null if they have none
      */
     public static UUID getCurrentSchoolId() {
         Claims claims = getCurrentClaims();
