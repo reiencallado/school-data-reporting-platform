@@ -5,7 +5,16 @@ import { HttpClient } from '@angular/common/http';
 import { ResolutionModalComponent } from '../../shared/components/resolution-modal/resolution-modal';
 import { StudentService } from '../../services/student.service';
 import { StudentSummary } from '../../services/student.model';
-// import { AuthService } from '../../services/auth.service';
+import { ReportTemplateService } from '../../services/report-template.service';
+import { AuthService } from '../../services/auth.service';
+
+/** True if the given ISO date string falls in the current calendar month/year. */
+function isThisMonth(dateStr?: string): boolean {
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
 
 @Component({
   selector: 'app-dashboard',
@@ -17,23 +26,28 @@ import { StudentSummary } from '../../services/student.model';
 export class Dashboard implements OnInit {
 
   // ── Role ─────────────────────────────────────────────────
-  // TODO: replace with real value from AuthService
-  isAdmin = true;
+  // Set in the constructor below from AuthService.isAdmin() (decoded
+  // straight off the JWT — display/filtering only, not a security
+  // boundary; the backend re-verifies on every actual request).
+  isAdmin: boolean;
 
   // ── Metric Cards ─────────────────────────────────────────
-  // TODO: fetch from StudentService / ReportService
-  metrics = {
-    totalStudents:        1248,
-    newStudentsThisMonth: 12,
-    activeStudents:       1248,
-    newActiveThisMonth:   12,
-    reportsGenerated:     1248,
-    newReportsThisMonth:  12,
-    templates:            10,
-    newTemplatesThisMonth: 1,
-    systemUsers:          8,
-    newUsersThisMonth:    1,
-  };
+  // Signal (not a plain object) for the same zoneless-repaint reason as
+  // `students`/`reports` below — a mutated plain object won't trigger a
+  // repaint here.
+  metrics = signal({
+    totalStudents:        0,
+    newStudentsThisMonth: 0,
+    activeStudents:       0,
+    newActiveThisMonth:   0,
+    reportsGenerated:     0,
+    newReportsThisMonth:  0,
+    templates:            0,
+    // no newTemplatesThisMonth: ReportTemplate has no createdAt field to
+    // derive it from (see report-template.model.ts) — showing a delta
+    // here would just be a fabricated number.
+    systemUsers:          0,
+  });
 
   // ── Recent Students ──────────────────────────────────────
   students = signal<StudentRow[]>([]);
@@ -57,33 +71,26 @@ export class Dashboard implements OnInit {
     PENDING: 'status-badge-processing',
   };
 
-  // ── System Overview (admin only) ─────────────────────────
-  // TODO: change to real values; fetch from SystemService
-  systemOverview = {
-    activeSessions:    14,
-    sessionLoad:       58,
-    storageUsedGb:     42,
-    storageTotalGb:    100,
-    storagePercent:    42,
-    reportsThisMonth:  38,
-    reportsLastMonth:  24,
-    reportsPercent:    76,
-    failedLogins:      3,
-    failedLoginPercent: 6,
-    pendingApprovals:  5,
-    pendingPercent:    25,
-  };
-
   showConfigModal = false;
 
   constructor(
     private studentService: StudentService,
+    private reportTemplateService: ReportTemplateService,
+    private authService: AuthService,
     private http: HttpClient,
-  ) {}
+  ) {
+    this.isAdmin = this.authService.isAdmin();
+  }
 
   ngOnInit(): void {
     this.fetchRecentStudents();
     this.fetchRecentReports();
+    this.fetchTemplateCount();
+    // /api/admin/users is admin-only (@PreAuthorize) — skip it entirely
+    // for non-admins rather than eat a guaranteed 403.
+    if (this.isAdmin) {
+      this.fetchSystemUserCount();
+    }
   }
 
   private fetchRecentStudents(): void {
@@ -92,13 +99,15 @@ export class Dashboard implements OnInit {
 
     this.studentService.getAllStudents().subscribe({
       next: (data: StudentSummary[]) => {
-        const mapped = data
+        const sorted = data
           .slice()
           .sort((a, b) => {
             const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
             const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
             return bTime - aTime;
-          })
+          });
+
+        const mapped = sorted
           .slice(0, 10)
           .map((s): StudentRow => ({
             id: s.studentId,
@@ -109,11 +118,47 @@ export class Dashboard implements OnInit {
           }));
         this.students.set(mapped);
         this.studentsLoading.set(false);
+
+        // Metric cards: derived from the same full (unsliced) list so we
+        // don't fire a second request just for the counts.
+        const activeStudents = sorted.filter(s => s.status === 'ACTIVE').length;
+        const newStudentsThisMonth = sorted.filter(s => isThisMonth(s.createdAt)).length;
+        const newActiveThisMonth = sorted.filter(s => s.status === 'ACTIVE' && isThisMonth(s.createdAt)).length;
+
+        this.metrics.update(m => ({
+          ...m,
+          totalStudents: sorted.length,
+          newStudentsThisMonth,
+          activeStudents,
+          newActiveThisMonth,
+        }));
       },
       error: (err) => {
         console.error('Failed to fetch recent students:', err);
         this.studentsError.set('Could not load recent students.');
         this.studentsLoading.set(false);
+      },
+    });
+  }
+
+  private fetchTemplateCount(): void {
+    this.reportTemplateService.getAllTemplates().subscribe({
+      next: (templates) => {
+        this.metrics.update(m => ({ ...m, templates: templates.length }));
+      },
+      error: (err) => {
+        console.error('Failed to fetch template count:', err);
+      },
+    });
+  }
+
+  private fetchSystemUserCount(): void {
+    this.authService.getUsers().subscribe({
+      next: (users) => {
+        this.metrics.update(m => ({ ...m, systemUsers: users.length }));
+      },
+      error: (err) => {
+        console.error('Failed to fetch system user count:', err);
       },
     });
   }
@@ -124,9 +169,11 @@ export class Dashboard implements OnInit {
 
     this.http.get<any[]>('http://localhost:8080/api/report-jobs').subscribe({
       next: (data: any[]) => {
-        const mapped = data
+        const sorted = data
           .slice()
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        const mapped = sorted
           .slice(0, 10)   // ← was 5, now matches Recent Students
           .map((job): ReportRow => ({
             id: job.id,
@@ -138,6 +185,14 @@ export class Dashboard implements OnInit {
           }));
         this.reports.set(mapped);
         this.reportsLoading.set(false);
+
+        // Metric card: derived from the same full (unsliced) list.
+        const newReportsThisMonth = sorted.filter(job => isThisMonth(job.createdAt)).length;
+        this.metrics.update(m => ({
+          ...m,
+          reportsGenerated: sorted.length,
+          newReportsThisMonth,
+        }));
       },
       error: (err) => {
         console.error('Failed to fetch recent reports:', err);

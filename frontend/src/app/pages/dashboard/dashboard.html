@@ -15,8 +15,8 @@
       </div>
       <div class="metric-body">
         <span class="metric-label">Total Students</span>
-        <span class="metric-value">{{ metrics.totalStudents | number }}</span>
-        <span class="metric-delta positive">+{{ metrics.newStudentsThisMonth }} this month</span>
+        <span class="metric-value">{{ metrics().totalStudents | number }}</span>
+        <span class="metric-delta positive">+{{ metrics().newStudentsThisMonth }} this month</span>
       </div>
     </div>
 
@@ -31,8 +31,8 @@
       </div>
       <div class="metric-body">
         <span class="metric-label">Active Students</span>
-        <span class="metric-value">{{ metrics.activeStudents | number }}</span>
-        <span class="metric-delta positive">+{{ metrics.newActiveThisMonth }} this month</span>
+        <span class="metric-value">{{ metrics().activeStudents | number }}</span>
+        <span class="metric-delta positive">+{{ metrics().newActiveThisMonth }} this month</span>
       </div>
     </div>
 
@@ -47,8 +47,8 @@
       </div>
       <div class="metric-body">
         <span class="metric-label">Reports Generated</span>
-        <span class="metric-value">{{ metrics.reportsGenerated | number }}</span>
-        <span class="metric-delta positive">+{{ metrics.newReportsThisMonth }} this month</span>
+        <span class="metric-value">{{ metrics().reportsGenerated | number }}</span>
+        <span class="metric-delta positive">+{{ metrics().newReportsThisMonth }} this month</span>
       </div>
     </div>
 
@@ -66,8 +66,7 @@
       </div>
       <div class="metric-body">
         <span class="metric-label">Templates</span>
-        <span class="metric-value">{{ metrics.templates }}</span>
-        <span class="metric-delta positive">+{{ metrics.newTemplatesThisMonth }} this month</span>
+        <span class="metric-value">{{ metrics().templates }}</span>
       </div>
     </div>
 
@@ -83,8 +82,7 @@
       </div>
       <div class="metric-body">
         <span class="metric-label">System Users</span>
-        <span class="metric-value">{{ metrics.systemUsers }}</span>
-        <span class="metric-delta positive">+{{ metrics.newUsersThisMonth }} this month</span>
+        <span class="metric-value">{{ metrics().systemUsers }}</span>
       </div>
     </div>
 
@@ -253,63 +251,6 @@
       </div>
     </div>
 
-  </div>
-
-
-  <!-- ==== SYSTEM OVERVIEW - Admin only ==== -->
-  <div class="dashboard-section" *ngIf="isAdmin">
-    <div class="section-header">
-      <h3 class="section-heading">System Overview</h3>
-      <a routerLink="/logs" class="view-all-link">View Logs</a>
-    </div>
-    <div class="overview-grid">
-
-      <div class="overview-card">
-        <span class="overview-label">Active Sessions</span>
-        <span class="overview-value">{{ systemOverview.activeSessions }}</span>
-        <div class="overview-bar">
-          <div class="overview-bar-fill" [style.width.%]="systemOverview.sessionLoad"></div>
-        </div>
-        <span class="overview-sub">{{ systemOverview.sessionLoad }}% of capacity</span>
-      </div>
-
-      <div class="overview-card">
-        <span class="overview-label">Storage Used</span>
-        <span class="overview-value">{{ systemOverview.storageUsedGb }} GB</span>
-        <div class="overview-bar">
-          <div class="overview-bar-fill" [style.width.%]="systemOverview.storagePercent"></div>
-        </div>
-        <span class="overview-sub">{{ systemOverview.storagePercent }}% of {{ systemOverview.storageTotalGb }} GB</span>
-      </div>
-
-      <div class="overview-card">
-        <span class="overview-label">Reports This Month</span>
-        <span class="overview-value">{{ systemOverview.reportsThisMonth }}</span>
-        <div class="overview-bar">
-          <div class="overview-bar-fill bar-green" [style.width.%]="systemOverview.reportsPercent"></div>
-        </div>
-        <span class="overview-sub">vs {{ systemOverview.reportsLastMonth }} last month</span>
-      </div>
-
-      <div class="overview-card">
-        <span class="overview-label">Failed Logins (24h)</span>
-        <span class="overview-value">{{ systemOverview.failedLogins }}</span>
-        <div class="overview-bar">
-          <div class="overview-bar-fill bar-orange" [style.width.%]="systemOverview.failedLoginPercent"></div>
-        </div>
-        <span class="overview-sub">{{ systemOverview.failedLoginPercent }}% anomaly rate</span>
-      </div>
-
-      <div class="overview-card">
-        <span class="overview-label">Pending Approvals</span>
-        <span class="overview-value">{{ systemOverview.pendingApprovals }}</span>
-        <div class="overview-bar">
-          <div class="overview-bar-fill bar-orange" [style.width.%]="systemOverview.pendingPercent"></div>
-        </div>
-        <span class="overview-sub">Awaiting admin review</span>
-      </div>
-
-    </div>
   </div>
 
 </div>
